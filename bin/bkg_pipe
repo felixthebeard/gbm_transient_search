@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+import argparse
+
+from gbm_bkg_pipe.handler import from_cmd_string
+from gbm_bkg_pipe import gbm_bkg_pipe_config
+
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument("-date", type=str, help="Date string", required=True)
+
+args = parser.parse_args()
+
+from_cmd_string(args.date)

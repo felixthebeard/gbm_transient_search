@@ -23,7 +23,7 @@ extra_files = find_data_files("gbm_bkg_pipe/data")
 setup(
     version=versioneer.get_version(),
     include_package_data=True,
-    scripts=[],
+    scripts=["bin/bkg_pipe"],
     package_data={"": extra_files},
     license="GPL3",
     cmdclass=versioneer.get_cmdclass()

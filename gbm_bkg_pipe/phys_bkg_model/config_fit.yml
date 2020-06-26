@@ -5,7 +5,7 @@
 
 ################## General Input [Days, Detector, Data Type, Energy Channels] #######################
 general:
-  data_type:  'trigdat'
+  data_type:  'ctime'
   min_bin_width: 1.0e-99
 
 ################# Input for response precalculation [how many grid poits?] ##########################
@@ -35,8 +35,9 @@ setup:
   use_cgb:      true
   ps_list:
     auto_swift:
-        flux_limit: 0.1
-        exclude: [Crab]
+      update_catalog: false
+      flux_limit: 0.1
+      exclude: [Crab]
 
     CRAB:
       fixed: true

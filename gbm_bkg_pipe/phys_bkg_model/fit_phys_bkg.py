@@ -63,12 +63,12 @@ args = parser.parse_args()
 
 config_fit = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "config_fit_trigdat.yml"
+    "config_fit.yml"
 )
 
 config_plot = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "config_plot_trigdat.yml"
+    "config_result_plot.yml"
 )
 
 # Load the config.yml

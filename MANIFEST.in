@@ -1,0 +1,2 @@
+include versioneer.py
+include gbm_bkg_pipe/_version.py

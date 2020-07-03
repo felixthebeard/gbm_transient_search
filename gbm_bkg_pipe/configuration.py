@@ -1,14 +1,33 @@
 from configya import YAMLConfig
 
+_gbm_detectors = (
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5",
+    "n6",
+    "n7",
+    "n8",
+    "n9",
+    "na",
+    "nb",
+    "b0",
+    "b1",
+)
 
 structure = {}
 
 structure["luigi"] = dict(n_workers=4)
-structure["multinest"] = dict(n_cores=4, path_to_python="python")
 structure["phys_bkg"] = dict(
-    n_parallel_fits=8, multinest=dict(n_cores=4, path_to_python="python")
+    multinest=dict(n_cores=4, path_to_python="python")
 )
-
+structure["data"] = dict(
+    data_type="ctime",
+    detectors=_gbm_detectors,
+    echans=list(range(0, 7))
+)
 
 class GBMBkgPipeConfig(YAMLConfig):
     def __init__(self):

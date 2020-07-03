@@ -9,32 +9,16 @@ from chainconsumer import ChainConsumer
 from luigi.contrib.external_program import ExternalProgramTask
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.iteration import chunked_iterable
 
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 
 base_dir = os.environ.get("GBMDATA")
-bkg_n_parallel_fits = gbm_bkg_pipe_config["phys_bkg"]["n_parallel_fits"]
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
 
-_gbm_detectors = (
-    "n0",
-    "n1",
-    "n2",
-    "n3",
-    "n4",
-    "n5",
-    "n6",
-    "n7",
-    "n8",
-    "n9",
-    "na",
-    "nb",
-    "b0",
-    "b1",
-)
+run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
+run_echans = gbm_bkg_pipe_config["data"]["echans"]
 
 
 class GBMBackgroundModelFit(luigi.Task):
@@ -45,16 +29,13 @@ class GBMBackgroundModelFit(luigi.Task):
         "cpu": 1
     }
 
-    detectors = _gbm_detectors[:1]
-    echans = [str(i) for i in range(0, 3)]
-
     def requires(self):
 
         bkg_fit_tasks = {}
 
-        for det in self.detectors:
+        for det in run_detectors:
 
-            for echan in self.echans:
+            for echan in run_echans:
 
                 bkg_fit_tasks[f"bkg_{det}_e{echan}"] = RunPhysBkgModel(
                     date=self.date, echan=echan, detector=det
@@ -87,12 +68,12 @@ class GBMBackgroundModelFit(luigi.Task):
 
         bkg_fit_results = []
 
-        for det in self.detectors:
+        for det in run_detectors:
 
-            for echan in self.echans:
+            for echan in run_echans:
 
                 bkg_fit_results.append(
-                    self.input()[f"bkg_{det}_e{echan}"]["result_file"].path
+                    self.input()[f"bkg_{det}_e{echan}"]["result_file"]
                 )
 
         # PHACombiner and save combined file

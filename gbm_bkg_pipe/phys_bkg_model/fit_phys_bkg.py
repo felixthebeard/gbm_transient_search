@@ -156,52 +156,17 @@ data_exporter.save_data(
 
 stop_export = datetime.now()
 
-################## Plotting ########################################
-start_plotting = datetime.now()
-
-if config["plot"].get("result_plot", True):
-
-    if rank == 0:
-        print("Start plotting")
-
-        plot_generator = ResultPlotGenerator.from_result_file(
-            config_file=config_plot,
-            result_data_file=os.path.join(output_dir, result_file_name),
-        )
-
-        # If we fit the background to trigdat data, then we will highlight the active
-        # time, that we excluded from the fit, in the plot
-        if config["general"]["data_type"] == "trigdat":
-            plot_generator.add_occ_region(
-                occ_name="Active Time",
-                time_start=model_generator.data.trigtime - 15,
-                time_stop=model_generator.data.trigtime + 150,
-                time_format="MET",
-                color="red",
-                alpha=0.1,
-            )
-
-        plot_generator.create_plots(output_dir=output_dir)
-
-if config["plot"].get("corner_plot", True):
-    # Create corner plot
-    minimizer.create_corner_plot()
-
-comm.barrier()
-
-stop_plotting = datetime.now()
-
 ################## Save Config ########################################
 if rank == 0:
-
     # Save used config file to output directory
-    with open(os.path.join(output_dir + "used_config.yml"), "w") as file:
+    with open(os.path.join(output_dir, "used_config.yml"), "w") as file:
         documents = yaml.dump(config, file)
+
+    os.system(f"touch {os.path.join(output_dir, 'finished.txt')}")
 
 if rank == 0:
     # Print the duration of the script
     print("The precalculations took: {}".format(stop_precalc - start_precalc))
     print("The fit took: {}".format(stop_fit - start_fit))
     print("The result export took: {}".format(stop_export - start_export))
-    print("The plotting took: {}".format(stop_plotting - start_plotting))
     print("Whole calculation took: {}".format(datetime.now() - start))

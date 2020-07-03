@@ -6,7 +6,7 @@ structure = {}
 structure["luigi"] = dict(n_workers=4)
 structure["multinest"] = dict(n_cores=4, path_to_python="python")
 structure["phys_bkg"] = dict(
-    n_parallel_fits=8, multinest=dict(n_cores=1, path_to_python="python")
+    n_parallel_fits=8, multinest=dict(n_cores=4, path_to_python="python")
 )
 
 

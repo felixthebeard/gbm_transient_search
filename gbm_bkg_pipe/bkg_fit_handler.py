@@ -73,7 +73,7 @@ class GBMBackgroundModelFit(luigi.Task):
             for echan in run_echans:
 
                 bkg_fit_results.append(
-                    self.input()[f"bkg_{det}_e{echan}"]["result_file"]
+                    self.input()[f"bkg_{det}_e{echan}"]["result_file"].path
                 )
 
         # PHACombiner and save combined file

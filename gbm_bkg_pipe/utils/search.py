@@ -122,8 +122,8 @@ class Search(object):
             / self._rebinned_time_bin_width[self._rebinned_saa_mask]
         ).T
 
-        self._data_flattened = self._data_cleaned[
-            :, self._dets_idx, self._echans
+        self._data_flattened = self._data_cleaned[:, self._dets_idx, :][
+            :, :, self._echans
         ].reshape((self._data_cleaned.shape[0], -1))
 
         if mad:

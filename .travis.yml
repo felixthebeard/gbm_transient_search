@@ -19,7 +19,7 @@ before_install:
 
 install:
 - pip install --upgrade pytest pytest-cov codecov numpy>=1.16 cython
-- python setup.py install
+- pip install .
 
 script:
 - luigid --background --logdir . --state-path . 

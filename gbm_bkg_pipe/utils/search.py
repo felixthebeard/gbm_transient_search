@@ -1,5 +1,7 @@
 import h5py
 import numpy as np
+from scipy import stats
+
 from gbmbkgpy.utils.saa_calc import SAA_calc
 from gbmbkgpy.utils.binner import Rebinner
 
@@ -26,6 +28,40 @@ valid_det_names = [
 ]
 
 
+def distance_mapping(x, ref_vector=None):
+
+    if ref_vector is None:
+        ref_vector = np.repeat(1, x.shape[1])
+
+    distance = np.sqrt(np.sum((x - ref_vector) ** 2, axis=1))
+
+    return distance
+
+
+def angle(x, ref_vector):
+
+    dot_prod = np.dot(x, ref_vector)
+
+    norm1 = np.sqrt(np.sum(x ** 2))
+    norm2 = np.sqrt(np.sum(ref_vector ** 2))
+
+    if abs(dot_prod / (norm1 * norm2)) > 1:
+        return 0
+
+    else:
+        return np.arccos(dot_prod / (norm1 * norm2))
+
+
+def angle_mapping(x, ref_vector=None):
+
+    if ref_vector is None:
+        ref_vector = np.repeat(1, x.shape[1])
+
+    x_ang = np.apply_along_axis(angle, axis=1, arr=x, ref_vector=ref_vector)
+
+    return x_ang
+
+
 def calc_snr(data, background):
 
     snr = np.sum(data - background) / np.sqrt(np.sum(background))
@@ -43,7 +79,7 @@ def calc_significance(data, background, bkg_stat_err):
 
 
 class Search(object):
-    def __init__(self, result_file, min_bin_width):
+    def __init__(self, result_file, min_bin_width, mad=False, sub_min=False):
 
         self._load_result_file(result_file)
 
@@ -86,6 +122,37 @@ class Search(object):
             / self._rebinned_time_bin_width[self._rebinned_saa_mask]
         ).T
 
+        self._data_flattened = self._data_cleaned[
+            :, self._dets_idx, self._echans
+        ].reshape((self._data_cleaned.shape[0], -1))
+
+        if mad:
+
+            med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=1)
+            median = np.median(self._data_cleaned[:, :, 0], axis=1)
+
+            med_abs_div = med_abs_div.reshape(
+                (-1,) + (1,) * (self._data_flattened.ndim - 1)
+            )
+            median = median.reshape((-1,) + (1,) * (self._data_flattened.ndim - 1))
+
+            self._data_trans = (self._data_flattened - median) / med_abs_div
+
+        else:
+            self._data_trans = self._data_flattened
+
+        if sub_min:
+            min_x = np.min(self._data_trans, axis=1).reshape(
+                (-1,) + (1,) * (self._data_trans.ndim - 1)
+            )
+
+            self._data_trans = self._data_trans - min_x
+
+        self._distances = distance_mapping(self._data_trans)
+        self._angles = angle_mapping(self._data_trans)
+
+        self._penalty = 2 * np.log(len(self._data_cleaned))
+
     def _load_result_file(self, result_file):
         with h5py.File(result_file, "r") as f:
 
@@ -120,6 +187,153 @@ class Search(object):
         self._bkg_counts = model_counts
         self._bkg_stat_err = stat_err
 
+    def find_changepoints_angles(self, **kwargs):
+
+        change_points_sections = []
+        change_points = []
+
+        for section, valid_slice in enumerate(self._valid_slices):
+
+            angle_slice = self._angles[valid_slice[0] : valid_slice[1]]
+
+            penalty = 2 * np.log(len(angle_slice))
+
+            algo_ang = rpt.Pelt(**kwargs).fit(angle_slice)
+            cpts_seg = algo_ang.predict(pen=penalty)
+
+            change_points_sections.append(cpts_seg)
+            change_points.append(cpts_seg + valid_slice[0])
+
+        change_points_sections = np.array(change_points_sections)
+        change_points = np.array(change_points)
+
+        self._cpts_sections_all = change_points_sections
+        self._change_points_all = change_points
+
+    def get_significance(self, required_significance=5):
+
+        intervals = {}
+        significances = {}
+
+        echan_idx = 0
+        echan = self._echans[0]
+
+        for det in self._detectors:
+
+            intervals[det] = []
+            significances[det] = []
+
+            det_idx = valid_det_names.index(det)
+
+            for segment in range(len(self._change_points_all)):
+
+                for idx_low in self._change_points_all[segment]:
+
+                    for idx_high in self._change_points_all[segment]:
+
+                        if idx_low != idx_high and idx_low < idx_high:
+
+                            significance = calc_significance(
+                                data=self._rebinned_observed_counts[
+                                    self._rebinned_saa_mask, det_idx, echan_idx
+                                ][idx_low:idx_high],
+                                background=self._rebinned_bkg_counts[
+                                    self._rebinned_saa_mask, det_idx, echan
+                                ][idx_low:idx_high],
+                                bkg_stat_err=self._rebinned_bkg_stat_err[
+                                    self._rebinned_saa_mask, det_idx, echan
+                                ][idx_low:idx_high],
+                            )
+
+                            if (
+                                not np.isnan(significance)
+                                and significance > required_significance
+                            ):
+
+                                intervals[det].append([idx_low, idx_high])
+
+                                significances[det].append(significance)
+
+            intervals[det] = np.array(intervals[det])
+            significances[det] = np.array(significances[det])
+
+            sort_idx = significances[det].argsort()[::-1]
+
+            intervals[det] = intervals[det][sort_idx]
+            significances[det] = significances[det][sort_idx]
+
+        # Filter out overlapping intervals and select the one with highest significance
+        # This is done twice to get rid of some leftovers
+        intervals_selected, significances_selected = self.filter_overlap(
+            intervals, significances
+        )
+        intervals_selected, significances_selected = self.filter_overlap(
+            intervals_selected, significances_selected
+        )
+
+        self._intervals_all = intervals
+        self._intervals_significance_all = significances
+        self._intervals = intervals_selected
+        self._intervals_significance = significances_selected
+
+    def filter_overlap(self, intervals, significances):
+
+        intervals_selected = {}
+        significances_selected = {}
+
+        # Filter out overlapping intervals and select the one with highest significance
+        for det in self._detectors:
+
+            max_ids = []
+
+            for id1, interval1 in enumerate(intervals[det]):
+
+                tmp_ids = []
+
+                tmp_ids.append(id1)
+
+                for id2, interval2 in enumerate(intervals[det]):
+
+                    if interval1[0] <= interval2[1] and interval2[0] <= interval1[1]:
+                        tmp_ids.append(id2)
+
+                max_id = significances[det][tmp_ids].argmax()
+
+                max_ids.append(tmp_ids[max_id])
+
+            max_ids = np.unique(max_ids)
+
+            intervals_selected[det] = intervals[det][max_ids]
+            significances_selected[det] = significances[det][max_ids]
+
+        return intervals_selected, significances_selected
+
+    def save_result(self, output_path):
+
+        with h5py.File(output_path, "w") as f:
+
+            f.attrs["dates"] = self._dates
+
+            f.attrs["data_type"] = self._data_type
+
+            f.attrs["echans"] = self._echans
+
+            f.attrs["detectors"] = self._detectors
+
+            for det in self._detectors:
+
+                f.create_dataset(
+                    f"{det}_intervals",
+                    data=self._rebinned_mean_time(self._intervals_selected[det]),
+                    compression="lzf",
+                )
+
+                f.create_dataset(
+                    "{det}_significance",
+                    data=self._intervals_significance[det],
+                    compression="lzf",
+                )
+
     def run_bayesian_blocks(self, **kwargs):
 
         echan_idx = 0
@@ -148,7 +362,7 @@ class Search(object):
                     valid_slice[0] : valid_slice[1], det_idx, echan_idx
                 ]
 
-                time_slice = self._data.mean_time[self._saa_mask][
+                time_slice = self._rebinned_mean_time[self._saa_mask][
                     valid_slice[0] : valid_slice[1]
                 ]
 
@@ -204,29 +418,27 @@ class Search(object):
                     valid_slice[0] : valid_slice[1], det_idx, echan_idx
                 ]
 
-                print(data_slice.shape)
-                print(self._data_cleaned.shape)
-                print(self._valid_slices)
+                penalty = 2 * np.log(len(data_slice))
 
                 if method == "binseg":
                     algo = rpt.Binseg(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(n_bkps=max_nr_cpts)
+                    cpts_seg = algo.predict(pen=penalty)
 
                 elif method == "pelt":
                     algo = rpt.Pelt(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=3)
+                    cpts_seg = algo.predict(pen=penalty)
 
                 elif method == "dynp":
                     algo = rpt.Dynp(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(n_bkps=max_nr_cpts)
+                    cpts_seg = algo.predict(pen=penalty)
 
                 elif method == "bottomup":
                     algo = rpt.BottomUp(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(n_bkps=max_nr_cpts)
+                    cpts_seg = algo.predict(pen=penalty)
 
                 elif method == "window":
                     algo = rpt.Window(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(n_bkps=max_nr_cpts)
+                    cpts_seg = algo.predict(pen=penalty)
 
                 else:
                     raise KeyError("Invalid method selected")
@@ -319,7 +531,7 @@ class Search(object):
 
                     for idx_high in self._change_points[det][segment]:
 
-                        if idx_low != idx_high:
+                        if idx_low != idx_high and idx_low < idx_high:
 
                             if snr:
                                 significance = calc_snr(
@@ -374,7 +586,9 @@ class Search(object):
 
             det_idx = valid_det_names.index(det)
 
-            snr_mask_det = np.zeros(len(self._rebinned_mean_time[self._rebinned_saa_mask]))
+            snr_mask_det = np.zeros(
+                len(self._rebinned_mean_time[self._rebinned_saa_mask])
+            )
 
             for interval in self._intervals_sorted[det]:
                 snr_mask[interval[0] : interval[1]] += 1

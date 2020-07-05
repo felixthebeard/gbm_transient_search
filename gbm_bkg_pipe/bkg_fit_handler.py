@@ -93,6 +93,8 @@ class RunPhysBkgModel(ExternalProgramTask):
         "cpu": bkg_n_cores_multinest
     }
 
+    worker_timeout = 60 * 60  # 1 hour
+
     def requires(self):
         return None
 

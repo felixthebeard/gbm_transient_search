@@ -181,6 +181,7 @@ class Search(object):
         self._dates = dates
         self._detectors = detectors
         self._echans = echans
+        self._data_type = data_type
         self._time_bins = time_bins
         self._saa_mask = saa_mask
         self._observed_counts = observed_counts

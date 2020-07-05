@@ -52,49 +52,18 @@ class TriggerSearch(luigi.Task):
                 "bkg_pipe",
                 self.data_type,
                 f"{self.date:%y%m%d}",
-                "triggers.txt",
+                "trigger_result.hd5",
             )
         )
 
     def run(self):
         search = Search(
             result_file=self.input().path,
-            min_bin_width=15,
+            min_bin_width=5,
         )
 
-        methods = {
-            "binseg": dict(model="l2"),
-            "pelt": dict(min_size=3, jump=5, model="l1"),
-            "dynp": dict(min_size=3, jump=5, model="l1"),
-            "bottomup": dict(model="l2"),
-            "window": dict(width=40, model="l2")
-        }
+        search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 
-        for method, kwargs in methods.items():
-            print(method)
-            search.find_change_points_raptures(method=method, **kwargs)
+        search.get_significance(required_significance=5)
 
-            search.find_change_points_raptures()
-
-            search.get_significant_regions(snr=False, required_significance=3)
-
-            search.correlate_detectors()
-
-            plt.plot(
-                search._rebinned_mean_time[search._rebinned_saa_mask],
-                search._significant_mask_dets
-            )
-
-            plt.xlabel("Time [MET]");
-            plt.ylabel("# of detectors with ROI");
-
-            plot_path = os.path.join(
-                base_dir,
-                "bkg_pipe",
-                self.data_type,
-                f"{self.date:%y%m%d}",
-                f"{method}.png",
-            )
-            plt.savefig(plot_path)
-
-        os.system(f"touch {self.output().path}")
+        search.save_result(self.output().path)

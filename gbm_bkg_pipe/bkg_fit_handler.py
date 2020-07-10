@@ -25,29 +25,27 @@ class GBMBackgroundModelFit(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
 
-    resources = {
-        "cpu": 1
-    }
+    resources = {"cpu": 1}
 
     def requires(self):
 
         bkg_fit_tasks = {}
 
-        for det in run_detectors:
+        for dets in run_detectors:
 
-            for echan in run_echans:
+            for echans in run_echans:
 
-                bkg_fit_tasks[f"bkg_{det}_e{echan}"] = RunPhysBkgModel(
-                    date=self.date, echan=echan, detector=det
-                )
+                bkg_fit_tasks[
+                    f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                ] = RunPhysBkgModel(date=self.date, echans=echans, detectors=dets)
 
-                bkg_fit_tasks[f"result_plot_{det}_e{echan}"] = BkgModelResultPlot(
-                    date=self.date, echan=echan, detector=det
-                )
+                bkg_fit_tasks[
+                    f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                ] = BkgModelResultPlot(date=self.date, echans=echans, detectors=dets)
 
-                bkg_fit_tasks[f"corner_plot_{det}_e{echan}"] = BkgModelCornerPlot(
-                    date=self.date, echan=echan, detector=det
-                )
+                bkg_fit_tasks[
+                    f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
 
         return bkg_fit_tasks
 
@@ -84,13 +82,11 @@ class GBMBackgroundModelFit(luigi.Task):
 class RunPhysBkgModel(ExternalProgramTask):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echan = luigi.Parameter()
-    detector = luigi.Parameter()
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
     always_log_stderr = True
 
-    resources = {
-        "cpu": bkg_n_cores_multinest
-    }
+    resources = {"cpu": bkg_n_cores_multinest}
 
     worker_timeout = 60 * 60  # 1 hour
 
@@ -103,34 +99,16 @@ class RunPhysBkgModel(ExternalProgramTask):
             f"{self.date:%y%m%d}",
             self.data_type,
             "phys_bkg",
-            f"{self.detector}",
-            f"e{self.echan}"
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
         )
         return {
-            "result_file": luigi.LocalTarget(
-                os.path.join(
-                    job_dir,
-                    "fit_result.hdf5"
-                )
-            ),
+            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
             "posteriour": luigi.LocalTarget(
-                os.path.join(
-                    job_dir,
-                    "post_equal_weights.dat"
-                )
+                os.path.join(job_dir, "post_equal_weights.dat")
             ),
-            "params_json": luigi.LocalTarget(
-                os.path.join(
-                    job_dir,
-                    "params.json"
-                )
-            ),
-            "finished": luigi.LocalTarget(
-                os.path.join(
-                    job_dir,
-                    "finished.txt"
-                )
-            )
+            "params_json": luigi.LocalTarget(os.path.join(job_dir, "params.json")),
+            "finished": luigi.LocalTarget(os.path.join(job_dir, "finished.txt")),
         }
 
     def program_args(self):
@@ -142,9 +120,7 @@ class RunPhysBkgModel(ExternalProgramTask):
         # Run with mpi in parallel
         if bkg_n_cores_multinest > 1:
 
-            command.extend(
-                ["mpiexec", f"-n", f"{bkg_n_cores_multinest}"]
-            )
+            command.extend(["mpiexec", f"-n", f"{bkg_n_cores_multinest}"])
 
         command.extend(
             [
@@ -154,13 +130,17 @@ class RunPhysBkgModel(ExternalProgramTask):
                 f"{self.date:%y%m%d}",
                 f"-dtype",
                 f"{self.data_type}",
-                f"-dets",
-                f"{self.detector}",
-                f"-e",
-                f"{self.echan}",
-                f"-out",
-                f"{os.path.dirname(self.output()['result_file'].path)}",
             ]
+        )
+
+        command.append("-dets")
+        command.extend(self.detectors)
+
+        command.append("-e")
+        command.extend(self.echans)
+
+        command.extend(
+            [f"-out", f"{os.path.dirname(self.output()['result_file'].path)}",]
         )
         return command
 
@@ -168,32 +148,35 @@ class RunPhysBkgModel(ExternalProgramTask):
 class BkgModelResultPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echan = luigi.Parameter()
-    detector = luigi.Parameter()
+    echans = luigi.Parameter()
+    detectors = luigi.Parameter()
 
-    resources = {
-        "cpu": 1
-    }
+    resources = {"cpu": 1}
 
     def requires(self):
         return RunPhysBkgModel(
-            date=self.date, echan=self.echan, detector=self.detector
+            date=self.date, echans=self.echans, detectors=self.detectors
         )
 
     def output(self):
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
 
-        filename = f"plot_date_{self.date:%y%m%d}_det_{self.detector}_echan_{self.echan}__{''}.pdf"
-        return luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    "phys_bkg",
-                    f"{self.detector}",
-                    f"e{self.echan}",
-                    filename
-                )
-            )
+        plot_files = []
+
+        for detector in self.detectors:
+            for echan in self.echans:
+
+                filename = f"plot_date_{self.date:%y%m%d}_det_{detector}_echan_{echan}__{''}.pdf"
+
+                plot_files.append(luigi.LocalTarget(os.path.join(job_dir, filename)))
+        return plot_files
 
     def run(self):
 
@@ -201,40 +184,38 @@ class BkgModelResultPlot(luigi.Task):
 
         plot_generator = ResultPlotGenerator.from_result_file(
             config_file=config_plot_path,
-            result_data_file=self.input()["result_file"].path
+            result_data_file=self.input()["result_file"].path,
         )
 
-        plot_generator.create_plots(output_dir=os.path.dirname(self.output().path), time_stamp="")
+        plot_generator.create_plots(
+            output_dir=os.path.dirname(self.output().path), time_stamp=""
+        )
 
 
 class BkgModelCornerPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echan = luigi.Parameter()
-    detector = luigi.Parameter()
+    echans = luigi.Parameter()
+    detectors = luigi.Parameter()
 
-    resources = {
-        "cpu": 1
-    }
+    resources = {"cpu": 1}
 
     def requires(self):
         return RunPhysBkgModel(
-            date=self.date, echan=self.echan, detector=self.detector
+            date=self.date, echans=self.echans, detectors=self.detectors
         )
 
     def output(self):
-
-        return luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    "phys_bkg",
-                    f"{self.detector}",
-                    f"e{self.echan}",
-                    "corner_plot.pdf",
-                )
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
         )
+
+        return luigi.LocalTarget(os.path.join(job_dir, "corner_plot.pdf",))
 
     def run(self):
 
@@ -246,9 +227,7 @@ class BkgModelCornerPlot(luigi.Task):
 
         if len(safe_param_names) > 1:
 
-            chain = np.loadtxt(
-                self.input()["posteriour"].path, ndmin=2
-            )
+            chain = np.loadtxt(self.input()["posteriour"].path, ndmin=2)
 
             c2 = ChainConsumer()
 

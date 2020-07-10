@@ -1,21 +1,32 @@
 from configya import YAMLConfig
 
-_gbm_detectors = (
-    "n0",
-    "n1",
-    "n2",
-    "n3",
-    "n4",
-    "n5",
-    "n6",
-    "n7",
-    "n8",
-    "n9",
-    "na",
-    "nb",
-    "b0",
-    "b1",
-)
+run_detectors = [
+    ["n0"],
+    ["n1"],
+    ["n2"],
+    ["n3"],
+    ["n4"],
+    ["n5"],
+    ["n6"],
+    ["n7"],
+    ["n8"],
+    ["n9"],
+    ["na"],
+    ["nb"],
+    ["b0"],
+    ["b1"],
+]
+
+run_echans = [
+    ["0"],
+    ["1"],
+    ["2"],
+    ["3"],
+    ["4"],
+    ["5"],
+    ["6"],
+    ["7"],
+]
 
 structure = {}
 
@@ -23,11 +34,13 @@ structure["luigi"] = dict(n_workers=4)
 structure["phys_bkg"] = dict(
     multinest=dict(n_cores=4, path_to_python="python")
 )
+
 structure["data"] = dict(
     data_type="ctime",
-    detectors=_gbm_detectors,
-    echans=list(range(0, 7))
+    detectors=run_detectors,
+    echans=run_echans
 )
+
 
 class GBMBkgPipeConfig(YAMLConfig):
     def __init__(self):

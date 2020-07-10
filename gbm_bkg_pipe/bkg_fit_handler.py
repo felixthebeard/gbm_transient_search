@@ -13,7 +13,7 @@ from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 
-base_dir = os.environ.get("GBMDATA")
+base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
 
@@ -56,9 +56,8 @@ class GBMBackgroundModelFit(luigi.Task):
         return luigi.LocalTarget(
             os.path.join(
                 base_dir,
-                "bkg_pipe",
-                self.data_type,
                 f"{self.date:%y%m%d}",
+                self.data_type,
                 "phys_bkg",
                 "phys_bkg_combined.hdf5",
             )
@@ -101,9 +100,8 @@ class RunPhysBkgModel(ExternalProgramTask):
     def output(self):
         job_dir = os.path.join(
             base_dir,
-            "bkg_pipe",
-            self.data_type,
             f"{self.date:%y%m%d}",
+            self.data_type,
             "phys_bkg",
             f"{self.detector}",
             f"e{self.echan}"
@@ -188,9 +186,8 @@ class BkgModelResultPlot(luigi.Task):
         return luigi.LocalTarget(
                 os.path.join(
                     base_dir,
-                    "bkg_pipe",
-                    self.data_type,
                     f"{self.date:%y%m%d}",
+                    self.data_type,
                     "phys_bkg",
                     f"{self.detector}",
                     f"e{self.echan}",
@@ -230,9 +227,8 @@ class BkgModelCornerPlot(luigi.Task):
         return luigi.LocalTarget(
                 os.path.join(
                     base_dir,
-                    "bkg_pipe",
-                    self.data_type,
                     f"{self.date:%y%m%d}",
+                    self.data_type,
                     "phys_bkg",
                     f"{self.detector}",
                     f"e{self.echan}",

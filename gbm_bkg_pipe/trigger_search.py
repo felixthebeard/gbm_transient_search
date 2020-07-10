@@ -50,9 +50,9 @@ class TriggerSearch(luigi.Task):
             os.path.join(
                 base_dir,
                 "bkg_pipe",
-                self.data_type,
                 f"{self.date:%y%m%d}",
-                "trigger_result.hd5",
+                self.data_type,
+                "trigger_result.yml",
             )
         )
 
@@ -64,6 +64,8 @@ class TriggerSearch(luigi.Task):
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 
-        search.get_significance(required_significance=5)
+        search.get_significance(required_significance=3)
+
+        search.get_trigger_information()
 
         search.save_result(self.output().path)

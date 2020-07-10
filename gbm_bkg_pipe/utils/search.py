@@ -1,3 +1,5 @@
+import os
+import yaml
 import h5py
 import numpy as np
 from scipy import stats
@@ -5,6 +7,7 @@ from scipy import stats
 from gbmbkgpy.utils.saa_calc import SAA_calc
 from gbmbkgpy.utils.binner import Rebinner
 
+from gbmgeometry import GBMTime
 from gbmgeometry.position_interpolator import slice_disjoint
 from trigger_hunter.wbs import WBS
 from trigger_hunter.wbs2 import wbs_sdll
@@ -88,6 +91,25 @@ class Search(object):
         for det in self._detectors:
             self._dets_idx.append(valid_det_names.index(det))
 
+        self._rebinn_data(min_bin_width)
+
+        # Combine all energy bins for significance calculation
+        self._combine_energy_bins()
+
+        # Clean data
+        self._counts_cleaned = (
+            self._rebinned_observed_counts[self._rebinned_saa_mask]
+            - self._rebinned_bkg_counts[self._rebinned_saa_mask]
+        )
+
+        self._data_cleaned = (
+            self._counts_cleaned.T
+            / self._rebinned_time_bin_width[self._rebinned_saa_mask]
+        ).T
+
+        self._transform_data(mad, sub_min)
+
+    def _rebinn_data(self, min_bin_width):
         self._data_rebinner = Rebinner(
             self._time_bins, min_bin_width, mask=self._saa_mask
         )
@@ -111,17 +133,36 @@ class Search(object):
         self._rebinned_time_bin_width = np.diff(self._rebinned_time_bins, axis=1)[:, 0]
         self._rebinned_mean_time = np.mean(self._rebinned_time_bins, axis=1)
 
-        # Clean data
-        self._counts_cleaned = (
-            self._rebinned_observed_counts[self._rebinned_saa_mask]
-            - self._rebinned_bkg_counts[self._rebinned_saa_mask]
-        )
+    def _combine_energy_bins(self):
+        data = {}
+        background = {}
+        bkg_stat_err = {}
 
-        self._data_cleaned = (
-            self._counts_cleaned.T
-            / self._rebinned_time_bin_width[self._rebinned_saa_mask]
-        ).T
+        for det in self._detectors:
+            det_idx = valid_det_names.index(det)
 
+            # Combine all energy channels for the calculation of the significance
+            data[det] = self._rebinned_observed_counts[self._rebinned_saa_mask, det_idx, :][
+                :, self._echans
+            ].sum(axis=1)
+            background[det] = self._rebinned_bkg_counts[self._rebinned_saa_mask, det_idx, :][
+                :, self._echans
+            ].sum(axis=1)
+            bkg_stat_err[det] = np.sqrt(
+                np.sum(
+                    self._rebinned_bkg_stat_err[self._rebinned_saa_mask, det_idx, :][
+                        :, self._echans
+                    ]
+                    ** 2,
+                    axis=1,
+                )
+            )
+
+        self._observed_counts_total = data
+        self._bkg_counts_total = background
+        self._bkg_stat_err_total = bkg_stat_err
+
+    def _transform_data(self, mad, sub_min):
         self._data_flattened = self._data_cleaned[:, self._dets_idx, :][
             :, :, self._echans
         ].reshape((self._data_cleaned.shape[0], -1))
@@ -150,8 +191,6 @@ class Search(object):
 
         self._distances = distance_mapping(self._data_trans)
         self._angles = angle_mapping(self._data_trans)
-
-        self._penalty = 2 * np.log(len(self._data_cleaned))
 
     def _load_result_file(self, result_file):
         with h5py.File(result_file, "r") as f:
@@ -216,15 +255,11 @@ class Search(object):
         intervals = {}
         significances = {}
 
-        echan_idx = 0
-        echan = self._echans[0]
-
         for det in self._detectors:
+            det_idx = valid_det_names.index(det)
 
             intervals[det] = []
             significances[det] = []
-
-            det_idx = valid_det_names.index(det)
 
             for segment in range(len(self._change_points_all)):
 
@@ -235,15 +270,9 @@ class Search(object):
                         if idx_low != idx_high and idx_low < idx_high:
 
                             significance = calc_significance(
-                                data=self._rebinned_observed_counts[
-                                    self._rebinned_saa_mask, det_idx, echan_idx
-                                ][idx_low:idx_high],
-                                background=self._rebinned_bkg_counts[
-                                    self._rebinned_saa_mask, det_idx, echan
-                                ][idx_low:idx_high],
-                                bkg_stat_err=self._rebinned_bkg_stat_err[
-                                    self._rebinned_saa_mask, det_idx, echan
-                                ][idx_low:idx_high],
+                                data=self._observed_counts_total[det][idx_low:idx_high],
+                                background=self._bkg_counts_total[det][idx_low:idx_high],
+                                bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
                             )
 
                             if (
@@ -263,21 +292,68 @@ class Search(object):
             intervals[det] = intervals[det][sort_idx]
             significances[det] = significances[det][sort_idx]
 
+        self._intervals_all = intervals
+        self._intervals_significance_all = significances
+        return intervals, significances
+
+    def get_trigger_information(self):
+
         # Filter out overlapping intervals and select the one with highest significance
         # This is done twice to get rid of some leftovers
-        intervals_selected, significances_selected = self.filter_overlap(
-            intervals, significances
+        intervals_selected, significances_selected = self._filter_overlap(
+            self._intervals_all, self._intervals_significance_all
         )
-        intervals_selected, significances_selected = self.filter_overlap(
+        intervals_selected, significances_selected = self._filter_overlap(
             intervals_selected, significances_selected
         )
 
-        self._intervals_all = intervals
-        self._intervals_significance_all = significances
+        # Get all intervals that are significant in at least one detector
+        trigger_intervals = []
+        for i, det in enumerate(self._detectors):
+            trigger_intervals.extend(intervals_selected[det])
+
+        trigger_intervals = np.unique(trigger_intervals, axis=0)
+
+        # Get the significance of all detectors for the trigger intervals
+        trigger_significance = []
+        for interval in trigger_intervals:
+
+            sig_dict = {}
+
+            for i, det in enumerate(self._detectors):
+                sig_dict[det] = float(calc_significance(
+                    data=self._observed_counts_total[det][interval[0]:interval[1]],
+                    background=self._bkg_counts_total[det][interval[0]:interval[1]],
+                    bkg_stat_err=self._bkg_stat_err_total[det][interval[0]:interval[1]],
+                ))
+
+            trigger_significance.append(sig_dict)
+
+        most_significant_detectors = []
+        for sig in trigger_significance:
+            most_significant_detectors.append(max(sig, key=sig.get))
+
+        trigger_peak_times = []
+        for i, inter in enumerate(trigger_intervals):
+            det = most_significant_detectors[i]
+            counts = self._observed_counts_total[det][interval[0]:interval[1]]
+
+            max_index = np.argmax(counts) + interval[0]
+
+            trigger_peak_times.append(self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0])
+
+        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][trigger_intervals[:, 0], 0]
+
+        self._trigger_intervals = np.array(trigger_intervals)
+        self._trigger_significance = trigger_significance
+        self._trigger_most_significant_detector = most_significant_detectors
+        self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][trigger_intervals[:, 0], 0]
+        self._trigger_peak_times = np.array(trigger_peak_times)
+
         self._intervals = intervals_selected
         self._intervals_significance = significances_selected
 
-    def filter_overlap(self, intervals, significances):
+    def _filter_overlap(self, intervals, significances):
 
         intervals_selected = {}
         significances_selected = {}
@@ -311,29 +387,90 @@ class Search(object):
 
     def save_result(self, output_path):
 
-        with h5py.File(output_path, "w") as f:
+        trigger_information = {
+            "dates": self._dates.tolist(),
+            "data_type": self._data_type,
+            "echans": self._echans.tolist(),
+            "detectors": self._detectors.tolist(),
+            "triggers": []
+        }
 
-            f.attrs["dates"] = self._dates
+        for i, t0 in enumerate(self._trigger_times):
+            gbm_time = GBMTime.from_MET(t0)
+            date_str = gbm_time.time.datetime.strftime("%y%m%d")
+            day_fraction = str(round(gbm_time.time.mjd % 1, 3))[2:]
 
-            f.attrs["data_type"] = self._data_type
+            trigger_name = f"TRG{date_str}{day_fraction}"
+            peak_time = self._trigger_peak_times[i] - t0
 
-            f.attrs["echans"] = self._echans
+            t_info = {
+                "date": date_str,
+                "trigger_name": trigger_name,
+                "trigger_time": t0.tolist(),
+                "peak_time": peak_time.tolist(),
+                "significances": self._trigger_significance[i],
+                "interval": {
+                    "start": self._rebinned_mean_time[self._trigger_intervals][i][0].tolist(),
+                    "stop": self._rebinned_mean_time[self._trigger_intervals][i][1].tolist()
+                },
+                "most_significant_detector": self._trigger_most_significant_detector[i],
+            }
 
-            f.attrs["detectors"] = self._detectors
+            trigger_information["triggers"].append(t_info)
 
-            for det in self._detectors:
+        # output_file = os.path.join(os.path.dirname(output_path), "trigger_information.yml")
+        with open(output_path, "w") as f:
+            yaml.dump(trigger_information, f, default_flow_style=False)
 
-                f.create_dataset(
-                    f"{det}_intervals",
-                    data=self._rebinned_mean_time(self._intervals_selected[det]),
-                    compression="lzf",
-                )
+        # with h5py.File(output_path, "w") as f:
 
-                f.create_dataset(
-                    "{det}_significance",
-                    data=self._intervals_significance[det],
-                    compression="lzf",
-                )
+        #     f.attrs["dates"] = self._dates
+
+        #     f.attrs["data_type"] = self._data_type
+
+        #     f.attrs["echans"] = self._echans
+
+        #     f.attrs["detectors"] = self._detectors
+
+        #     f.attrs["most_significant_detector"] = self._trigger_most_significant_detector
+
+        #     f.create_dataset(
+        #         f"trigger_intervals",
+        #         data=self._rebinned_mean_time[self._trigger_intervals],
+        #         compression="lzf",
+        #     )
+
+        #     f.create_dataset(
+        #         f"trigger_significance",
+        #         data=self._trigger_significance,
+        #         compression="lzf",
+        #     )
+
+        #     f.create_dataset(
+        #         f"trigger_times",
+        #         data=self._trigger_times,
+        #         compression="lzf",
+        #     )
+
+        #     f.create_dataset(
+        #         f"trigger_peak_times",
+        #         data=self._trigger_peak_times,
+        #         compression="lzf",
+        #     )
+
+        #     for det in self._detectors:
+
+        #         f.create_dataset(
+        #             f"{det}_intervals",
+        #             data=self._rebinned_mean_time(self._intervals_selected[det]),
+        #             compression="lzf",
+        #         )
+
+        #         f.create_dataset(
+        #             "{det}_significance",
+        #             data=self._intervals_significance[det],
+        #             compression="lzf",
+        #         )
 
     def run_bayesian_blocks(self, **kwargs):
 

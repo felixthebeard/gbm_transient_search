@@ -9,6 +9,7 @@ from chainconsumer import ChainConsumer
 from luigi.contrib.external_program import ExternalProgramTask
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
 
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
@@ -122,6 +123,8 @@ class CreateBkgConfig(luigi.Task):
 
         # Update the config parameters with fit specific values
         config.update(fit_config)
+
+        if_dir_containing_file_not_existing_then_make(self.output().path)
 
         with self.output().open() as f:
             yaml.dump(config, f, default_flow_style=False)

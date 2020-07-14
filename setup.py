@@ -26,6 +26,5 @@ setup(
     scripts=["bin/bkg_pipe"],
     package_data={"": extra_files},
     license="GPL3",
-    cmdclass=versioneer.get_cmdclass()
-
+    cmdclass=versioneer.get_cmdclass(),
 )

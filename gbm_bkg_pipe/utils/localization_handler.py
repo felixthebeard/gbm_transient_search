@@ -19,7 +19,7 @@ class LocalizationHandler(object):
 
     def _read_search_result(self, result_file):
 
-        with open(result_file, 'r') as f:
+        with open(result_file, "r") as f:
             trigger_search_result = yaml.safe_load(f)
 
         self._search_result = trigger_search_result
@@ -64,7 +64,9 @@ class LocalizationHandler(object):
             trigger["active_time_end"] = active_time_end
             trigger["use_dets"] = use_dets
 
-            output_file = os.path.join(output_dir, trigger["trigger_name"], "trigger_info.yml")
+            output_file = os.path.join(
+                output_dir, trigger["trigger_name"], "trigger_info.yml"
+            )
 
             if_dir_containing_file_not_existing_then_make(output_file)
 
@@ -86,7 +88,7 @@ class LocalizationHandler(object):
         #     gbm_time = GBMTime.from_MET(t0)
         #     date_str = gbm_time.time.datetime.strftime("%y%m%d")
         #     day_fraction = str(round(gbm_time.time.mjd % 1, 3))[2:]
-           
+
         #     trigger_name = f"TRG{date_str}{day_fraction}"
 
         #     peak_time = self._trigger_peak_times[i] - t0
@@ -109,7 +111,6 @@ class LocalizationHandler(object):
         #     output_file = os.path.join(output_dir, trigger_name, "trigger_info.yml")
         #     with open(output_file, "w") as f:
         #         yaml.dump(trigger_information, f, default_flow_style=False)
-
 
     def _choose_dets(self, max_det):
         """

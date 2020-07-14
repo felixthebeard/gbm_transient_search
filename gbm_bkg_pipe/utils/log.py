@@ -7,4 +7,4 @@ coloredlogs.install(
     #                    fmt="%(levelname)s:%(message)s"
 )
 
-logger = logging.getLogger("morgoth")
+logger = logging.getLogger("gbm_bkg_pipe")

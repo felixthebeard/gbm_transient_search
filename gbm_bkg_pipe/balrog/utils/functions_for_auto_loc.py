@@ -259,7 +259,7 @@ def new_intervals(time_intervals_all):
     # choose max_time (time up to which the bkg selection is made) to be 150 seconds or if the lower boundary for
     # bkg selection after the burst is to close such that we use at least a period of 50 seconds
     max_time = 150
-    #end_of_active = sr_large_min
+    # end_of_active = sr_large_min
     if sr_large_min < 10:
         sr_large_min = 50
     if sr_large_min < 25:

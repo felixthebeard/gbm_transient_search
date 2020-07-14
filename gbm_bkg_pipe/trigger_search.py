@@ -34,15 +34,11 @@ class TriggerSearch(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
 
-    resources = {
-        "cpu": 1
-    }
+    resources = {"cpu": 1}
 
     def requires(self):
 
-        return GBMBackgroundModelFit(
-            date=self.date, data_type=self.data_type
-        )
+        return GBMBackgroundModelFit(date=self.date, data_type=self.data_type)
 
     def output(self):
 
@@ -57,10 +53,7 @@ class TriggerSearch(luigi.Task):
         )
 
     def run(self):
-        search = Search(
-            result_file=self.input().path,
-            min_bin_width=5,
-        )
+        search = Search(result_file=self.input().path, min_bin_width=5,)
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 

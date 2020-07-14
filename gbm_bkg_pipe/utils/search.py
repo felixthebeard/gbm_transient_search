@@ -142,12 +142,12 @@ class Search(object):
             det_idx = valid_det_names.index(det)
 
             # Combine all energy channels for the calculation of the significance
-            data[det] = self._rebinned_observed_counts[self._rebinned_saa_mask, det_idx, :][
-                :, self._echans
-            ].sum(axis=1)
-            background[det] = self._rebinned_bkg_counts[self._rebinned_saa_mask, det_idx, :][
-                :, self._echans
-            ].sum(axis=1)
+            data[det] = self._rebinned_observed_counts[
+                self._rebinned_saa_mask, det_idx, :
+            ][:, self._echans].sum(axis=1)
+            background[det] = self._rebinned_bkg_counts[
+                self._rebinned_saa_mask, det_idx, :
+            ][:, self._echans].sum(axis=1)
             bkg_stat_err[det] = np.sqrt(
                 np.sum(
                     self._rebinned_bkg_stat_err[self._rebinned_saa_mask, det_idx, :][
@@ -271,8 +271,12 @@ class Search(object):
 
                             significance = calc_significance(
                                 data=self._observed_counts_total[det][idx_low:idx_high],
-                                background=self._bkg_counts_total[det][idx_low:idx_high],
-                                bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
+                                background=self._bkg_counts_total[det][
+                                    idx_low:idx_high
+                                ],
+                                bkg_stat_err=self._bkg_stat_err_total[det][
+                                    idx_low:idx_high
+                                ],
                             )
 
                             if (
@@ -321,11 +325,19 @@ class Search(object):
             sig_dict = {}
 
             for i, det in enumerate(self._detectors):
-                sig_dict[det] = float(calc_significance(
-                    data=self._observed_counts_total[det][interval[0]:interval[1]],
-                    background=self._bkg_counts_total[det][interval[0]:interval[1]],
-                    bkg_stat_err=self._bkg_stat_err_total[det][interval[0]:interval[1]],
-                ))
+                sig_dict[det] = float(
+                    calc_significance(
+                        data=self._observed_counts_total[det][
+                            interval[0] : interval[1]
+                        ],
+                        background=self._bkg_counts_total[det][
+                            interval[0] : interval[1]
+                        ],
+                        bkg_stat_err=self._bkg_stat_err_total[det][
+                            interval[0] : interval[1]
+                        ],
+                    )
+                )
 
             trigger_significance.append(sig_dict)
 
@@ -336,18 +348,24 @@ class Search(object):
         trigger_peak_times = []
         for i, inter in enumerate(trigger_intervals):
             det = most_significant_detectors[i]
-            counts = self._observed_counts_total[det][interval[0]:interval[1]]
+            counts = self._observed_counts_total[det][interval[0] : interval[1]]
 
             max_index = np.argmax(counts) + interval[0]
 
-            trigger_peak_times.append(self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0])
+            trigger_peak_times.append(
+                self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
+            )
 
-        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][trigger_intervals[:, 0], 0]
+        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+            trigger_intervals[:, 0], 0
+        ]
 
         self._trigger_intervals = np.array(trigger_intervals)
         self._trigger_significance = trigger_significance
         self._trigger_most_significant_detector = most_significant_detectors
-        self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][trigger_intervals[:, 0], 0]
+        self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+            trigger_intervals[:, 0], 0
+        ]
         self._trigger_peak_times = np.array(trigger_peak_times)
 
         self._intervals = intervals_selected
@@ -392,7 +410,7 @@ class Search(object):
             "data_type": self._data_type,
             "echans": self._echans.tolist(),
             "detectors": self._detectors.tolist(),
-            "triggers": []
+            "triggers": [],
         }
 
         for i, t0 in enumerate(self._trigger_times):
@@ -410,8 +428,12 @@ class Search(object):
                 "peak_time": peak_time.tolist(),
                 "significances": self._trigger_significance[i],
                 "interval": {
-                    "start": self._rebinned_mean_time[self._trigger_intervals][i][0].tolist(),
-                    "stop": self._rebinned_mean_time[self._trigger_intervals][i][1].tolist()
+                    "start": self._rebinned_mean_time[self._trigger_intervals][i][
+                        0
+                    ].tolist(),
+                    "stop": self._rebinned_mean_time[self._trigger_intervals][i][
+                        1
+                    ].tolist(),
                 },
                 "most_significant_detector": self._trigger_most_significant_detector[i],
             }

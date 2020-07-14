@@ -1,24 +1,16 @@
-
 #!/usr/bin/env python3
 
 ##################################################################
 # Generic script to fit the physical background model for GBM
 #
 # Optional command line arguments:
-# -c --config_file
-# -cplot --config_file_plot
-# -dates --dates
-# -dets --detectors
-# -e --echans
-# -trig --trigger
+# -c --setup_config
+# -out --output_dir
 #
 # Run with mpi:
 # mpiexec -n <nr_cores> python fit_background.py \
-#                       -c <config_path> \
-#                       -cplot <config_plot_path> \
-#                       -dates <date1> <date2> \
-#                       -dets <det1> <det2> \
-#                       -e <echan1> <echan2> \
+#                       -setup_config <config_path> \
+#                       -out <output_path>
 #
 # Example using the default config file:
 # mpiexec -n 4 python fit_background.py -dates 190417 -dets n1 -e 2
@@ -28,16 +20,11 @@ from datetime import datetime
 
 start = datetime.now()
 
-import matplotlib
-
-matplotlib.use("Agg")
-
 import os
 import yaml
 import argparse
 
-from gbmbkgpy.io.package_data import get_path_of_external_data_dir
-from gbmbkgpy.utils.model_generator import BackgroundModelGenerator, TrigdatBackgroundModelGenerator
+from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
 from gbmbkgpy.minimizer.multinest_minimizer import MultiNestFit
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.io.export import DataExporter
@@ -52,61 +39,29 @@ size = comm.Get_size()
 ############## Argparse for parsing bash arguments ################
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("-dates", "--dates", type=str, nargs="+", help="Date string")
-parser.add_argument("-dtype", "--data_type", type=str, help="Name detector", required=True)
-parser.add_argument("-dets", "--detectors", type=str, nargs="+", help="Name detector", required=True)
-parser.add_argument("-e", "--echans", type=int, nargs="+", help="Echan number", required=True)
-parser.add_argument("-trig", "--trigger", type=str, help="Name of trigger")
-parser.add_argument("-out", "--output_dir", type=str, help="Path to the output directory to continue a stopped fit")
+parser.add_argument(
+    "-c", "--config_file", type=str, help="Path to the config file", required=True
+)
+parser.add_argument(
+    "-out",
+    "--output_dir",
+    type=str,
+    help="Path to the output directory to continue a stopped fit",
+    required=True,
+)
 
 args = parser.parse_args()
 
-config_fit = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "config_fit.yml"
-)
-
-config_plot = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "config_result_plot.yml"
-)
-
 # Load the config.yml
-with open(config_fit) as f:
+with open(args.config_file) as f:
     config = yaml.load(f)
-
-############# Overwrite config with BASH arguments ################
-config["general"]["dates"] = args.dates
-
-config["general"]["data_type"] = args.data_type
-
-config["general"]["detectors"] = args.detectors
-
-config["general"]["echans"] = args.echans
-
-if args.trigger is not None:
-    config["general"]["trigger"] = args.trigger
 
 ############## Generate the GBM-background-model ##################
 start_precalc = datetime.now()
 
-if config["general"]["data_type"] in ["ctime", "cspec"]:
+model_generator = BackgroundModelGenerator()
 
-    model_generator = BackgroundModelGenerator()
-
-    model_generator.from_config_dict(config)
-
-elif config["general"]["data_type"] == "trigdat":
-
-    model_generator = TrigdatBackgroundModelGenerator()
-
-    model_generator.from_config_dict(config)
-
-    model_generator.likelihood.set_grb_mask(
-        f"{model_generator.data.trigtime - 15}-{model_generator.data.trigtime + 100}"
-    )
-else:
-    raise KeyError(f"Invalid data_type used: {config['general']['data_type']}")
+model_generator.from_config_dict(config)
 
 comm.barrier()
 
@@ -155,14 +110,6 @@ data_exporter.save_data(
 )
 
 stop_export = datetime.now()
-
-################## Save Config ########################################
-if rank == 0:
-    # Save used config file to output directory
-    with open(os.path.join(output_dir, "used_config.yml"), "w") as file:
-        documents = yaml.dump(config, file)
-
-    os.system(f"touch {os.path.join(output_dir, 'finished.txt')}")
 
 if rank == 0:
     # Print the duration of the script

@@ -129,8 +129,12 @@ class BalrogFit(object):
 
             ogip_like = OGIPLike(
                 f"grb{det}",
-                observation=os.path.join(pha_output_dir, f"{self._trigger_name}_{det}.pha"),
-                background=os.path.join(pha_output_dir, f"{self._trigger_name}_{det}_bak.pha"),
+                observation=os.path.join(
+                    pha_output_dir, f"{self._trigger_name}_{det}.pha"
+                ),
+                background=os.path.join(
+                    pha_output_dir, f"{self._trigger_name}_{det}_bak.pha"
+                ),
                 response=rsp,
                 spectrum_number=1,
             )

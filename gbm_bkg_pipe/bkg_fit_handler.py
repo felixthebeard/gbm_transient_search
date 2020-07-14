@@ -16,6 +16,8 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
+bkg_timeout = gbm_bkg_pipe_config["phys_bkg"]["timeout"]
+bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
 
 run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
 run_echans = gbm_bkg_pipe_config["data"]["echans"]
@@ -79,6 +81,52 @@ class GBMBackgroundModelFit(luigi.Task):
         pha_writer.save_combined_hdf5(self.output().path)
 
 
+class CreateBkgConfig(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
+
+    resources = {"cpu": 1}
+
+    def requires(self):
+        return None
+
+    def output(self):
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
+        return luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml"))
+
+    def run(self):
+        config_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_fit.yml"
+
+        # Load the default config file
+        with open(config_path) as f:
+            config = yaml.load(f)
+
+        fit_config = dict(
+            general=dict(
+                date=self.date,
+                data_type=self.data_type,
+                echans=self.echans,
+                detectors=self.detectors,
+            ),
+            setup=bkg_source_setup["_".join(self.echans)],
+        )
+
+        # Update the config parameters with fit specific values
+        config.update(fit_config)
+
+        with self.output().open() as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+
 class RunPhysBkgModel(ExternalProgramTask):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
@@ -86,12 +134,18 @@ class RunPhysBkgModel(ExternalProgramTask):
     detectors = luigi.ListParameter()
     always_log_stderr = True
 
-    resources = {"cpu": bkg_n_cores_multinest}
+    # block twice the amount of cores in order to not rely on hyperthreadding
+    resources = {"cpu": 2 * bkg_n_cores_multinest}
 
-    worker_timeout = 60 * 60  # 1 hour
+    worker_timeout = bkg_timeout
 
     def requires(self):
-        return None
+        return CreateBkgConfig(
+            date=self.date,
+            data_type=self.data_type,
+            echans=self.echans,
+            detectors=self.detectors,
+        )
 
     def output(self):
         job_dir = os.path.join(
@@ -108,7 +162,6 @@ class RunPhysBkgModel(ExternalProgramTask):
                 os.path.join(job_dir, "post_equal_weights.dat")
             ),
             "params_json": luigi.LocalTarget(os.path.join(job_dir, "params.json")),
-            "finished": luigi.LocalTarget(os.path.join(job_dir, "finished.txt")),
         }
 
     def program_args(self):
@@ -124,32 +177,23 @@ class RunPhysBkgModel(ExternalProgramTask):
 
         command.extend(
             [
-                f"{bkg_path_to_python}",
-                f"{fit_script_path}",
-                f"-dates",
-                f"{self.date:%y%m%d}",
-                f"-dtype",
-                f"{self.data_type}",
+                bkg_path_to_python,
+                fit_script_path,
+                "--config_file",
+                self.input().path,
+                "--output_dir",
+                os.path.dirname(self.output()["result_file"].path),
             ]
         )
 
-        command.append("-dets")
-        command.extend(self.detectors)
-
-        command.append("-e")
-        command.extend(self.echans)
-
-        command.extend(
-            [f"-out", f"{os.path.dirname(self.output()['result_file'].path)}",]
-        )
         return command
 
 
 class BkgModelResultPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echans = luigi.Parameter()
-    detectors = luigi.Parameter()
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
 
@@ -195,8 +239,8 @@ class BkgModelResultPlot(luigi.Task):
 class BkgModelCornerPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echans = luigi.Parameter()
-    detectors = luigi.Parameter()
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
 

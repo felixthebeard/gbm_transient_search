@@ -126,7 +126,7 @@ class CreateBkgConfig(luigi.Task):
 
         self.output().makedirs()
 
-        with self.output().open(mode='r') as f:
+        with self.output().open(mode='w') as f:
             yaml.dump(config, f, default_flow_style=False)
 
 

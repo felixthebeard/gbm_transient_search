@@ -113,7 +113,7 @@ class CreateBkgConfig(luigi.Task):
 
         fit_config = dict(
             general=dict(
-                date=self.date,
+                dates=[f"{self.date:%y%m%d}"],
                 data_type=self.data_type,
                 echans=self.echans,
                 detectors=self.detectors,

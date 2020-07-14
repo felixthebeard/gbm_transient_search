@@ -9,7 +9,7 @@ from chainconsumer import ChainConsumer
 from luigi.contrib.external_program import ExternalProgramTask
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
+from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
@@ -18,7 +18,6 @@ base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
 bkg_timeout = gbm_bkg_pipe_config["phys_bkg"]["timeout"]
-bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
 
 run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
 run_echans = gbm_bkg_pipe_config["data"]["echans"]
@@ -105,29 +104,10 @@ class CreateBkgConfig(luigi.Task):
         return luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml"))
 
     def run(self):
-        config_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_fit.yml"
 
-        # Load the default config file
-        with open(config_path) as f:
-            config = yaml.load(f)
+        config_writer = BkgConfigWriter(self.date, self.data_type, self.echans, self.detectors)
 
-        fit_config = dict(
-            general=dict(
-                dates=[f"{self.date:%y%m%d}"],
-                data_type=self.data_type,
-                echans=[int(echan) for echan in self.echans],
-                detectors=self.detectors,
-            ),
-            setup=bkg_source_setup["_".join(self.echans)],
-        )
-
-        # Update the config parameters with fit specific values
-        config.update(fit_config)
-
-        self.output().makedirs()
-
-        with self.output().open(mode='w') as f:
-            yaml.dump(config, f, default_flow_style=False)
+        config_writer.write_config_file(self.output)
 
 
 class RunPhysBkgModel(ExternalProgramTask):

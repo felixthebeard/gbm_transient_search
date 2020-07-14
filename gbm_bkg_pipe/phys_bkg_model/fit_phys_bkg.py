@@ -16,17 +16,12 @@
 # mpiexec -n 4 python fit_background.py -dates 190417 -dets n1 -e 2
 ##################################################################
 
-from datetime import datetime
-
-start = datetime.now()
-
 import os
 import yaml
 import argparse
 
 from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
 from gbmbkgpy.minimizer.multinest_minimizer import MultiNestFit
-from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.io.export import DataExporter
 
 from mpi4py import MPI
@@ -34,7 +29,6 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-
 
 ############## Argparse for parsing bash arguments ################
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -57,7 +51,6 @@ with open(args.config_file) as f:
     config = yaml.load(f)
 
 ############## Generate the GBM-background-model ##################
-start_precalc = datetime.now()
 
 model_generator = BackgroundModelGenerator()
 
@@ -65,10 +58,7 @@ model_generator.from_config_dict(config)
 
 comm.barrier()
 
-stop_precalc = datetime.now()
-
 ############### Instantiate Minimizer #############################
-start_fit = datetime.now()
 
 if config["fit"]["method"] == "multinest":
     minimizer = MultiNestFit(
@@ -92,10 +82,7 @@ output_dir = minimizer.output_dir
 
 comm.barrier()
 
-stop_fit = datetime.now()
-
 ################# Data Export ######################################
-start_export = datetime.now()
 
 data_exporter = DataExporter(
     model_generator=model_generator, best_fit_values=minimizer.best_fit_values,
@@ -108,12 +95,3 @@ data_exporter.save_data(
     result_dir=output_dir,
     save_ppc=config["export"]["save_ppc"],
 )
-
-stop_export = datetime.now()
-
-if rank == 0:
-    # Print the duration of the script
-    print("The precalculations took: {}".format(stop_precalc - start_precalc))
-    print("The fit took: {}".format(stop_fit - start_fit))
-    print("The result export took: {}".format(stop_export - start_export))
-    print("Whole calculation took: {}".format(datetime.now() - start))

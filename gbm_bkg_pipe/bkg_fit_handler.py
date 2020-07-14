@@ -115,7 +115,7 @@ class CreateBkgConfig(luigi.Task):
             general=dict(
                 dates=[f"{self.date:%y%m%d}"],
                 data_type=self.data_type,
-                echans=self.echans,
+                echans=[int(echan) for echan in self.echans],
                 detectors=self.detectors,
             ),
             setup=bkg_source_setup["_".join(self.echans)],

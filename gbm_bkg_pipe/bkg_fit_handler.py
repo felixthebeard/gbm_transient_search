@@ -124,9 +124,9 @@ class CreateBkgConfig(luigi.Task):
         # Update the config parameters with fit specific values
         config.update(fit_config)
 
-        if_dir_containing_file_not_existing_then_make(self.output().path)
+        self.output().makedirs()
 
-        with self.output().open() as f:
+        with self.output().open(mode='r') as f:
             yaml.dump(config, f, default_flow_style=False)
 
 

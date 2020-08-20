@@ -215,7 +215,7 @@ class BkgModelResultPlot(luigi.Task):
         )
 
         plot_generator.create_plots(
-            output_dir=os.path.dirname(self.output().path), time_stamp=""
+            output_dir=os.path.dirname(self.output()[0].path), time_stamp=""
         )
 
 

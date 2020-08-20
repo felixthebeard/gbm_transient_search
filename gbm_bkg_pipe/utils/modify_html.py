@@ -3,7 +3,7 @@ import shutil
 
 import luigi
 
-from morgoth.utils.package_data import get_path_of_data_dir
+from gbm_bkg_pipe.utils.package_data import get_path_of_data_dir
 
 luigi_package_dir = os.path.dirname(luigi.__file__)
 

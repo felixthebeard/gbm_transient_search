@@ -28,29 +28,29 @@ geometry:
 
 ##### Input for source Setup [use CR, use Earth, use CGB, point source list, fix earth, fix cgb #####
 setup:
-  use_saa:      true
-  use_constant: true
-  use_cr:       true
+  use_saa:      false
+  use_constant: false
+  use_cr:       false
   use_earth:    true
   use_cgb:      true
-  ps_list:
-    auto_swift:
-      update_catalog: false
-      flux_limit: 0.1
-      exclude: [Crab]
+  ps_list: []
+    # auto_swift:
+    #   update_catalog: false
+    #   flux_limit: 0.1
+    #   exclude: [Crab]
 
-    CRAB:
-      fixed: true
-      spectrum:
-        pl:
-          spectrum_type: pl
-          powerlaw_index: 2
+    # CRAB:
+    #   fixed: true
+    #   spectrum:
+    #     pl:
+    #       spectrum_type: pl
+    #       powerlaw_index: 2
 
   fix_earth:    true
   fix_cgb:      true
   use_sun:      false
   bgo_cr_approximation: true
-  use_eff_area_correction: true
+  use_eff_area_correction: false
 
 ################################ Bounds for the different sources ###################################
 ####### SAA: Amplitude and decay constant, CR: Constant and McIlwain normalization ##################

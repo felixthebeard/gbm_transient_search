@@ -37,7 +37,7 @@ class BkgConfigWriter(object):
                 dates=[f"{self._date:%y%m%d}"],
                 data_type=self._data_type,
                 echans=[int(echan) for echan in self._echans],
-                detectors=self._detectors,
+                detectors=list(self._detectors),
                 min_bin_width=40
             ),
         )

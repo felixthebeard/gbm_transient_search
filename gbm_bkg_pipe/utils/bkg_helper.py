@@ -1,8 +1,10 @@
 import os
+import re
 import yaml
 import h5py
 from datetime import timedelta
 
+from gbmbkgpy.utils.select_pointsources import SelectPointsources
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
@@ -23,6 +25,10 @@ class BkgConfigWriter(object):
 
         self._update_source_setup()
 
+        self._update_ps_setup()
+
+        self._update_priors()
+
     def _load_default_config(self):
         config_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/phys_bkg_model/config_fit.yml"
 
@@ -36,7 +42,7 @@ class BkgConfigWriter(object):
             general=dict(
                 dates=[f"{self._date:%y%m%d}"],
                 data_type=self._data_type,
-                echans=[int(echan) for echan in self._echans],
+                echans=[echan for echan in self._echans],
                 detectors=list(self._detectors),
                 min_bin_width=40
             ),
@@ -52,37 +58,125 @@ class BkgConfigWriter(object):
         # Update the config parameters with fit specific values
         self._config.update(source_config)
 
-    def _update_bounds(self):
+    def _update_ps_setup(self):
+        # Only inlcude point sources for echans 0-3
+        if int(max(self._echans)) < 4:
+            ps_select = SelectPointsources(
+                limit1550Crab=0.1,
+                time_string=f"{self._date:%y%m%d}",
+                update=False
+            )
 
-        day_before = self._date - timedelta(days=1)
+            ps_setup = {}
 
-        job_dir_day_before = os.path.join(
-            base_dir,
-            f"{day_before:%y%m%d}",
-            self._data_type,
-            "phys_bkg",
-            f"det_{'_'.join(self._detectors)}",
-            f"e{'_'.join(self._echans)}",
-        )
+            for ps_name in ps_select.ps_dict.keys():
 
-        if os.path.exists(job_dir_day_before):
+                ps_setup[ps_name.upper()] = dict(
+                    fixed=True,
+                    spectrum=dict(
+                        pl=dict(
+                            spectrum_type="pl",
+                            powerlaw_index="swift"
+                        )
+                    )
+                )
 
-            print("daybefore found")
+            self._ps_dict = ps_select.ps_dict
 
-        result_file = os.path.join(day_before, "fit_result.hdf5")
+        else:
+            ps_setup = []
 
-        if os.path.exists(result_file):
+        self._config["setup"].update(ps_list=ps_setup)
 
-            with h5py.File(result_file, "r") as f:
+    def _update_priors(self):
 
-                param_names = f.attrs['param_names']
+        for delta_days in range(1, 5):
 
-                best_fit_values = f.attrs["best_fit_values"]
+            day_before = self._date - timedelta(days=delta_days)
 
-            params = dict(zip(param_names, best_fit_values))
+            job_dir_day_before = os.path.join(
+                base_dir,
+                f"{day_before:%y%m%d}",
+                self._data_type,
+                "phys_bkg",
+                f"det_{'_'.join(self._detectors)}",
+                f"e{'_'.join(self._echans)}",
+            )
 
-        # TODO: Use the best fit values from the previous day to construct tight priors
-        # This needs some updates in the background model...
+            result_file = os.path.join(job_dir_day_before, "fit_result.hdf5")
+
+            if os.path.exists(result_file):
+
+                print("daybefore found")
+
+                with h5py.File(result_file, "r") as f:
+
+                    param_names = f.attrs['param_names']
+
+                    best_fit_values = f.attrs["best_fit_values"]
+
+                params = dict(zip(param_names, best_fit_values))
+
+                for param_name, best_fit_value in params.items():
+
+                    param_mean = float('%.3g' % best_fit_value)
+
+                    if param_name == "norm_earth_albedo":
+                        self._config["priors"]["earth"] = dict(fixed=dict())
+                        self._config["priors"]["earth"]["fixed"]["norm"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[0.5E-2, 5.0E-2],
+                            gaussian=[param_mean, 0.1]
+                        )
+
+                    elif param_name == "norm_cgb":
+                        self._config["priors"]["cgb"] = dict(fixed=dict())
+                        self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[4.0E-2, 3.0E-1],
+                            gaussian=[param_mean, 0.1]
+                        )
+
+                    elif "constant_echan-" in param_name:
+                        echan = param_name[-1]
+                        self._config["priors"][f"cr_echan-{echan}"] = {}
+                        self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[1.0E-1, 1.0E+2],
+                            gaussian=[param_mean, 0.1]
+                        )
+                    elif "norm_magnetic_echan-" in param_name:
+                        echan = param_name[-1]
+                        self._config["priors"][f"cr_echan-{echan}"] = {}
+                        self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[1.0E-1, 1.0E+2],
+                            gaussian=[param_mean, 0.1]
+                        )
+
+                    elif "norm_point_source" in param_name:
+                        ps_name = re.search('norm_point_source-(.*?)_pl', param_name).groups()[0]
+                        self._config["priors"][f"ps"][ps_name.upper()] = dict(pl=dict())
+                        self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[1.0E-4, 1.0E+9],
+                            gaussian=[param_mean, 0.1]
+                        )
+
+                    elif "eff_area_corr_" in param_name:
+                        det_name = re.search('eff_area_corr_(.*?)\b', param_name).groups()[0]
+                        self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
+                            prior="truncated_gaussian",
+                            bounds=[0.8, 1.2],
+                            gaussian=[param_mean, 0.01]
+                        )
+
+                    elif "norm_saa-" in param_name:
+                        pass
+
+                    else:
+                        raise Exception(f"Unknown param_name '{param_name}' provided")
+                break
 
     def write_config_file(self, output):
 

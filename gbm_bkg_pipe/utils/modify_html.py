@@ -68,3 +68,8 @@ def restore_default():
     # Delete custom skin
     if os.access(os.path.join(theme_css_dir, "skin-mpe.min.css"), os.F_OK):
         os.remove(os.path.join(theme_css_dir, "skin-mpe.min.css"))
+
+
+if __name__ == "__main__":
+
+    modify_index_html()

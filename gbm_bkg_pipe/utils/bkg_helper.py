@@ -139,7 +139,6 @@ class BkgConfigWriter(object):
 
                     elif "constant_echan-" in param_name:
                         echan = param_name[-1]
-                        self._config["priors"][f"cr_echan-{echan}"] = {}
                         self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
                             prior="truncated_gaussian",
                             bounds=[1.0E-1, 1.0E+2],
@@ -147,7 +146,6 @@ class BkgConfigWriter(object):
                         )
                     elif "norm_magnetic_echan-" in param_name:
                         echan = param_name[-1]
-                        self._config["priors"][f"cr_echan-{echan}"] = {}
                         self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
                             prior="truncated_gaussian",
                             bounds=[1.0E-1, 1.0E+2],

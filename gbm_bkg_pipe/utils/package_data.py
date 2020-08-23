@@ -5,7 +5,7 @@ import pkg_resources
 
 
 def get_path_of_data_dir():
-    file_path = pkg_resources.resource_filename("morgoth", "data")
+    file_path = pkg_resources.resource_filename("gbm_bkg_pipe", "data")
 
     return file_path
 
@@ -30,4 +30,4 @@ def get_path_of_user_dir():
     :return: an absolute path
     """
 
-    return os.path.abspath(os.path.expanduser("~/.morgoth"))
+    return os.path.abspath(os.path.expanduser("~/.gbm_bkg_pipe"))

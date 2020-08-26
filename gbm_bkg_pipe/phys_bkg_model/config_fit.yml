@@ -29,8 +29,8 @@ geometry:
 ##### Input for source Setup [use CR, use Earth, use CGB, point source list, fix earth, fix cgb #####
 setup:
   use_saa:      false
-  use_constant: false
-  use_cr:       false
+  use_constant: true
+  use_cr:       true
   use_earth:    true
   use_cgb:      true
   ps_list: []

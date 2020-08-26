@@ -8,7 +8,7 @@ from gbmbkgpy.utils.select_pointsources import SelectPointsources
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
-bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
+#bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
 
 
 class BkgConfigWriter(object):
@@ -52,11 +52,26 @@ class BkgConfigWriter(object):
         self._config.update(general_config)
 
     def _update_source_setup(self):
+        setup_sources = dict(
+            setup=dict(
+                use_saa=False,
+                use_constant=True,
+                use_cr=True,
+                use_earth=True,
+                use_cgb=True,
+                fix_earth=True,
+                fix_cgb=True,
+                use_sun=False,
+                ps_list=[],
+                cr_approximation="BGO",
+                use_eff_area_correction=False,
+            )
+        )
 
-        source_config = dict(setup=bkg_source_setup["_".join(self._echans)])
+        self._config.update(setup_sources)
 
-        # Update the config parameters with fit specific values
-        self._config.update(source_config)
+        if "b0" in self._detectors or "b1" in self._detectors:
+            self._config["setup"]["bgo_cr_approximation"] = False
 
     def _update_ps_setup(self):
         # Only inlcude point sources for echans 0-3

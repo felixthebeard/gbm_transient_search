@@ -4,6 +4,7 @@ import json
 import numpy as np
 import luigi
 import yaml
+import arviz
 from chainconsumer import ChainConsumer
 
 from luigi.contrib.external_program import ExternalProgramTask
@@ -11,11 +12,15 @@ from luigi.contrib.external_program import ExternalProgramTask
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 
-from gbmbkgpy.io.export import PHAWriter
+from gbmbkgpy.io.export import PHAWriter, StanDataExporter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
+from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
+from gbmbkgpy.utils.stan import StanDataConstructor, StanModelConstructor
+from cmdstanpy import cmdstan_path, CmdStanModel
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
+bkg_n_cores_stan = gbm_bkg_pipe_config["phys_bkg"]["stan"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
 bkg_timeout = gbm_bkg_pipe_config["phys_bkg"]["timeout"]
 
@@ -39,15 +44,15 @@ class GBMBackgroundModelFit(luigi.Task):
 
                 bkg_fit_tasks[
                     f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"
-                ] = RunPhysBkgModel(date=self.date, echans=echans, detectors=dets)
+                ] = RunPhysBkgStanModel(date=self.date, echans=echans, detectors=dets)
 
                 bkg_fit_tasks[
                     f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
                 ] = BkgModelResultPlot(date=self.date, echans=echans, detectors=dets)
 
-                bkg_fit_tasks[
-                    f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
-                ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
+                # bkg_fit_tasks[
+                #     f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                # ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
 
         return bkg_fit_tasks
 
@@ -172,6 +177,101 @@ class RunPhysBkgModel(ExternalProgramTask):
         return command
 
 
+class RunPhysBkgStanModel(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
+
+    # block twice the amount of cores in order to not rely on hyperthreadding
+    resources = {"cpu": 2 * bkg_n_cores_stan}
+
+    worker_timeout = bkg_timeout
+
+    def requires(self):
+        return CreateBkgConfig(
+            date=self.date,
+            data_type=self.data_type,
+            echans=self.echans,
+            detectors=self.detectors,
+        )
+
+    def output(self):
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
+        return {
+            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+            "arviz_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.nc")),
+            # "posteriour": luigi.LocalTarget(
+            #     os.path.join(job_dir, "post_equal_weights.dat")
+            # ),
+            # "params_json": luigi.LocalTarget(os.path.join(job_dir, "params.json")),
+        }
+
+    def run(self):
+        output_dir = os.path.dirname(self.output()["arviz_file"].path)
+
+        model_generator = BackgroundModelGenerator()
+        model_generator.from_config_file(self.input().path)
+
+        stan_model_const = StanModelConstructor(model_generator=model_generator)
+        stan_model_file = os.path.join(output_dir, "background_model.stan")
+        stan_model_const.create_stan_file(stan_model_file)
+
+        # Create Stan Model
+        model = CmdStanModel(
+            stan_file=stan_model_file,
+            cpp_options={'STAN_THREADS': 'TRUE'}
+        )
+
+        # StanDataConstructor
+        stan_data = StanDataConstructor(
+            model_generator=model_generator,
+            threads_per_chain=bkg_n_cores_stan
+        )
+
+        data_dict = stan_data.construct_data_dict()
+
+        # Sample
+        stan_fit = model.sample(
+            data=data_dict,
+            output_dir=os.path.join(output_dir, "stan_chains"),
+            chains=1,
+            seed=int(np.random.rand()*10000),
+            parallel_chains=1,
+            threads_per_chain=bkg_n_cores_stan,
+            iter_warmup=300,
+            iter_sampling=300,
+            show_progress=True
+        )
+
+        # Build arviz object
+        arviz_result = arviz.from_cmdstanpy(
+            stan_fit,
+            posterior_predictive="ppc",
+            observed_data={"counts": data_dict["counts"]},
+            constant_data={
+                "time_bins": data_dict["time_bins"],
+                "dets": model_generator.data.detectors,
+                "echans": model_generator.data.echans
+            },
+            predictions=stan_model_const.generated_quantities()
+        )
+
+        # Save this object
+        arviz_result.to_netcdf(self.output()["arviz_file"].path)
+
+        stan_data_export = StanDataExporter(model_generator, self.output()["arviz_file"].path)
+
+        stan_data_export.save_data(file_path=self.output()["result_file"].path)
+
+
 class BkgModelResultPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
@@ -181,7 +281,7 @@ class BkgModelResultPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return RunPhysBkgModel(
+        return RunPhysBkgStanModel(
             date=self.date, echans=self.echans, detectors=self.detectors
         )
 
@@ -228,7 +328,7 @@ class BkgModelCornerPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return RunPhysBkgModel(
+        return RunPhysBkgStanModel(
             date=self.date, echans=self.echans, detectors=self.detectors
         )
 

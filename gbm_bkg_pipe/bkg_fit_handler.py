@@ -276,24 +276,7 @@ class RunPhysBkgStanModel(luigi.Task):
             show_progress=True
         )
 
-        # Build arviz object
-        arviz_result = arviz.from_cmdstanpy(
-            posterior=stan_fit,
-            posterior_predictive="ppc",
-            observed_data={"counts": data_dict["counts"]},
-            constant_data={
-                "time_bins": data_dict["time_bins"],
-                "dets": model_generator.data.detectors,
-                "echans": model_generator.data.echans
-            },
-            predictions=stan_model_const.generated_quantities()
-        )
-        # Save this object
-        arviz_result.to_netcdf(self.output()["arviz_file"].path)
-
-        ####
-        #Export fine binned data
-        ####
+        # Export fine binned data
         config = model_generator.config
         # Create a copy of the response precalculation
         response_precalculation = model_generator._resp
@@ -327,6 +310,9 @@ class RunPhysBkgStanModel(luigi.Task):
             mcmc_sample=stan_fit
         )
 
+        # Decrease CPU resource to 1
+        self.decrease_running_resources({"cpu": bkg_n_cores_stan - 1})
+
         stan_data_export = StanDataExporter.from_generated_quantities(
             model_generator,
             export_quantities
@@ -334,6 +320,20 @@ class RunPhysBkgStanModel(luigi.Task):
 
         stan_data_export.save_data(file_path=self.output()["result_file"].path)
 
+        # Build arviz object
+        arviz_result = arviz.from_cmdstanpy(
+            posterior=stan_fit,
+            posterior_predictive="ppc",
+            observed_data={"counts": data_dict["counts"]},
+            constant_data={
+                "time_bins": data_dict["time_bins"],
+                "dets": model_generator.data.detectors,
+                "echans": model_generator.data.echans
+            },
+            predictions=stan_model_const.generated_quantities()
+        )
+        # Save this object
+        arviz_result.to_netcdf(self.output()["arviz_file"].path)
 
 class BkgModelResultPlot(luigi.Task):
     date = luigi.DateParameter()

@@ -73,7 +73,7 @@ structure = {}
 
 structure["luigi"] = dict(n_workers=4)
 structure["phys_bkg"] = dict(
-    stan=dict(n_cores=4),
+    stan=dict(n_cores=16),
     multinest=dict(n_cores=4, path_to_python="python"),
     timeout=2 * 60 * 60,  # 1 hour
     #bkg_source_setup=bkg_source_setup,

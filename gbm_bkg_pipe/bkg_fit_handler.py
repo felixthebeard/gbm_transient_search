@@ -270,7 +270,7 @@ class RunPhysBkgStanModel(luigi.Task):
 
         # Build arviz object
         arviz_result = arviz.from_cmdstanpy(
-            stan_fit,
+            posterior=stan_fit,
             posterior_predictive="ppc",
             observed_data={"counts": data_dict["counts"]},
             constant_data={
@@ -280,11 +280,49 @@ class RunPhysBkgStanModel(luigi.Task):
             },
             predictions=stan_model_const.generated_quantities()
         )
-
         # Save this object
         arviz_result.to_netcdf(self.output()["arviz_file"].path)
 
-        stan_data_export = StanDataExporter(model_generator, self.output()["arviz_file"].path)
+        ####
+        #Export fine binned data
+        ####
+        config = model_generator.config
+        # Create a copy of the response precalculation
+        response_precalculation = model_generator._resp
+
+        # Create a copy of the geomtry precalculation
+        geometry_precalculation = model_generator._geom
+
+        # Create copy of config dictionary
+        config_export = config
+
+        config_export["general"]["min_bin_width"] = 2
+
+        # Create a new model generator instance of the same type
+        model_generator_export = type(model_generator)()
+
+        model_generator_export.from_config_dict(
+            config=config_export,
+            response=response_precalculation,
+            geometry=geometry_precalculation,
+        )
+        # StanDataConstructor
+        stan_data_export = StanDataConstructor(
+            model_generator=model_generator_export,
+            threads_per_chain=bkg_n_cores_stan
+        )
+
+        data_dict_export = stan_data_export.construct_data_dict()
+
+        export_quantities = model.generate_quantities(
+            data=data_dict_export,
+            mcmc_sample=stan_fit
+        )
+
+        stan_data_export = StanDataExporter.from_generated_quantities(
+            model_generator,
+            export_quantities
+        )
 
         stan_data_export.save_data(file_path=self.output()["result_file"].path)
 

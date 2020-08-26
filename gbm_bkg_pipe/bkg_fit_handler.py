@@ -16,6 +16,11 @@ from gbmbkgpy.io.export import PHAWriter, StanDataExporter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
 from gbmbkgpy.utils.stan import StanDataConstructor, StanModelConstructor
+
+from gbmbkgpy.io.package_data import get_path_of_external_data_dir
+from gbmbkgpy.io.downloading import download_data_file
+from gbmbkgpy.io.file_utils import file_existing_and_readable
+
 from cmdstanpy import cmdstan_path, CmdStanModel
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
@@ -189,12 +194,24 @@ class RunPhysBkgStanModel(luigi.Task):
     worker_timeout = bkg_timeout
 
     def requires(self):
-        return CreateBkgConfig(
-            date=self.date,
-            data_type=self.data_type,
-            echans=self.echans,
-            detectors=self.detectors,
-        )
+        requires = {
+            "config": CreateBkgConfig(
+                date=self.date,
+                data_type=self.data_type,
+                echans=self.echans,
+                detectors=self.detectors,
+            ),
+            "poshist_file": DownloadPoshistData(date=self.date)
+        }
+
+        for det in self.detectors:
+            requires[f"data_{det}"] = DownloadData(
+                date=self.date,
+                data_type=self.data_type,
+                detector=det
+            )
+
+        return requires
 
     def output(self):
         job_dir = os.path.join(
@@ -218,7 +235,7 @@ class RunPhysBkgStanModel(luigi.Task):
         output_dir = os.path.dirname(self.output()["arviz_file"].path)
 
         model_generator = BackgroundModelGenerator()
-        model_generator.from_config_file(self.input().path)
+        model_generator.from_config_file(self.input()["config"].path)
 
         stan_model_const = StanModelConstructor(model_generator=model_generator)
         stan_model_file = os.path.join(output_dir, "background_model.stan")
@@ -375,3 +392,61 @@ class BkgModelCornerPlot(luigi.Task):
 
         # with self.output().temporary_path() as self.temp_output_path:
         #     run_some_external_command(output_path=self.temp_output_path)
+
+
+class DownloadData(luigi.Task):
+    """
+    Downloads a DataFile
+    """
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    detector = luigi.ListParameter()
+
+    resources = {"cpu": 1}
+
+    def output(self):
+        datafile_name = f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+
+        return luigi.LocalTarget(os.path.join(
+                get_path_of_external_data_dir(),
+                self.data_type,
+                f"{self.date:%y%m%d}",
+                datafile_name
+            )
+        )
+
+    def run(self):
+
+        if not file_existing_and_readable(self.output().path):
+            download_data_file(
+                f"{self.date:%y%m%d}",
+                self.data_type,
+                self.detector
+            )
+
+           
+class DownloadPoshistData(luigi.Task):
+    """
+    Downloads a DataFile
+    """
+    date = luigi.DateParameter()
+
+    resources = {"cpu": 1}
+
+    def output(self):
+        datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
+
+        return luigi.LocalTarget(os.path.join(
+                get_path_of_external_data_dir(),
+                "poshist",
+                datafile_name
+            )
+        )
+
+    def run(self):
+
+        if not file_existing_and_readable(self.output().path):
+            download_data_file(
+                f"{self.date:%y%m%d}",
+                "poshist"
+            )

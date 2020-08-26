@@ -52,8 +52,8 @@ run_detectors = [
     ["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "na", "nb"],
 ]
 run_echans = [
-    ["0", "1", "2", "3", "4"],
-    ["5", "6", "7"]
+    ["0", "1", "2", "3"],
+    ["4", "5", "6", "7"]
 ]
 # bkg_source_setup = {}
 # for echans in run_echans:

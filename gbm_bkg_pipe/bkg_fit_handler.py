@@ -189,7 +189,7 @@ class RunPhysBkgStanModel(luigi.Task):
     detectors = luigi.ListParameter()
 
     # block twice the amount of cores in order to not rely on hyperthreadding
-    resources = {"cpu": 2 * bkg_n_cores_stan}
+    resources = {"cpu": bkg_n_cores_stan}
 
     worker_timeout = bkg_timeout
 

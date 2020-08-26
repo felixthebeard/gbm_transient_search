@@ -201,13 +201,21 @@ class RunPhysBkgStanModel(luigi.Task):
                 echans=self.echans,
                 detectors=self.detectors,
             ),
-            "poshist_file": DownloadPoshistData(date=self.date)
+            "poshist_file": DownloadPoshistData(date=self.date),
         }
 
         for det in self.detectors:
             requires[f"data_{det}"] = DownloadData(
                 date=self.date,
                 data_type=self.data_type,
+                detector=det
+            )
+        # Download bgo cspec data for CR approximation
+        bgos = ["b0", "b1"]
+        for det in bgos:
+            requires[f"data_{det}"] = DownloadData(
+                date=self.date,
+                data_type="cspec",
                 detector=det
             )
 

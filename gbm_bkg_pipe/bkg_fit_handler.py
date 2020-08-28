@@ -240,6 +240,8 @@ class RunPhysBkgStanModel(luigi.Task):
         }
 
     def run(self):
+        os.environ["gbm_bkg_multiprocessing_n_cores"] = bkg_n_cores_stan
+
         output_dir = os.path.dirname(self.output()["arviz_file"].path)
 
         model_generator = BackgroundModelGenerator()

@@ -240,7 +240,7 @@ class RunPhysBkgStanModel(luigi.Task):
         }
 
     def run(self):
-        os.environ["gbm_bkg_multiprocessing_n_cores"] = bkg_n_cores_stan
+        os.environ["gbm_bkg_multiprocessing_n_cores"] = str(bkg_n_cores_stan)
 
         output_dir = os.path.dirname(self.output()["arviz_file"].path)
 
@@ -289,7 +289,7 @@ class RunPhysBkgStanModel(luigi.Task):
         # Create copy of config dictionary
         config_export = config
 
-        config_export["general"]["min_bin_width"] = 2
+        config_export["general"]["min_bin_width"] = 5
 
         # Create a new model generator instance of the same type
         model_generator_export = type(model_generator)()
@@ -307,9 +307,21 @@ class RunPhysBkgStanModel(luigi.Task):
 
         data_dict_export = stan_data_export.construct_data_dict()
 
-        export_quantities = model.generate_quantities(
+        stan_model_file_export = os.path.join(output_dir, "background_model_export.stan")
+        stan_model_const.create_stan_file(stan_model_file_export, total_only=True)
+
+        # Create Stan Model
+        model_export = CmdStanModel(
+            stan_file=stan_model_file_export,
+            cpp_options={'STAN_THREADS': 'TRUE'}
+        )
+
+        model_export.compile()
+
+        export_quantities = model_export.generate_quantities(
             data=data_dict_export,
-            mcmc_sample=stan_fit
+            mcmc_sample=stan_fit,
+            gq_output_dir=os.path.join(output_dir, "stan_chains")
         )
 
         # Decrease CPU resource to 1

@@ -193,13 +193,16 @@ class RunPhysBkgStanModel(luigi.Task):
         )
        
         output = remote.check_output([
-            f"sbatch {script_path} --parsable {self.input()['config'].path} {self.date:%y%m%d}"
+            "sbatch",
+            "--parsable",
+            "-D",
+            f"{os.path.dirname(self.output().path)}",
+            f"{script_path}",
+            f"{self.input()['config'].path}",
+            f"{self.date:%y%m%d}"
         ])
 
         print(output)
-
-
-
 
 
 class BkgModelResultPlot(luigi.Task):

@@ -199,8 +199,8 @@ class RunPhysBkgStanModel(luigi.Task):
             f"{os.path.dirname(self.input()['config'].path)}",
             "--wait",
             f"{script_path}",
-            f"{self.input()['config'].path}",
             f"{self.date:%y%m%d}"
+            f"{self.input()['config'].path}",
         ])
 
         print(output)

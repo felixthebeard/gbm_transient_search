@@ -191,10 +191,10 @@ class RunPhysBkgStanModel(luigi.Task):
             username=remote_username,
             sshpass=True
         )
-
-        output = remote.check_output[
+       
+        output = remote.check_output([
             f"sbatch {script_path} --parsable {self.input()['config'].path} {self.date:%y%m%d}"
-        ]
+        ])
 
         print(output)
 

@@ -196,7 +196,7 @@ class RunPhysBkgStanModel(luigi.Task):
             "sbatch",
             "--parsable",
             "-D",
-            f"{os.path.dirname(self.output()['result_file'].path)}",
+            f"{os.path.dirname(self.input()['config'].path)}",
             "--wait",
             f"{script_path}",
             f"{self.input()['config'].path}",

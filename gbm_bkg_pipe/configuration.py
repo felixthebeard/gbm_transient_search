@@ -87,6 +87,10 @@ structure["remote"] = dict(
     data_dir="/u/fkunzwei/gbm_data/"
 )
 
+structure["download"] = dict(
+    interval=5 * 60,     # run every 5 min
+    max_time=6 * 60 * 60 # run for 6h
+)
 
 structure["balrog"] = dict(
     multinest=dict(n_cores=4, path_to_python="python"), timeout=1 * 60 * 60  # 1 hour

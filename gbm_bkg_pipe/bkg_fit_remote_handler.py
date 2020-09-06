@@ -182,7 +182,7 @@ class RunPhysBkgStanModel(luigi.Task):
     def run(self):
 
         script_path = os.path.join(
-            bkg_pipe_config['remote']['script_dir'],
+            gbm_bkg_pipe_config['remote']['script_dir'],
             "stan_fit_pipe.job"
         )
 

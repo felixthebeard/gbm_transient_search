@@ -328,7 +328,7 @@ class RunPhysBkgStanModel(luigi.Task):
         self.decrease_running_resources({"cpu": bkg_n_cores_stan - 1})
 
         stan_data_export = StanDataExporter.from_generated_quantities(
-            model_generator,
+            model_generator_export,
             export_quantities
         )
 

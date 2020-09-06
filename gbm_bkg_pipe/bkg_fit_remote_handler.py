@@ -132,7 +132,40 @@ class CreateBkgConfig(luigi.Task):
                 default_flow_style=False
             )
 
+
 class RunPhysBkgStanModel(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
+
+    def requires(self):
+        return RunRemotePhysBkgStanModel(
+            date=self.date, echans=self.echans, detectors=self.detectors
+        )
+
+    def output(self):
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
+        return {
+            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+        }
+
+    def run(self):
+
+        with self.input().open("r") as job_file:
+            job_id = job_file.read()
+
+        print(job_id)
+
+
+class RunRemotePhysBkgStanModel(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     echans = luigi.ListParameter()
@@ -176,7 +209,7 @@ class RunPhysBkgStanModel(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
         return {
-            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+            "job_file": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
         }
 
     def run(self):
@@ -199,11 +232,12 @@ class RunPhysBkgStanModel(luigi.Task):
             f"{os.path.dirname(self.input()['config'].path)}",
             "--wait",
             f"{script_path}",
-            f"{self.date:%y%m%d}"
-            f"{self.input()['config'].path}",
+            f"{self.date:%y%m%d}",
+            f"{self.input()['config'].path}"
         ])
 
-        print(output)
+        with self.output().open("w") as outfile:
+            outfile.write(output)
 
 
 class BkgModelResultPlot(luigi.Task):

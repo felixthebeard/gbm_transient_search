@@ -344,7 +344,7 @@ class DownloadData(luigi.Task):
             dl = BackgroundDownload(
                 f"{self.date:%y%m%d}",
                 self.data_type,
-                self.detector
+                self.detector,
                 wait_time=float(
                     gbm_bkg_pipe_config["download"]["interval"]
                 ),

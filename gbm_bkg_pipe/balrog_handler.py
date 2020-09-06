@@ -4,7 +4,7 @@ from datetime import datetime
 from luigi.contrib.external_program import ExternalProgramTask
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.bkg_fit_handler import GBMBackgroundModelFit
+from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
 

@@ -79,6 +79,15 @@ structure["phys_bkg"] = dict(
     #bkg_source_setup=bkg_source_setup,
 )
 
+structure["remote"] = dict(
+    host="cobra",
+    username="fkunzwei",
+    script_dir="/u/fkunzwei/scripts/bkg_pipe/",
+    base_dir="/u/fkunzwei/gbm_data/bkg_pipe/",
+    data_dir="/u/fkunzwei/gbm_data/"
+)
+
+
 structure["balrog"] = dict(
     multinest=dict(n_cores=4, path_to_python="python"), timeout=1 * 60 * 60  # 1 hour
 )

@@ -84,7 +84,7 @@ structure["remote"] = dict(
     username="fkunzwei",
     script_dir="/u/fkunzwei/scripts/bkg_pipe/",
     base_dir="/u/fkunzwei/gbm_data/bkg_pipe/",
-    data_dir="/u/fkunzwei/gbm_data/"
+    gbm_data="/u/fkunzwei/gbm_data/"
 )
 
 structure["download"] = dict(

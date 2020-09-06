@@ -186,14 +186,15 @@ class RunPhysBkgStanModel(luigi.Task):
             "stan_fit_pipe.job"
         )
 
-        with RemoteContext(
+        remote = RemoteContext(
             host=remote_host,
             username=remote_username,
             sshpass=True
-        ) as remote:
-            output = remote.check_output[
-                f"sbatch {script_path} --parsable {self.input()['config'].path} {self.date:%y%m%d}"
-            ]
+        )
+
+        output = remote.check_output[
+            f"sbatch {script_path} --parsable {self.input()['config'].path} {self.date:%y%m%d}"
+        ]
 
         print(output)
 

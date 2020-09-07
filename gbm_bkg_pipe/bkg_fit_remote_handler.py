@@ -255,7 +255,7 @@ class RunRemotePhysBkgStanModel(luigi.Task):
                 host=remote_host,
                 username=remote_username,
                 sshpass=True
-            )
+            ),
             "chains_dir": RemoteTarget(
                 os.path.join(job_dir_remote, "stan_chains"),
                 host=remote_host,
@@ -288,8 +288,8 @@ class RunRemotePhysBkgStanModel(luigi.Task):
             f"{self.input()['config'].path}"
         ])
 
-        with self.output().open("w") as outfile:
-            outfile.write(job_id)
+        # with self.output().open("w") as outfile:
+        #     outfile.write(job_id)
 
 
 class BkgModelResultPlot(luigi.Task):

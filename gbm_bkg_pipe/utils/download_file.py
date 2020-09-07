@@ -6,7 +6,7 @@ import astropy.utils.data as astro_data
 
 import gbm_bkg_pipe.utils.file_utils as file_utils
 
-from gbmbkgpy.utils.downloading import download_data_file
+from gbmbkgpy.io.downloading import download_data_file
 
 
 class BackgroundDataDownload(object):

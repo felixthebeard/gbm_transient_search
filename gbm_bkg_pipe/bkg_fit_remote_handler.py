@@ -141,6 +141,8 @@ class RunPhysBkgStanModel(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
 
+    resources = {"cpu": 1}
+
     def requires(self):
         return RunRemotePhysBkgStanModel(
             date=self.date, echans=self.echans, detectors=self.detectors
@@ -247,12 +249,18 @@ class RunRemotePhysBkgStanModel(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
         return {
-            "job_file": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
+            #"job_file": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
+            "success": RemoteTarget(
+                os.path.join(job_dir_remote, "success.txt"),
+                host=remote_host,
+                username=remote_username,
+                sshpass=True
+            )
             "chains_dir": RemoteTarget(
-            os.path.join(job_dir_remote, "stan_chains"),
-            host=remote_host,
-            username=remote_username,
-            sshpass=True
+                os.path.join(job_dir_remote, "stan_chains"),
+                host=remote_host,
+                username=remote_username,
+                sshpass=True
             )
         }
 

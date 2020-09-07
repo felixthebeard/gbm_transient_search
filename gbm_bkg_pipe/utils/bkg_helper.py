@@ -205,3 +205,10 @@ class BkgConfigWriter(object):
 
         with output().open(mode="w") as f:
             yaml.dump(self._config, f, default_flow_style=False)
+
+
+class TableWrapper(object):
+    def __init__(self, df):
+        self.df = df
+        self.generated_quantities = df.to_numpy()
+        self.column_names = list(df.columns)

@@ -13,6 +13,8 @@ from luigi.contrib.ssh import RemoteContext, RemoteTarget
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter, TableWrapper
 
+from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
+
 from gbmbkgpy.io.export import PHAWriter, StanDataExporter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
@@ -422,7 +424,7 @@ class DownloadData(luigi.Task):
 
         if not os.path.exists(local_path):
 
-            dl = BackgroundDownload(
+            dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",
                 self.data_type,
                 self.detector,
@@ -475,7 +477,7 @@ class DownloadPoshistData(luigi.Task):
 
         if not os.path.exists(local_path):
 
-            dl = BackgroundDownload(
+            dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",
                 "poshist",
                 wait_time=float(

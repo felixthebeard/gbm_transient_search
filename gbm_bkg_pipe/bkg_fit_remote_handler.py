@@ -488,6 +488,7 @@ class DownloadPoshistData(luigi.Task):
             dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",
                 "poshist",
+                "all",
                 wait_time=float(
                     gbm_bkg_pipe_config["download"]["interval"]
                 ),

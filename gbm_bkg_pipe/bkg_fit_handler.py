@@ -467,7 +467,8 @@ class DownloadData(luigi.Task):
     def output(self):
         datafile_name = f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
 
-        return luigi.LocalTarget(os.path.join(
+        return luigi.LocalTarget(
+            os.path.join(
                 get_path_of_external_data_dir(),
                 self.data_type,
                 f"{self.date:%y%m%d}",
@@ -496,10 +497,11 @@ class DownloadPoshistData(luigi.Task):
     def output(self):
         datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
 
-        return luigi.LocalTarget(os.path.join(
+        return luigi.LocalTarget(
+            os.path.join(
                 get_path_of_external_data_dir(),
                 "poshist",
-                datafile_name
+                datafile_name,
             )
         )
 

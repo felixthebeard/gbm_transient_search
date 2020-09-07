@@ -53,7 +53,7 @@ class GBMBackgroundModelFit(luigi.Task):
 
                 bkg_fit_tasks[
                     f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"
-                ] = RunPhysBkgStanModel(date=self.date, echans=echans, detectors=dets)
+                ] = RunPhysBkgModel(date=self.date, echans=echans, detectors=dets)
 
                 bkg_fit_tasks[
                     f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
@@ -135,73 +135,75 @@ class CreateBkgConfig(luigi.Task):
             )
 
            
-class RunPhysBkgStanModel(luigi.Task):
+# class RunPhysBkgStanModel(luigi.Task):
+#     date = luigi.DateParameter()
+#     data_type = luigi.Parameter(default="ctime")
+#     echans = luigi.ListParameter()
+#     detectors = luigi.ListParameter()
+
+#     resources = {"cpu": 1}
+
+#     def requires(self):
+#         return RunRemotePhysBkgStanModel(
+#             date=self.date, echans=self.echans, detectors=self.detectors
+#         )
+
+#     def output(self):
+#         job_dir = os.path.join(
+#             base_dir,
+#             f"{self.date:%y%m%d}",
+#             self.data_type,
+#             "phys_bkg",
+#             f"det_{'_'.join(self.detectors)}",
+#             f"e{'_'.join(self.echans)}",
+#         )
+#         return {
+#             "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+#         }
+
+#     def run(self):
+
+#         with self.input()["job_file"].open("r") as job_file:
+#             job_id = job_file.read()
+
+#         print(job_id)
+
+#         export_chains_files = []
+
+#         for path in self.input()["chains_dir"].fs.listdir(self.input()["chains_dir"].path):
+#             if "background_model_export" in path and path.split(".")[-1] == "csv":
+#                 export_chains_files.append(path)
+
+
+#         chains_file = RemoteTarget(
+#             export_chains_files[0],
+#             host="cobra",
+#             username="fkunzwei",
+#             sshpass=True
+#         )
+
+#         with chains_file.open('r') as f:
+
+#             export_result = pd.read_csv(
+#                 f,
+#                 sep=',',
+#                 engine='c',
+#                 comment='#',
+#                 dtype=np.float64,
+#                 low_memory=False,
+#                 float_precision="high",
+#             )
+
+#         generated_quantities = TableWrapper(export_result)
+
+
+class RunPhysBkgModel(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
-
-    def requires(self):
-        return RunRemotePhysBkgStanModel(
-            date=self.date, echans=self.echans, detectors=self.detectors
-        )
-
-    def output(self):
-        job_dir = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
-        return {
-            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
-        }
-
-    def run(self):
-
-        with self.input()["job_file"].open("r") as job_file:
-            job_id = job_file.read()
-
-        print(job_id)
-
-        export_chains_files = []
-
-        for path in self.input()["chains_dir"].fs.listdir(self.input()["chains_dir"].path):
-            if "background_model_export" in path and path.split(".")[-1] == "csv":
-                export_chains_files.append(path)
-
-
-        chains_file = RemoteTarget(
-            export_chains_files[0],
-            host="cobra",
-            username="fkunzwei",
-            sshpass=True
-        )
-
-        with chains_file.open('r') as f:
-
-            export_result = pd.read_csv(
-                f,
-                sep=',',
-                engine='c',
-                comment='#',
-                dtype=np.float64,
-                low_memory=False,
-                float_precision="high",
-            )
-
-        generated_quantities = TableWrapper(export_result)
-
-
-class RunRemotePhysBkgStanModel(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
 
     def requires(self):
         requires = {
@@ -249,7 +251,13 @@ class RunRemotePhysBkgStanModel(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
         return {
-            #"job_file": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
+            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+            "result_file_remote": RemoteTarget(
+                os.path.join(job_dir_remote, "fit_result.hdf5"),
+                host=remote_host,
+                username=remote_username,
+                sshpass=True
+            ),
             "success": RemoteTarget(
                 os.path.join(job_dir_remote, "success.txt"),
                 host=remote_host,
@@ -288,6 +296,11 @@ class RunRemotePhysBkgStanModel(luigi.Task):
             f"{self.input()['config'].path}"
         ])
 
+        # Copy result file to local folder
+        self.output()["result_file_remote"].get(
+            self.output()["result_file"].path
+        )
+
         # with self.output().open("w") as outfile:
         #     outfile.write(job_id)
 
@@ -301,7 +314,7 @@ class BkgModelResultPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return RunPhysBkgStanModel(
+        return RunPhysBkgModel(
             date=self.date, echans=self.echans, detectors=self.detectors
         )
 
@@ -348,7 +361,7 @@ class BkgModelCornerPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return RunPhysBkgStanModel(
+        return RunPhysBkgModel(
             date=self.date, echans=self.echans, detectors=self.detectors
         )
 

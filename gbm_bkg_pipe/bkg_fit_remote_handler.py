@@ -159,8 +159,13 @@ class CopyResults(luigi.Task):
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
         )
+        result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
         return {
-            "result_file": luigi.LocalTarget(os.path.join(job_dir, "fit_result.hdf5")),
+            "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
         }
 
     def run(self):
@@ -216,6 +221,11 @@ class RunPhysBkgModel(luigi.Task):
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
         )
+        result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
         return {
             "job_id": RemoteTarget(
                 os.path.join(job_dir_remote, "job_id.txt"),
@@ -230,7 +240,7 @@ class RunPhysBkgModel(luigi.Task):
                 sshpass=True
             ),
             "result_file": RemoteTarget(
-                os.path.join(job_dir_remote, "fit_result.hdf5"),
+                os.path.join(job_dir_remote, result_file_name),
                 host=remote_host,
                 username=remote_username,
                 sshpass=True

@@ -33,6 +33,8 @@ class BackgroundDataDownload(object):
 
         flag = True
 
+        sucess = False
+
         # the time spent waiting so far
         time_spent = 0  # seconds
 
@@ -50,6 +52,8 @@ class BackgroundDataDownload(object):
                 # kill the loop
 
                 flag = False
+
+                sucess = True
 
             except:
 
@@ -73,4 +77,4 @@ class BackgroundDataDownload(object):
 
                     time_spent += self._wait_time
 
-        return path
+        return sucess

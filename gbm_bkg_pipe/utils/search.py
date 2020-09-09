@@ -15,6 +15,9 @@ from trigger_hunter.utils.stats import poisson_gaussian
 from astropy.stats import bayesian_blocks
 import ruptures as rpt
 
+from gbm_bkg_pipe.utils.saa_calc import SaaCalc
+
+
 valid_det_names = [
     "n0",
     "n1",
@@ -90,6 +93,10 @@ class Search(object):
 
         for det in self._detectors:
             self._dets_idx.append(valid_det_names.index(det))
+
+        # Calculate new saa mask to fix stan fit
+        saa_calc = SaaCalc(self._time_bins)
+        self._saa_mask = saa_calc.saa_mask
 
         self._rebinn_data(min_bin_width)
 

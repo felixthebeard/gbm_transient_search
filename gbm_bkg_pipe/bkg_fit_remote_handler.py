@@ -38,7 +38,6 @@ remote_host = gbm_bkg_pipe_config["remote"]["host"]
 remote_username = gbm_bkg_pipe_config["remote"]["username"]
 
 
-
 class GBMBackgroundModelFit(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
@@ -88,7 +87,9 @@ class GBMBackgroundModelFit(luigi.Task):
             for echans in run_echans:
 
                 bkg_fit_results.append(
-                    self.input()[f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"]["result_file"].path
+                    self.input()[f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"][
+                        "result_file"
+                    ].path
                 )
 
         # PHACombiner and save combined file
@@ -121,20 +122,18 @@ class CreateBkgConfig(luigi.Task):
             os.path.join(job_dir_remote, "config_fit.yml"),
             host=remote_host,
             username=remote_username,
-            sshpass=True
+            sshpass=True,
         )
 
     def run(self):
 
-        config_writer = BkgConfigWriter(self.date, self.data_type, self.echans, self.detectors)
+        config_writer = BkgConfigWriter(
+            self.date, self.data_type, self.echans, self.detectors
+        )
 
-        with self.output().open('w') as outfile:
+        with self.output().open("w") as outfile:
 
-            yaml.dump(
-                config_writer._config,
-                outfile,
-                default_flow_style=False
-            )
+            yaml.dump(config_writer._config, outfile, default_flow_style=False)
 
 
 class CopyResults(luigi.Task):
@@ -171,9 +170,7 @@ class CopyResults(luigi.Task):
     def run(self):
 
         # Copy result file to local folder
-        self.input()["result_file"].get(
-            self.output()["result_file"].path
-        )
+        self.input()["result_file"].get(self.output()["result_file"].path)
 
 
 class RunPhysBkgModel(luigi.Task):
@@ -197,17 +194,13 @@ class RunPhysBkgModel(luigi.Task):
 
         for det in self.detectors:
             requires[f"data_{det}"] = DownloadData(
-                date=self.date,
-                data_type=self.data_type,
-                detector=det
+                date=self.date, data_type=self.data_type, detector=det
             )
         # Download bgo cspec data for CR approximation
         bgos = ["b0", "b1"]
         for det in bgos:
             requires[f"data_{det}"] = DownloadData(
-                date=self.date,
-                data_type="cspec",
-                detector=det
+                date=self.date, data_type="cspec", detector=det
             )
 
         return requires
@@ -231,53 +224,50 @@ class RunPhysBkgModel(luigi.Task):
                 os.path.join(job_dir_remote, "job_id.txt"),
                 host=remote_host,
                 username=remote_username,
-                sshpass=True
+                sshpass=True,
             ),
             "chains_dir": RemoteTarget(
                 os.path.join(job_dir_remote, "stan_chains"),
                 host=remote_host,
                 username=remote_username,
-                sshpass=True
+                sshpass=True,
             ),
             "result_file": RemoteTarget(
                 os.path.join(job_dir_remote, result_file_name),
                 host=remote_host,
                 username=remote_username,
-                sshpass=True
+                sshpass=True,
             ),
             "success": RemoteTarget(
                 os.path.join(job_dir_remote, "success.txt"),
                 host=remote_host,
                 username=remote_username,
-                sshpass=True
-            )
+                sshpass=True,
+            ),
         }
 
     def run(self):
 
         script_path = os.path.join(
-            gbm_bkg_pipe_config['remote']['script_dir'],
-            "stan_fit_pipe.job"
+            gbm_bkg_pipe_config["remote"]["script_dir"], "stan_fit_pipe.job"
         )
 
-        remote = RemoteContext(
-            host=remote_host,
-            username=remote_username,
-            sshpass=True
+        remote = RemoteContext(host=remote_host, username=remote_username, sshpass=True)
+
+        job_id = remote.check_output(
+            [
+                "sbatch",
+                "--parsable",
+                "-D",
+                f"{os.path.dirname(self.input()['config'].path)}",
+                f"{script_path}",
+                f"{self.date:%y%m%d}",
+                f"{self.input()['config'].path}",
+            ]
         )
-       
-        job_id = remote.check_output([
-            "sbatch",
-            "--parsable",
-            "-D",
-            f"{os.path.dirname(self.input()['config'].path)}",
-            f"{script_path}",
-            f"{self.date:%y%m%d}",
-            f"{self.input()['config'].path}"
-        ])
 
         with self.output()["job_id"].open("w") as outfile:
-            outfile.write(job_id)
+            outfile.write(str(job_id))
 
 
 class BkgModelResultPlot(luigi.Task):
@@ -289,9 +279,7 @@ class BkgModelResultPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return CopyResults(
-            date=self.date, echans=self.echans, detectors=self.detectors
-        )
+        return CopyResults(date=self.date, echans=self.echans, detectors=self.detectors)
 
     def output(self):
         job_dir = os.path.join(
@@ -336,9 +324,7 @@ class BkgModelCornerPlot(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return CopyResults(
-            date=self.date, echans=self.echans, detectors=self.detectors
-        )
+        return CopyResults(date=self.date, echans=self.echans, detectors=self.detectors)
 
     def output(self):
         job_dir = os.path.join(
@@ -350,7 +336,12 @@ class BkgModelCornerPlot(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
 
-        return luigi.LocalTarget(os.path.join(job_dir, "corner_plot.pdf",))
+        return luigi.LocalTarget(
+            os.path.join(
+                job_dir,
+                "corner_plot.pdf",
+            )
+        )
 
     def run(self):
 
@@ -389,6 +380,7 @@ class DownloadData(luigi.Task):
     """
     Downloads a DataFile
     """
+
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     detector = luigi.ListParameter()
@@ -396,18 +388,17 @@ class DownloadData(luigi.Task):
     resources = {"cpu": 1}
 
     def output(self):
-        datafile_name = f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+        datafile_name = (
+            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+        )
 
         return RemoteTarget(
             os.path.join(
-                data_dir_remote,
-                self.data_type,
-                f"{self.date:%y%m%d}",
-                datafile_name
+                data_dir_remote, self.data_type, f"{self.date:%y%m%d}", datafile_name
             ),
             host=remote_host,
             username=remote_username,
-            sshpass=True
+            sshpass=True,
         )
 
     def run(self):
@@ -415,7 +406,7 @@ class DownloadData(luigi.Task):
             get_path_of_external_data_dir(),
             self.data_type,
             f"{self.date:%y%m%d}",
-            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha",
         )
 
         if not os.path.exists(local_path):
@@ -424,28 +415,24 @@ class DownloadData(luigi.Task):
                 f"{self.date:%y%m%d}",
                 self.data_type,
                 self.detector,
-                wait_time=float(
-                    gbm_bkg_pipe_config["download"]["interval"]
-                ),
-                max_time=float(
-                    gbm_bkg_pipe_config["download"]["max_time"]
-                ),
+                wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
+                max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
             )
             file_readable = dl.run()
 
         else:
             file_readable = True
 
-
         if file_readable:
 
             self.output().put(local_path)
 
-           
+
 class DownloadPoshistData(luigi.Task):
     """
     Downloads a DataFile
     """
+
     date = luigi.DateParameter()
 
     resources = {"cpu": 1}
@@ -454,21 +441,17 @@ class DownloadPoshistData(luigi.Task):
         datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
 
         return RemoteTarget(
-            os.path.join(
-                data_dir_remote,
-                "poshist",
-                datafile_name
-            ),
+            os.path.join(data_dir_remote, "poshist", datafile_name),
             host=remote_host,
             username=remote_username,
-            sshpass=True
+            sshpass=True,
         )
 
     def run(self):
         local_path = os.path.join(
             get_path_of_external_data_dir(),
             "poshist",
-            f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
+            f"glg_poshist_all_{self.date:%y%m%d}_v00.fit",
         )
 
         if not os.path.exists(local_path):
@@ -477,18 +460,13 @@ class DownloadPoshistData(luigi.Task):
                 f"{self.date:%y%m%d}",
                 "poshist",
                 "all",
-                wait_time=float(
-                    gbm_bkg_pipe_config["download"]["interval"]
-                ),
-                max_time=float(
-                    gbm_bkg_pipe_config["download"]["max_time"]
-                ),
+                wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
+                max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
             )
             file_readable = dl.run()
 
         else:
             file_readable = True
-
 
         if file_readable:
 

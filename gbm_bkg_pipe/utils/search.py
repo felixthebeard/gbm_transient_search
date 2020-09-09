@@ -403,8 +403,7 @@ class Search(object):
 
         return intervals_selected, significances_selected
 
-    def save_result(self, output_path):
-
+    def create_result_dict(self):
         trigger_information = {
             "dates": self._dates.tolist(),
             "data_type": self._data_type,
@@ -440,59 +439,24 @@ class Search(object):
 
             trigger_information["triggers"].append(t_info)
 
+        self._trigger_information = trigger_information
+
+    def plot_result(self, output_dir):
+
+        output_file = os.path.join(
+            output_dir,
+            trigger["trigger_name"],
+        )
+
+        if_dir_containing_file_not_existing_then_make(output_file)
+
+        with open(output_file, "w") as f:
+            yaml.dump(trigger, f, default_flow_style=False)
+
+    def save_result(self, output_path):
         # output_file = os.path.join(os.path.dirname(output_path), "trigger_information.yml")
         with open(output_path, "w") as f:
-            yaml.dump(trigger_information, f, default_flow_style=False)
-
-        # with h5py.File(output_path, "w") as f:
-
-        #     f.attrs["dates"] = self._dates
-
-        #     f.attrs["data_type"] = self._data_type
-
-        #     f.attrs["echans"] = self._echans
-
-        #     f.attrs["detectors"] = self._detectors
-
-        #     f.attrs["most_significant_detector"] = self._trigger_most_significant_detector
-
-        #     f.create_dataset(
-        #         f"trigger_intervals",
-        #         data=self._rebinned_mean_time[self._trigger_intervals],
-        #         compression="lzf",
-        #     )
-
-        #     f.create_dataset(
-        #         f"trigger_significance",
-        #         data=self._trigger_significance,
-        #         compression="lzf",
-        #     )
-
-        #     f.create_dataset(
-        #         f"trigger_times",
-        #         data=self._trigger_times,
-        #         compression="lzf",
-        #     )
-
-        #     f.create_dataset(
-        #         f"trigger_peak_times",
-        #         data=self._trigger_peak_times,
-        #         compression="lzf",
-        #     )
-
-        #     for det in self._detectors:
-
-        #         f.create_dataset(
-        #             f"{det}_intervals",
-        #             data=self._rebinned_mean_time(self._intervals_selected[det]),
-        #             compression="lzf",
-        #         )
-
-        #         f.create_dataset(
-        #             "{det}_significance",
-        #             data=self._intervals_significance[det],
-        #             compression="lzf",
-        #         )
+            yaml.dump(self._trigger_information, f, default_flow_style=False)
 
     def run_bayesian_blocks(self, **kwargs):
 

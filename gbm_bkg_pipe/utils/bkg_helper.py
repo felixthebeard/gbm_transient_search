@@ -8,11 +8,10 @@ from gbmbkgpy.utils.select_pointsources import SelectPointsources
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
-#bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
+# bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
 
 
 class BkgConfigWriter(object):
-
     def __init__(self, date, data_type, echans, detectors):
         self._date = date
         self._data_type = data_type
@@ -44,7 +43,7 @@ class BkgConfigWriter(object):
                 data_type=self._data_type,
                 echans=[echan for echan in self._echans],
                 detectors=list(self._detectors),
-                min_bin_width=40
+                min_bin_width=40,
             ),
         )
 
@@ -77,9 +76,7 @@ class BkgConfigWriter(object):
         # Only inlcude point sources for echans 0-3
         if int(max(self._echans)) < 4:
             ps_select = SelectPointsources(
-                limit1550Crab=0.1,
-                time_string=f"{self._date:%y%m%d}",
-                update=False
+                limit1550Crab=0.1, time_string=f"{self._date:%y%m%d}", update=False
             )
 
             ps_setup = {}
@@ -88,12 +85,7 @@ class BkgConfigWriter(object):
 
                 ps_setup[ps_name.upper()] = dict(
                     fixed=True,
-                    spectrum=dict(
-                        pl=dict(
-                            spectrum_type="pl",
-                            powerlaw_index="swift"
-                        )
-                    )
+                    spectrum=dict(pl=dict(spectrum_type="pl", powerlaw_index="swift")),
                 )
 
             self._ps_dict = ps_select.ps_dict
@@ -126,7 +118,7 @@ class BkgConfigWriter(object):
 
                 with h5py.File(result_file, "r") as f:
 
-                    param_names = f.attrs['param_names']
+                    param_names = f.attrs["param_names"]
 
                     best_fit_values = f.attrs["best_fit_values"]
 
@@ -134,62 +126,70 @@ class BkgConfigWriter(object):
 
                 for param_name, best_fit_value in params.items():
 
-                    param_mean = float('%.3g' % best_fit_value)
+                    param_mean = float("%.3g" % best_fit_value)
 
                     if param_name == "norm_earth_albedo":
                         self._config["priors"]["earth"] = dict(fixed=dict())
                         self._config["priors"]["earth"]["fixed"]["norm"] = dict(
                             prior="truncated_gaussian",
-                            bounds=[0.5E-2, 5.0E-2],
-                            gaussian=[param_mean, 0.1]
+                            bounds=[0.5e-2, 5.0e-2],
+                            gaussian=[param_mean, 0.1],
                         )
 
                     elif param_name == "norm_cgb":
                         self._config["priors"]["cgb"] = dict(fixed=dict())
                         self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
                             prior="truncated_gaussian",
-                            bounds=[4.0E-2, 3.0E-1],
-                            gaussian=[param_mean, 0.1]
+                            bounds=[4.0e-2, 3.0e-1],
+                            gaussian=[param_mean, 0.1],
                         )
 
                     elif "constant_echan-" in param_name:
                         echan = param_name[-1]
 
                         if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                           self._config["priors"][f"cr_echan-{echan}"] = {}
+                            self._config["priors"][f"cr_echan-{echan}"] = {}
 
                         self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
                             prior="truncated_gaussian",
-                            bounds=[1.0E-1, 1.0E+2],
-                            gaussian=[param_mean, 0.1]
+                            bounds=[1.0e-1, 1.0e2],
+                            gaussian=[param_mean, 0.1],
                         )
                     elif "norm_magnetic_echan-" in param_name:
                         echan = param_name[-1]
 
                         if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                           self._config["priors"][f"cr_echan-{echan}"] = {}
+                            self._config["priors"][f"cr_echan-{echan}"] = {}
 
                         self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
                             prior="truncated_gaussian",
-                            bounds=[1.0E-1, 1.0E+2],
-                            gaussian=[param_mean, 0.1]
+                            bounds=[1.0e-1, 1.0e2],
+                            gaussian=[param_mean, 0.1],
                         )
 
                     elif "norm_point_source" in param_name:
-                        ps_name = re.search('norm_point_source-(.*?)_pl', param_name).groups()[0]
+                        ps_name = re.search(
+                            "norm_point_source-(.*?)_pl", param_name
+                        ).groups()[0]
                         self._config["priors"][f"ps"][ps_name.upper()] = dict(pl=dict())
-                        self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
+                        self._config["priors"][f"ps"][ps_name.upper()]["pl"][
+                            "norm"
+                        ] = dict(
                             prior="truncated_gaussian",
-                            bounds=[1.0E-4, 1.0E+9],
-                            gaussian=[param_mean, 0.1]
+                            bounds=[1.0e-4, 1.0e9],
+                            gaussian=[param_mean, 0.1],
                         )
 
                     elif "eff_area_corr_" in param_name:
-                        det_name = re.search('eff_area_corr_(.*?)\b', param_name).groups()[0]
-                        self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
+                        det_name = re.search(
+                            "eff_area_corr_(.*?)\b", param_name
+                        ).groups()[0]
+                        self._config["priors"][
+                            f"eff_area_correction_{det_name}"
+                        ] = dict(
                             prior="truncated_gaussian",
                             bounds=[0.8, 1.2],
-                            gaussian=[param_mean, 0.01]
+                            gaussian=[param_mean, 0.01],
                         )
 
                     elif "norm_saa-" in param_name:

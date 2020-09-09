@@ -10,9 +10,9 @@ def form_cmd_string(date):
     """
     makes the command string for luigi
 
-    :param grb: 
-    :returns: 
-    :rtype: 
+    :param grb:
+    :returns:
+    :rtype:
 
     """
 

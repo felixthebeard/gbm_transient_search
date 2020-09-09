@@ -65,7 +65,9 @@ base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
 class BalrogFit(object):
     def __init__(
-        self, trigger_name, trigger_info_file,
+        self,
+        trigger_name,
+        trigger_info_file,
     ):
         """
         Initalize MultinestFit for Balrog

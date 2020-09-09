@@ -21,11 +21,12 @@ from gbmbkgpy.io.package_data import get_path_of_external_data_dir
 from gbmbkgpy.io.downloading import download_data_file
 from gbmbkgpy.io.file_utils import file_existing_and_readable
 
+
 from cmdstanpy import cmdstan_path, CmdStanModel
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 bkg_n_cores_multinest = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["n_cores"]
-bkg_n_cores_stan = gbm_bkg_pipe_config["phys_bkg"]["stan"]["n_cores"]
+bkg_n_cores_stan = 2  # gbm_bkg_pipe_config["phys_bkg"]["stan"]["n_cores"]
 bkg_path_to_python = gbm_bkg_pipe_config["phys_bkg"]["multinest"]["path_to_python"]
 bkg_timeout = gbm_bkg_pipe_config["phys_bkg"]["timeout"]
 
@@ -82,7 +83,9 @@ class GBMBackgroundModelFit(luigi.Task):
             for echans in run_echans:
 
                 bkg_fit_results.append(
-                    self.input()[f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"]["result_file"].path
+                    self.input()[f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"][
+                        "result_file"
+                    ].path
                 )
 
         # PHACombiner and save combined file
@@ -115,7 +118,9 @@ class CreateBkgConfig(luigi.Task):
 
     def run(self):
 
-        config_writer = BkgConfigWriter(self.date, self.data_type, self.echans, self.detectors)
+        config_writer = BkgConfigWriter(
+            self.date, self.data_type, self.echans, self.detectors
+        )
 
         config_writer.write_config_file(self.output)
 
@@ -206,17 +211,13 @@ class RunPhysBkgStanModel(luigi.Task):
 
         for det in self.detectors:
             requires[f"data_{det}"] = DownloadData(
-                date=self.date,
-                data_type=self.data_type,
-                detector=det
+                date=self.date, data_type=self.data_type, detector=det
             )
         # Download bgo cspec data for CR approximation
         bgos = ["b0", "b1"]
         for det in bgos:
             requires[f"data_{det}"] = DownloadData(
-                date=self.date,
-                data_type="cspec",
-                detector=det
+                date=self.date, data_type="cspec", detector=det
             )
 
         return requires
@@ -253,14 +254,12 @@ class RunPhysBkgStanModel(luigi.Task):
 
         # Create Stan Model
         model = CmdStanModel(
-            stan_file=stan_model_file,
-            cpp_options={'STAN_THREADS': 'TRUE'}
+            stan_file=stan_model_file, cpp_options={"STAN_THREADS": "TRUE"}
         )
 
         # StanDataConstructor
         stan_data = StanDataConstructor(
-            model_generator=model_generator,
-            threads_per_chain=bkg_n_cores_stan
+            model_generator=model_generator, threads_per_chain=bkg_n_cores_stan
         )
 
         data_dict = stan_data.construct_data_dict()
@@ -270,12 +269,12 @@ class RunPhysBkgStanModel(luigi.Task):
             data=data_dict,
             output_dir=os.path.join(output_dir, "stan_chains"),
             chains=1,
-            seed=int(np.random.rand()*10000),
+            seed=int(np.random.rand() * 10000),
             parallel_chains=1,
             threads_per_chain=bkg_n_cores_stan,
             iter_warmup=300,
             iter_sampling=300,
-            show_progress=True
+            show_progress=True,
         )
 
         # Export fine binned data
@@ -301,19 +300,19 @@ class RunPhysBkgStanModel(luigi.Task):
         )
         # StanDataConstructor
         stan_data_export = StanDataConstructor(
-            model_generator=model_generator_export,
-            threads_per_chain=bkg_n_cores_stan
+            model_generator=model_generator_export, threads_per_chain=bkg_n_cores_stan
         )
 
         data_dict_export = stan_data_export.construct_data_dict()
 
-        stan_model_file_export = os.path.join(output_dir, "background_model_export.stan")
+        stan_model_file_export = os.path.join(
+            output_dir, "background_model_export.stan"
+        )
         stan_model_const.create_stan_file(stan_model_file_export, total_only=True)
 
         # Create Stan Model
         model_export = CmdStanModel(
-            stan_file=stan_model_file_export,
-            cpp_options={'STAN_THREADS': 'TRUE'}
+            stan_file=stan_model_file_export, cpp_options={"STAN_THREADS": "TRUE"}
         )
 
         model_export.compile()
@@ -321,15 +320,14 @@ class RunPhysBkgStanModel(luigi.Task):
         export_quantities = model_export.generate_quantities(
             data=data_dict_export,
             mcmc_sample=stan_fit,
-            gq_output_dir=os.path.join(output_dir, "stan_chains")
+            gq_output_dir=os.path.join(output_dir, "stan_chains"),
         )
 
         # Decrease CPU resource to 1
         self.decrease_running_resources({"cpu": bkg_n_cores_stan - 1})
 
         stan_data_export = StanDataExporter.from_generated_quantities(
-            model_generator_export,
-            export_quantities
+            model_generator_export, export_quantities
         )
 
         stan_data_export.save_data(file_path=self.output()["result_file"].path)
@@ -342,12 +340,13 @@ class RunPhysBkgStanModel(luigi.Task):
             constant_data={
                 "time_bins": data_dict["time_bins"],
                 "dets": model_generator.data.detectors,
-                "echans": model_generator.data.echans
+                "echans": model_generator.data.echans,
             },
-            predictions=stan_model_const.generated_quantities()
+            predictions=stan_model_const.generated_quantities(),
         )
         # Save this object
         arviz_result.to_netcdf(self.output()["arviz_file"].path)
+
 
 class BkgModelResultPlot(luigi.Task):
     date = luigi.DateParameter()
@@ -419,7 +418,12 @@ class BkgModelCornerPlot(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
 
-        return luigi.LocalTarget(os.path.join(job_dir, "corner_plot.pdf",))
+        return luigi.LocalTarget(
+            os.path.join(
+                job_dir,
+                "corner_plot.pdf",
+            )
+        )
 
     def run(self):
 
@@ -458,6 +462,7 @@ class DownloadData(luigi.Task):
     """
     Downloads a DataFile
     """
+
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     detector = luigi.ListParameter()
@@ -465,31 +470,30 @@ class DownloadData(luigi.Task):
     resources = {"cpu": 1}
 
     def output(self):
-        datafile_name = f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+        datafile_name = (
+            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+        )
 
         return luigi.LocalTarget(
             os.path.join(
                 get_path_of_external_data_dir(),
                 self.data_type,
                 f"{self.date:%y%m%d}",
-                datafile_name
+                datafile_name,
             )
         )
 
     def run(self):
 
         if not file_existing_and_readable(self.output().path):
-            download_data_file(
-                f"{self.date:%y%m%d}",
-                self.data_type,
-                self.detector
-            )
+            download_data_file(f"{self.date:%y%m%d}", self.data_type, self.detector)
 
-           
+
 class DownloadPoshistData(luigi.Task):
     """
     Downloads a DataFile
     """
+
     date = luigi.DateParameter()
 
     resources = {"cpu": 1}
@@ -508,7 +512,4 @@ class DownloadPoshistData(luigi.Task):
     def run(self):
 
         if not file_existing_and_readable(self.output().path):
-            download_data_file(
-                f"{self.date:%y%m%d}",
-                "poshist"
-            )
+            download_data_file(f"{self.date:%y%m%d}", "poshist")

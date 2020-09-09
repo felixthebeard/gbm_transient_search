@@ -4,8 +4,6 @@ from gbmgeometry.position_interpolator import slice_disjoint
 
 
 class SaaCalc(object):
-
-
     def __init__(self, time_bins):
 
         self._time_bins = time_bins
@@ -36,14 +34,9 @@ class SaaCalc(object):
             # Build slices, that have as first entry start of SAA and as second end of SAA
             slice_idx = np.array(self.slice_disjoint_idx(idx))
 
-
             slice_idx[:, 1][
                 np.where(slice_idx[:, 1] <= len(self._time_bins) - 1)
-            ] = (
-                slice_idx[:, 1][
-                    np.where(slice_idx[:, 1] <= len(self._time_bins) - 1)
-                ]
-            )
+            ] = slice_idx[:, 1][np.where(slice_idx[:, 1] <= len(self._time_bins) - 1)]
 
             # make a saa mask from the slices:
             self._saa_mask = np.ones(len(self._time_bins), bool)

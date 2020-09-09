@@ -450,10 +450,7 @@ class Search(object):
 
     def plot_result(self, output_dir):
 
-        output_file = os.path.join(
-            output_dir,
-            trigger["trigger_name"],
-        )
+        output_file = os.path.join(output_dir, trigger["trigger_name"],)
 
         if_dir_containing_file_not_existing_then_make(output_file)
 

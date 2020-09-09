@@ -85,8 +85,7 @@ comm.barrier()
 ################# Data Export ######################################
 
 data_exporter = DataExporter(
-    model_generator=model_generator,
-    best_fit_values=minimizer.best_fit_values,
+    model_generator=model_generator, best_fit_values=minimizer.best_fit_values,
 )
 
 result_file_name = "fit_result.hdf5"

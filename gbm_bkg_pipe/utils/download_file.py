@@ -11,12 +11,7 @@ from gbmbkgpy.io.downloading import download_data_file
 
 class BackgroundDataDownload(object):
     def __init__(
-        self,
-        date,
-        data_type,
-        detector,
-        wait_time=60,
-        max_time=60 * 60,
+        self, date, data_type, detector, wait_time=60, max_time=60 * 60,
     ):
         """
         :param wait_time: the wait time interval for checking files

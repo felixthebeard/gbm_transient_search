@@ -418,12 +418,7 @@ class BkgModelCornerPlot(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
 
-        return luigi.LocalTarget(
-            os.path.join(
-                job_dir,
-                "corner_plot.pdf",
-            )
-        )
+        return luigi.LocalTarget(os.path.join(job_dir, "corner_plot.pdf",))
 
     def run(self):
 
@@ -502,11 +497,7 @@ class DownloadPoshistData(luigi.Task):
         datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
 
         return luigi.LocalTarget(
-            os.path.join(
-                get_path_of_external_data_dir(),
-                "poshist",
-                datafile_name,
-            )
+            os.path.join(get_path_of_external_data_dir(), "poshist", datafile_name,)
         )
 
     def run(self):

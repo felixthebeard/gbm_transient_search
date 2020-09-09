@@ -403,10 +403,16 @@ class Search(object):
 
                 max_ids.append(tmp_ids[max_id])
 
-            max_ids = np.unique(max_ids)
+            if len(max_ids) > 0:
 
-            intervals_selected[det] = intervals[det][max_ids]
-            significances_selected[det] = significances[det][max_ids]
+                max_ids = np.unique(max_ids)
+
+                intervals_selected[det] = intervals[det][max_ids]
+                significances_selected[det] = significances[det][max_ids]
+
+            else:
+                intervals_selected[det] = []
+                significances_selected[det] = []
 
         return intervals_selected, significances_selected
 

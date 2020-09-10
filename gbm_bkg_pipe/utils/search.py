@@ -257,7 +257,7 @@ class Search(object):
         self._cpts_sections_all = change_points_sections
         self._change_points_all = change_points
 
-    def get_significance(self, required_significance=5):
+    def calc_significances(self, required_significance=5):
 
         intervals = {}
         significances = {}
@@ -305,9 +305,8 @@ class Search(object):
 
         self._intervals_all = intervals
         self._intervals_significance_all = significances
-        return intervals, significances
 
-    def get_trigger_information(self):
+    def build_trigger_information(self):
 
         # Filter out overlapping intervals and select the one with highest significance
         # This is done twice to get rid of some leftovers
@@ -317,6 +316,10 @@ class Search(object):
         intervals_selected, significances_selected = self._filter_overlap(
             intervals_selected, significances_selected
         )
+
+        # intervals_selected, significances_selected = self._filter_overlap_dets(
+        #     intervals_selected, significances_selected
+        # )
 
         # Get all intervals that are significant in at least one detector
         trigger_intervals = []
@@ -353,27 +356,32 @@ class Search(object):
             most_significant_detectors.append(max(sig, key=sig.get))
 
         trigger_peak_times = []
+
         for i, inter in enumerate(trigger_intervals):
             det = most_significant_detectors[i]
-            counts = self._observed_counts_total[det][interval[0] : interval[1]]
+            counts = self._observed_counts_total[det][inter[0] : inter[1]] - self._bkg_counts_total[det][inter[0] : inter[1]]
 
-            max_index = np.argmax(counts) + interval[0]
+            max_index = np.argmax(counts) + inter[0]
 
             trigger_peak_times.append(
                 self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
             )
 
+        # Filter out duplicate peak times and keep the shorter intervals
+        unique_peak_ids = self._filter_duplicate_peaks(trigger_peak_times, trigger_intervals)
+
+
         trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
             trigger_intervals[:, 0], 0
         ]
 
-        self._trigger_intervals = np.array(trigger_intervals)
-        self._trigger_significance = trigger_significance
-        self._trigger_most_significant_detector = most_significant_detectors
-        self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-            trigger_intervals[:, 0], 0
-        ]
-        self._trigger_peak_times = np.array(trigger_peak_times)
+        self._trigger_intervals = np.array(trigger_intervals)[unique_peak_ids]
+        self._trigger_significance = np.array(trigger_significance)[unique_peak_ids]
+        self._trigger_most_significant_detector = np.array(most_significant_detectors)[unique_peak_ids]
+        self._trigger_times = trigger_times[unique_peak_ids]
+        self._trigger_peak_times = np.array(trigger_peak_times)[unique_peak_ids]
+
+        self._tr_p = trigger_peak_times
 
         self._intervals = intervals_selected
         self._intervals_significance = significances_selected
@@ -385,23 +393,27 @@ class Search(object):
 
         # Filter out overlapping intervals and select the one with highest significance
         for det in self._detectors:
-
             max_ids = []
 
+            intervals_selected[det] = []
+            significances_selected[det] = []
+
+            # Iterate over all intervals of this detector
             for id1, interval1 in enumerate(intervals[det]):
 
-                tmp_ids = []
+                overlapping_idx = np.where(
+                    np.logical_and(
+                        interval1[0] <= intervals[det][:, 1],
+                        intervals[det][:, 0] <= interval1[1]
+                    )
+                )[0]
 
-                tmp_ids.append(id1)
+                max_id = significances[det][overlapping_idx].argmax()
 
-                for id2, interval2 in enumerate(intervals[det]):
+                # Get max id in original array
+                max_id = max_id + overlapping_idx[max_id]
 
-                    if interval1[0] <= interval2[1] and interval2[0] <= interval1[1]:
-                        tmp_ids.append(id2)
-
-                max_id = significances[det][tmp_ids].argmax()
-
-                max_ids.append(tmp_ids[max_id])
+                max_ids.append(max_id)
 
             if len(max_ids) > 0:
 
@@ -416,6 +428,68 @@ class Search(object):
 
         return intervals_selected, significances_selected
 
+
+    def _filter_overlap_dets(self, intervals, significances):
+        intervals_selected = {}
+        significances_selected = {}
+
+        # Filter out overlapping intervals and select the one with highest significance
+        for det in self._detectors:
+            max_ids = []
+
+            intervals_selected[det] = []
+            significances_selected[det] = []
+
+            # Iterate over all intervals of this detector
+            for id1, interval1 in enumerate(intervals[det]):
+
+                is_max = True
+
+                for det2 in self._detectors:
+
+                    # Iterate over all intervals of this detector
+                    for id2, interval2 in enumerate(intervals[det2]):
+
+                        if interval1[0] <= interval2[1] and interval2[0] <= interval1[1]:
+
+                            if significances[det2][id2] > significances[det][id1]:
+
+                                is_max = False
+                if is_max:
+                    max_ids.append(id1)
+
+            if len(max_ids) > 0:
+
+                max_ids = np.unique(max_ids)
+
+                intervals_selected[det] = intervals[det][max_ids]
+                significances_selected[det] = significances[det][max_ids]
+
+            else:
+                intervals_selected[det] = []
+                significances_selected[det] = []
+
+        return intervals_selected, significances_selected
+
+    def _filter_duplicate_peaks(self, peak_times, trigger_intervals):
+
+        interval_lengths = trigger_intervals[:, 1] - trigger_intervals[:, 0]
+
+        min_length_ids = []
+
+        for id1, peak_time in enumerate(peak_times):
+
+            same_peak_ids = np.where(peak_times == peak_time)[0]
+
+            min_length_id = interval_lengths[same_peak_ids].argmin()
+
+            min_length_ids.append(min_length_id + same_peak_ids[min_length_id])
+
+        min_length_ids = np.unique(min_length_ids)
+
+        return min_length_ids
+
+
     def create_result_dict(self):
         trigger_information = {
             "dates": self._dates.tolist(),
@@ -426,6 +500,8 @@ class Search(object):
         }
 
         for i, t0 in enumerate(self._trigger_times):
+            t0 = self._trigger_peak_times[i]
+
             gbm_time = GBMTime.from_MET(t0)
             date_str = gbm_time.time.datetime.strftime("%y%m%d")
             day_fraction = str(round(gbm_time.time.mjd % 1, 3))[2:]
@@ -454,14 +530,21 @@ class Search(object):
 
         self._trigger_information = trigger_information
 
-    def plot_result(self, output_dir):
+    def plot_results(self, output_dir):
 
-        output_file = os.path.join(output_dir, trigger["trigger_name"],)
+        plotter = TriggerPlot(
+                triggers=self._trigger_information["triggers"],
+                time=self._rebinned_mean_time,
+                counts=self._rebinned_observed_counts,
+                bkg_counts=self._rebinned_bkg_counts,
+                counts_cleaned=self._counts_cleaned,
+                saa_mask=self._rebinned_saa_mask,
+                angles=self._angles,
+                show_all_echans=True,
+                show_angles=True
+        )
 
-        if_dir_containing_file_not_existing_then_make(output_file)
-
-        with open(output_file, "w") as f:
-            yaml.dump(trigger, f, default_flow_style=False)
+        plotter.create_plots(output_dir)
 
     def save_result(self, output_path):
         # output_file = os.path.join(os.path.dirname(output_path), "trigger_information.yml")

@@ -56,14 +56,6 @@ class GBMBackgroundModelFit(luigi.Task):
                     f"bkg_d{'_'.join(dets)}_e{'_'.join(echans)}"
                 ] = CopyResults(date=self.date, echans=echans, detectors=dets)
 
-                bkg_fit_tasks[
-                    f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
-                ] = BkgModelResultPlot(date=self.date, echans=echans, detectors=dets)
-
-                # bkg_fit_tasks[
-                #     f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
-                # ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
-
         return bkg_fit_tasks
 
     def output(self):
@@ -96,6 +88,30 @@ class GBMBackgroundModelFit(luigi.Task):
         pha_writer = PHAWriter.from_result_files(bkg_fit_results)
 
         pha_writer.save_combined_hdf5(self.output().path)
+
+
+class BkgModelPlots(luigi.WrapperTask):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+
+    resources = {"cpu": 1}
+
+    def requires(self):
+
+        bkg_fit_tasks = {}
+
+        for dets in run_detectors:
+
+            for echans in run_echans:
+                bkg_fit_tasks[
+                    f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                ] = BkgModelResultPlot(date=self.date, echans=echans, detectors=dets)
+
+                # bkg_fit_tasks[
+                #     f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                # ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
+
+        return bkg_fit_tasks
 
 
 class CreateBkgConfig(luigi.Task):
@@ -159,7 +175,9 @@ class CopyResults(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
         result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
-            f"{self.date:%y%m%d}", "-".join(self.detectors), "-".join(self.echans),
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
         )
         return {
             "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
@@ -213,7 +231,9 @@ class RunPhysBkgModel(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
         result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
-            f"{self.date:%y%m%d}", "-".join(self.detectors), "-".join(self.echans),
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
         )
         return {
             "job_id": RemoteTarget(
@@ -332,7 +352,12 @@ class BkgModelCornerPlot(luigi.Task):
             f"e{'_'.join(self.echans)}",
         )
 
-        return luigi.LocalTarget(os.path.join(job_dir, "corner_plot.pdf",))
+        return luigi.LocalTarget(
+            os.path.join(
+                job_dir,
+                "corner_plot.pdf",
+            )
+        )
 
     def run(self):
 

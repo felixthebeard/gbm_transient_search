@@ -3,9 +3,7 @@ import os
 import luigi
 import yaml
 
-from gbm_bkg_pipe.balrog_handlers import ProcessFitResults
-from gbm_bkg_pipe.downloaders import DownloadTrigdat, GatherTrigdatDownload
-from gbm_bkg_pipe.exceptions.custom_exceptions import UnkownReportType
+from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
 from gbm_bkg_pipe.utils.env import get_env_value
 from gbm_bkg_pipe.utils.plot_utils import (
     azimuthal_plot_sat_frame,
@@ -98,7 +96,7 @@ class CreateLocationPlot(luigi.Task):
     trigger_name = luigi.Parameter()
 
     def requires(self):
-        return ProcessFitResults(
+        return ProcessLocalizationResult(
             date=self.date,
             data_type=self._data_type,
             trigger_name=self.trigger_name,
@@ -134,7 +132,7 @@ class CreateCornerPlot(luigi.Task):
     trigger_name = luigi.Parameter()
 
     def requires(self):
-        return ProcessFitResults(
+        return ProcessLocalizationResult(
             date=self.date,
             data_type=self._data_type,
             trigger_name=self.trigger_name,
@@ -171,7 +169,7 @@ class CreateMollLocationPlot(luigi.Task):
 
     def requires(self):
         return dict(
-            fit_result=ProcessFitResults(
+            fit_result=ProcessLocalizationResult(
                 date=self.date,
                 data_type=self._data_type,
                 trigger_name=self.trigger_name,
@@ -217,7 +215,7 @@ class CreateSatellitePlot(luigi.Task):
     trigger_name = luigi.Parameter()
 
     def requires(self):
-        return ProcessFitResults(
+        return ProcessLocalizationResult(
             date=self.date,
             data_type=self._data_type,
             trigger_name=self.trigger_name,
@@ -273,7 +271,7 @@ class CreateSpectrumPlot(luigi.Task):
     trigger_name = luigi.Parameter()
 
     def requires(self):
-        return ProcessFitResults(
+        return ProcessLocalizationResult(
             date=self.date,
             data_type=self._data_type,
             trigger_name=self.trigger_name,
@@ -303,7 +301,7 @@ class Create3DLocationPlot(luigi.Task):
     trigger_name = luigi.Parameter()
 
     def requires(self):
-        return ProcessFitResults(
+        return ProcessLocalizationResult(
             date=self.date,
             data_type=self._data_type,
             trigger_name=self.trigger_name,

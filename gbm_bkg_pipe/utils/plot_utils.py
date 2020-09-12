@@ -15,10 +15,9 @@ from gbmgeometry import gbm_detector_list
 from gbmgeometry.gbm_frame import GBMFrame
 from gbmgeometry.utils.gbm_time import GBMTime
 
-import morgoth.utils.file_utils as file_utils
-from morgoth.utils.env import get_env_value
+import gbm_bkg_pipe.utils.file_utils as file_utils
+from gbm_bkg_pipe.utils.env import get_env_value
 
-base_dir = get_env_value("GBM_TRIGGER_DATA_DIR")
 
 _gbm_detectors = [
     "n0",
@@ -1198,14 +1197,14 @@ def phi_0(theta, ra_c, dec_c, rad_r):
 
 def phi_1(theta, ra_c, dec_c, rad_r):
     """
-   Gives the corresponding phi value to the given theta for which the separation to ra_c, dec_c is the angle rad_r
-   This has two solutions. So phi_0 and phi_1 corresponse to the two solutions.
-   :param theta:
-   :param ra_c:
-   :param dec_c:
-   :param rad_r:
-   :return:
-   """
+    Gives the corresponding phi value to the given theta for which the separation to ra_c, dec_c is the angle rad_r
+    This has two solutions. So phi_0 and phi_1 corresponse to the two solutions.
+    :param theta:
+    :param ra_c:
+    :param dec_c:
+    :param rad_r:
+    :return:
+    """
     detx = np.cos(ra_c) * np.cos(dec_c)
     dety = np.sin(ra_c) * np.cos(dec_c)
     detz = np.sin(dec_c)

@@ -12,8 +12,6 @@ from astropy.coordinates import SkyCoord
 from gbm_bkg_pipe.exceptions.custom_exceptions import *
 from gbm_bkg_pipe.utils.env import get_env_value
 
-from gbm_bkg_pipe.utils.swift_check import check_swift
-
 from gbmgeometry.gbm_frame import GBMFrame
 from astropy.coordinates import SkyCoord
 import astropy.units as unit

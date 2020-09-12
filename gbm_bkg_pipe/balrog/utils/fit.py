@@ -253,6 +253,7 @@ class BalrogFit(object):
             base_dir,
             self._trigger_info["date"],
             self._trigger_info["data_type"],
+            "trigger",
             self._trigger_name,
             fit_result_name,
         )
@@ -275,6 +276,7 @@ class BalrogFit(object):
             base_dir,
             self._trigger_info["date"],
             self._trigger_info["data_type"],
+            "trigger",
             self._trigger_name,
             "chains",
         )
@@ -287,6 +289,9 @@ class BalrogFit(object):
                 # Make chains folder if it does not exists already
                 if not os.path.exists(chains_dir):
                     os.makedirs(chains_dir)
+
+                if not os.path.exists(os.path.dirname(temp_chains_dir)):
+                    os.makedirs(os.path.dirname(temp_chains_dir))
 
                 # Create a temp symbolic link with shorter path for MultiNest
                 if not os.path.exists(temp_chains_dir):
@@ -305,7 +310,13 @@ class BalrogFit(object):
 
     def unlink_temp_chains_dir(self):
         # Remove the symbolic link
-        os.unlink(self._temp_chains_dir)
+        if using_mpi:
+            if rank == 0:
+                if os.path.exists(self._temp_chains_dir):
+                    os.unlink(self._temp_chains_dir)
+        else:
+            if os.path.exists(self._temp_chains_dir):
+                os.unlink(self._temp_chains_dir)
 
     def create_spectrum_plot(self):
         """
@@ -317,6 +328,7 @@ class BalrogFit(object):
             base_dir,
             self._trigger_info["date"],
             self._trigger_info["data_type"],
+            "trigger",
             self._trigger_name,
             "plots",
             plot_name,
@@ -340,7 +352,7 @@ class BalrogFit(object):
         }
 
         color_list = []
-        for d in self._use_dets:
+        for d in self._trigger_info["use_dets"]:
             color_list.append(color_dict[d])
 
         set = plt.get_cmap("Set1")
@@ -377,3 +389,4 @@ class BalrogFit(object):
             except:
 
                 print("No spectral plot possible...")
+

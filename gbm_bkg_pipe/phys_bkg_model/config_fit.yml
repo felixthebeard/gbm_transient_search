@@ -6,11 +6,11 @@
 ################## General Input [Days, Detector, Data Type, Energy Channels] #######################
 general:
   data_type:  'ctime'
-  min_bin_width: 40
+  min_bin_width: 200
 
 ################# Input for response precalculation [how many grid poits?] ##########################
 response:
-  Ngrid: 40000
+  Ngrid: 4000
 
 ####### Input for SAA mask precaluclation [time to exclude after SAA, delete short time intervals? ##
 saa:

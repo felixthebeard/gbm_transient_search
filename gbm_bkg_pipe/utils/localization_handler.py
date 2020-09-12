@@ -56,8 +56,8 @@ class LocalizationHandler(object):
             use_dets = self._choose_dets(trigger["most_significant_detector"])
             peak_time = trigger["peak_time"]
 
-            active_time_start = peak_time - 5
-            active_time_end = peak_time + 5
+            active_time_start = peak_time - 10
+            active_time_end = peak_time + 10
 
             trigger["data_type"] = self._search_result["data_type"]
             trigger["active_time_start"] = active_time_start
@@ -117,8 +117,8 @@ class LocalizationHandler(object):
         Function to automatically choose the detectors which should be used in the fit
         :return:
         """
-        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5", "b0"]
-        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb", "b1"]
+        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5"] #, "b0"]
+        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb"] #, "b1"]
 
         # only use the detectors on the same side as the detector with the most significance
         if max_det in side_1_dets:
@@ -144,4 +144,8 @@ class LocalizationHandler(object):
                 active_time_start=t_info["active_time_start"],
                 active_time_end=t_info["active_time_end"],
                 file_name=t_info["trigger_name"],
+                overwrite=True
             )
+
+
+

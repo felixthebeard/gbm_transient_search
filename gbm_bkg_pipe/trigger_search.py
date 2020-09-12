@@ -57,12 +57,17 @@ class TriggerSearch(luigi.Task):
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 
-        search.calc_significance(required_significance=3)
+        search.calc_significances(required_significance=3)
 
         search.build_trigger_information()
 
         search.create_result_dict()
 
-        search.plot_results()
+        plot_dir = os.path.join(os.path.dirname(self.output().path), "trigger_plots")
+
+        if not os.path.exists(plot_dir):
+            os.makedirs(plot_dir)
+       
+        search.plot_results(plot_dir)
 
         search.save_result(self.output().path)

@@ -55,14 +55,17 @@ class LocalizeTriggers(luigi.Task):
 
         loc_handler.write_pha(output_dir)
 
+        balrog_tasks = []
         for t_info in loc_handler.trigger_information:
 
-            yield RunBalrog(
+            balrog_tasks.append(RunBalrog(
                 date=datetime.strptime(t_info["date"], "%y%m%d"),
                 data_type=t_info["data_type"],
                 trigger_name=t_info["trigger_name"],
-            )
+            ))
+        yield balrog_tasks
 
+        os.system(f"touch {self.output().path}")
 
 class RunBalrog(ExternalProgramTask):
     date = luigi.DateParameter()
@@ -84,7 +87,7 @@ class RunBalrog(ExternalProgramTask):
 
     def output(self):
         base_job = os.path.join(
-            base_dir, f"{self.date:%y%m%d}", self.data_type, self.trigger_name
+            base_dir, f"{self.date:%y%m%d}", self.data_type, "trigger", self.trigger_name
         )
         fit_result_name = f"{self.trigger_name}_loc_results.fits"
         spectral_plot_name = f"{self.trigger_name}_spectrum_plot.png"
@@ -131,3 +134,5 @@ class RunBalrog(ExternalProgramTask):
         )
 
         return command
+
+

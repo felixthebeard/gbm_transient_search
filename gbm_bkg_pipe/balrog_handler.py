@@ -8,7 +8,6 @@ from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
 from gbm_bkg_pipe.utils.result_reader import ResultReader
-from gbm_bkg_pipe.plots import CreateAllPlots
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
@@ -68,22 +67,10 @@ class LocalizeTriggers(luigi.Task):
             )
         yield balrog_tasks
 
-        plot_tasks = []
-        for t_info in loc_handler.trigger_information:
-
-            plot_tasks.append(
-                CreateAllPlots(
-                    date=datetime.strptime(t_info["date"], "%y%m%d"),
-                    data_type=t_info["data_type"],
-                    trigger_name=t_info["trigger_name"],
-                )
-            )
-        yield plot_tasks
-
         os.system(f"touch {self.output().path}")
 
 
-class ProcessLocaltionResult(luigi.Task):
+class ProcessLocalizationResult(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()

@@ -16,7 +16,7 @@ from astropy.stats import bayesian_blocks
 import ruptures as rpt
 
 from gbm_bkg_pipe.utils.saa_calc import SaaCalc
-
+from gbm_bkg_pipe.utils.plotting import TriggerPlot
 
 valid_det_names = [
     "n0",
@@ -523,7 +523,7 @@ class Search(object):
                         1
                     ].tolist(),
                 },
-                "most_significant_detector": self._trigger_most_significant_detector[i],
+                "most_significant_detector": self._trigger_most_significant_detector.tolist()[i],
             }
 
             trigger_information["triggers"].append(t_info)

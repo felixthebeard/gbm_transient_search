@@ -59,7 +59,7 @@ class LocalizeTriggers(luigi.Task):
         for t_info in loc_handler.trigger_information:
 
             balrog_tasks.append(
-                ProcessLocaltionResult(
+                ProcessLocalizationResult(
                     date=datetime.strptime(t_info["date"], "%y%m%d"),
                     data_type=t_info["data_type"],
                     trigger_name=t_info["trigger_name"],
@@ -82,16 +82,6 @@ class ProcessLocalizationResult(luigi.Task):
             balrog=RunBalrog(
                 date=self.date, data_type=self.data_type, trigger_name=self.trigger_name
             ),
-            trigger_file=luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    "trigger",
-                    self.trigger_name,
-                    "trigger_info.yml",
-                )
-            ),
         )
 
     def output(self):
@@ -110,10 +100,19 @@ class ProcessLocalizationResult(luigi.Task):
         }
 
     def run(self):
+        trigger_file = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "trigger",
+            self.trigger_name,
+            "trigger_info.yml",
+        )
+
         result_reader = ResultReader(
             trigger_name=self.trigger_name,
             data_type=self.data_type,
-            trigger_file=self.input()["trigger_file"].path,
+            trigger_file=trigger_file,
             post_equal_weights_file=self.input()["balrog"]["post_equal_weights"].path,
             result_file=self.input()["balrog"]["fit_result"].path,
         )
@@ -134,16 +133,6 @@ class RunBalrog(ExternalProgramTask):
         requirements = {
             "bkg_fit": GBMBackgroundModelFit(date=self.date, data_type=self.data_type),
             "trigger_search": TriggerSearch(date=self.date, data_type=self.data_type),
-            "trigger_file": luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    "trigger",
-                    self.trigger_name,
-                    "trigger_info.yml",
-                )
-            ),
         }
 
         return requirements
@@ -170,6 +159,14 @@ class RunBalrog(ExternalProgramTask):
         }
 
     def program_args(self):
+        trigger_file = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "trigger",
+            self.trigger_name,
+            "trigger_info.yml",
+        )
 
         fit_script_path = (
             f"{os.path.dirname(os.path.abspath(__file__))}/balrog/fit_script.py"
@@ -187,7 +184,7 @@ class RunBalrog(ExternalProgramTask):
                 f"{balrog_path_to_python}",
                 f"{fit_script_path}",
                 f"{self.trigger_name}",
-                f"{self.input()['trigger_file'].path}",
+                f"{trigger_file}",
             ]
         )
 

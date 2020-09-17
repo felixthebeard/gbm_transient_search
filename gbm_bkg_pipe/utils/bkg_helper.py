@@ -22,6 +22,8 @@ class BkgConfigWriter(object):
 
         self._update_general()
 
+        self._update_saa_setup()
+
         self._update_source_setup()
 
         self._update_ps_setup()
@@ -50,10 +52,26 @@ class BkgConfigWriter(object):
         # Update the config parameters with fit specific values
         self._config.update(general_config)
 
+    def _update_saa_setup(self):
+
+        saa_config = dict(
+            saa=dict(
+                time_after_saa=100,
+                time_before_saa=30,
+                short_time_intervals=True,
+                nr_decays_per_exit=1,
+                decay_at_day_start=True,
+                decay_per_detector=False,
+                decay_model="exponential",
+            )
+        )
+
+        self._config.update(saa_config)
+
     def _update_source_setup(self):
         setup_sources = dict(
             setup=dict(
-                use_saa=False,
+                use_saa=True,
                 use_constant=True,
                 use_cr=True,
                 use_earth=True,

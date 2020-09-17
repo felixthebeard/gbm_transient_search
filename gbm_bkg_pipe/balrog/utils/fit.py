@@ -65,7 +65,9 @@ base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
 class BalrogFit(object):
     def __init__(
-        self, trigger_name, trigger_info_file,
+        self,
+        trigger_name,
+        trigger_info_file,
     ):
         """
         Initalize MultinestFit for Balrog
@@ -323,7 +325,9 @@ class BalrogFit(object):
         Create the spectral plot to show the fit results for all used dets
         :return:
         """
-        plot_name = f"{self._trigger_name}_spectrum_plot.png"
+        plot_name = (
+            f"{self._trigger_name}_spectrum_plot_{self._trigger_info['data_type']}.png"
+        )
         plot_path = os.path.join(
             base_dir,
             self._trigger_info["date"],
@@ -389,4 +393,3 @@ class BalrogFit(object):
             except:
 
                 print("No spectral plot possible...")
-

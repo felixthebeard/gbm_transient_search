@@ -60,28 +60,28 @@ setup:
 priors:
   saa:
     norm:
-      prior: log_uniform
+      prior: normal
       bounds: [1, 1.0e+4]
-      gaussian: [null, null]
+      gaussian: [0, 1]
     decay:
-      prior: log_uniform
+      prior: log_normal
       bounds: [1.0e-5, 1.0e-1]
-      gaussian: [null, null]
+      gaussian: [1.0e-4, 1]
   cr:
     const:
       prior: log_uniform
       bounds: [1.0e-1, 1.0e+2]
-      gaussian: [null, null]
+      gaussian: [0, 1]
     norm:
       prior: log_uniform
       bounds: [0.1, 1.0e+2]
-      gaussian: [null, null]
+      gaussian: [0, 1]
   earth:
     fixed:
       norm:
         prior: log_uniform
         bounds: [0.5e-2, 3.0e-2]
-        gaussian: [null, null]
+        gaussian: [-4.1, 0.5]
     free:
       norm:
         prior: log_uniform
@@ -104,7 +104,7 @@ priors:
       norm:
         prior: log_uniform
         bounds: [4.0e-2, 0.3]
-        gaussian: [null, null]
+        gaussian: [-2.3, 0.5]
     free:
       norm:
         prior: log_uniform
@@ -128,7 +128,7 @@ priors:
         norm:
           prior: log_uniform
           bounds: [1.0e-4, 1.0e+9]
-          gaussian: [null, null]
+          gaussian: [0, 1]
       bb:
         norm:
           prior: log_uniform

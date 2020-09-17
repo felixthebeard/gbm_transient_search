@@ -7,7 +7,7 @@ import yaml
 from matplotlib import pyplot as plt
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.bkg_fit_handler import GBMBackgroundModelFit
+from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
 from gbm_bkg_pipe.utils.search import Search
 
 base_dir = os.environ.get("GBMDATA")
@@ -53,7 +53,10 @@ class TriggerSearch(luigi.Task):
         )
 
     def run(self):
-        search = Search(result_file=self.input().path, min_bin_width=5,)
+        search = Search(
+            result_file=self.input().path,
+            min_bin_width=5,
+        )
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 
@@ -63,11 +66,8 @@ class TriggerSearch(luigi.Task):
 
         search.create_result_dict()
 
-        plot_dir = os.path.join(os.path.dirname(self.output().path), "trigger_plots")
+        plot_dir = os.path.join(os.path.dirname(self.output().path))
 
-        if not os.path.exists(plot_dir):
-            os.makedirs(plot_dir)
-       
         search.plot_results(plot_dir)
 
         search.save_result(self.output().path)

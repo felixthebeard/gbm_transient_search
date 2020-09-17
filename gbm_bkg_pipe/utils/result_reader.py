@@ -22,14 +22,12 @@ class ResultReader(object):
         self,
         trigger_name,
         data_type,
-        version,
         post_equal_weights_file,
         trigger_file,
         result_file,
     ):
         self.trigger_name = trigger_name
         self.data_type = data_type
-        self.version = version
 
         self._K = None
         self._K_err = None
@@ -44,6 +42,9 @@ class ResultReader(object):
         self._beta = None
         self._beta_err = None
 
+        self._phi_sat = None
+        self._theta_sat = None
+
         # read parameter values
         self._read_fit_result(result_file)
 
@@ -52,11 +53,6 @@ class ResultReader(object):
 
         # read parameter values
         self._read_post_equal_weights_file(post_equal_weights_file)
-
-        # Check the GCN Archive for the GRB letter
-        self._trigger_name_gcn = check_letter(
-            trigger_number=self._trigger_number, trigger_name=self.trigger_name
-        )
 
         # Create a report containing all the results of the pipeline
         self._build_report()
@@ -144,7 +140,7 @@ class ResultReader(object):
     def _build_report(self):
         self._report = {
             "trigger": self._trigger_data,
-            "location_result": {
+            "fit_result": {
                 "model": self._model,
                 "ra": convert_to_float(self._ra),
                 "ra_err": convert_to_float(self._ra_err),

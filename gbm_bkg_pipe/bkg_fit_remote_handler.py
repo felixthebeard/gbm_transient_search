@@ -161,8 +161,16 @@ class CopyResults(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return RunPhysBkgModel(
-            date=self.date, echans=self.echans, detectors=self.detectors
+        return dict(
+            bkg_fit=RunPhysBkgModel(
+                date=self.date, echans=self.echans, detectors=self.detectors
+            ),
+            config=CreateBkgConfig(
+                date=self.date,
+                data_type=self.data_type,
+                echans=self.echans,
+                detectors=self.detectors,
+            ),
         )
 
     def output(self):
@@ -181,12 +189,15 @@ class CopyResults(luigi.Task):
         )
         return {
             "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
+            "config_file": luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml")),
         }
 
     def run(self):
-
         # Copy result file to local folder
-        self.input()["result_file"].get(self.output()["result_file"].path)
+        self.input()["bkg_fit"]["result_file"].get(self.output()["result_file"].path)
+
+        # Copy config file to local folder
+        self.input()["confit_file"].get(self.output()["config_file"].path)
 
 
 class RunPhysBkgModel(luigi.Task):
@@ -274,6 +285,7 @@ class RunPhysBkgModel(luigi.Task):
             [
                 "sbatch",
                 "--parsable",
+                "--wait",
                 "-D",
                 f"{os.path.dirname(self.input()['config'].path)}",
                 f"{script_path}",

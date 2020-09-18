@@ -162,7 +162,7 @@ class BkgConfigWriter(object):
                             gaussian=[param_mean, 0.1],
                         )
 
-                    elif "constant_echan-" in param_name:
+                    elif "norm_constant_echan-" in param_name:
                         echan = param_name[-1]
 
                         if f"cr_echan-{echan}" not in self._config["priors"].keys():

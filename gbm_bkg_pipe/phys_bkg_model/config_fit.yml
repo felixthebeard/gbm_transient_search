@@ -6,16 +6,16 @@
 ################## General Input [Days, Detector, Data Type, Energy Channels] #######################
 general:
   data_type:  'ctime'
-  min_bin_width: 200
+  min_bin_width: 40
 
 ################# Input for response precalculation [how many grid poits?] ##########################
 response:
-  Ngrid: 4000
+  Ngrid: 40000
 
 ####### Input for SAA mask precaluclation [time to exclude after SAA, delete short time intervals? ##
 saa:
-  time_after_saa: 5000
-  time_before_saa: 10
+  time_after_saa: 100
+  time_before_saa: 30
   short_time_intervals: false
   nr_decays_per_exit: 1
   decay_at_day_start: true
@@ -49,7 +49,7 @@ setup:
   fix_earth:    true
   fix_cgb:      true
   use_sun:      false
-  bgo_cr_approximation: true
+  cr_approximation: "BGO"
   use_eff_area_correction: false
 
 ################################ Bounds for the different sources ###################################
@@ -60,26 +60,26 @@ setup:
 priors:
   saa:
     norm:
-      prior: normal
+      prior: normal_on_log
       bounds: [1, 1.0e+4]
       gaussian: [0, 1]
     decay:
       prior: log_normal
       bounds: [1.0e-5, 1.0e-1]
-      gaussian: [1.0e-4, 1]
+      gaussian: [0, 1]
   cr:
     const:
-      prior: log_uniform
+      prior: normal_on_log
       bounds: [1.0e-1, 1.0e+2]
       gaussian: [0, 1]
     norm:
-      prior: log_uniform
+      prior: normal_on_log
       bounds: [0.1, 1.0e+2]
       gaussian: [0, 1]
   earth:
     fixed:
       norm:
-        prior: log_uniform
+        prior: normal_on_log
         bounds: [0.5e-2, 3.0e-2]
         gaussian: [-4.1, 0.5]
     free:
@@ -102,7 +102,7 @@ priors:
   cgb:
     fixed:
       norm:
-        prior: log_uniform
+        prior: normal_on_log
         bounds: [4.0e-2, 0.3]
         gaussian: [-2.3, 0.5]
     free:
@@ -126,7 +126,7 @@ priors:
     fixed:
       pl:
         norm:
-          prior: log_uniform
+          prior: normal_on_log
           bounds: [1.0e-4, 1.0e+9]
           gaussian: [0, 1]
       bb:
@@ -169,7 +169,7 @@ priors:
 
 ##################### Input for fit method ##########################################################
 fit:
-  method: 'multinest'
+  method: stan
   multinest:
     num_live_points: 400
     constant_efficiency_mode: true

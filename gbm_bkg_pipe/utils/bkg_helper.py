@@ -88,7 +88,7 @@ class BkgConfigWriter(object):
         self._config.update(setup_sources)
 
         if "b0" in self._detectors or "b1" in self._detectors:
-            self._config["setup"]["bgo_cr_approximation"] = False
+            self._config["setup"]["cr_approximation"] = "MCL"
 
     def _update_ps_setup(self):
         # Only inlcude point sources for echans 0-3

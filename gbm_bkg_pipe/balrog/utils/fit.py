@@ -16,6 +16,7 @@ from threeML import (
     Broken_powerlaw,
     SmoothlyBrokenPowerLaw,
     Band,
+    Blackbody,
     # Thermal_bremsstrahlung_optical_thin,
     Uniform_prior,
     Log_uniform_prior,
@@ -85,7 +86,7 @@ class BalrogFit(object):
         self._trigger_info = trigger_info
 
         self._set_plugins()
-        self._define_model()
+        self._define_model(spectrum="blackbody")
 
     def _set_plugins(self):
         """
@@ -199,6 +200,15 @@ class BalrogFit(object):
             sbpl.break_energy.min_value = 1
             sbpl.break_energy.prior = Log_uniform_prior(lower_bound=1, upper_bound=1e4)
             self._model = Model(PointSource("GRB_sbpl", 0.0, 0.0, spectral_shape=sbpl))
+
+        elif spectrum == "blackbody":
+            blackbody = Blackbody()
+            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=1200)
+            blackbody.kT.set_uninformative_prior(Uniform_prior)
+
+            self._model = Model(
+                PointSource("GRB_blackbody", 0.0, 0.0, spectral_shape=blackbody)
+            )
 
         # elif spectrum == "solar_flare":
 

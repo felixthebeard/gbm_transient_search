@@ -84,6 +84,8 @@ class BalrogFit(object):
 
         self._trigger_info = trigger_info
 
+        self._good_bkg_fit_mask = self._trigger_info["good_bkg_fit_mask"]
+
         self._set_plugins()
         self._define_model()
 
@@ -147,11 +149,41 @@ class BalrogFit(object):
                 drm_generator=rsp,
             )
 
-            balrog_like.set_active_measurements("c0-c3")
+            fit_echans = self._get_valid_echans(det)
+
+            balrog_like.set_active_measurements(*fit_echans)
 
             fluence_plugins.append(balrog_like)
 
         self._data_list = DataList(*fluence_plugins)
+
+    def _get_valid_echans(self, det):
+
+        fit_echans = []
+
+        start_echan = None
+
+        for e, fit_good in enumerate(self._good_bkg_fit_mask[det]):
+
+            if fit_good:
+
+                if start_echan is None:
+
+                    start_echan = e
+
+            else:
+
+                if start_echan is not None:
+                    stop_echan = e - 1
+
+                    if start_echan < stop_echan:
+                        echan_str = f"c{start_echan}-c{stop_echan}"
+
+                        fit_echans.append(echan_str)
+
+                    start_echan = None
+
+        return fit_echans
 
     def _define_model(self, spectrum="cpl"):
         """

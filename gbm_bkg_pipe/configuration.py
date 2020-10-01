@@ -52,11 +52,11 @@ structure["phys_bkg"] = dict(
 )
 
 structure["remote"] = dict(
-    host="cobra",
+    host="raven",  # cobra",
     username="fkunzwei",
     script_dir="/u/fkunzwei/scripts/bkg_pipe/",
-    base_dir="/u/fkunzwei/gbm_data/bkg_pipe/",
-    gbm_data="/u/fkunzwei/gbm_data/",
+    base_dir="/ptmp/fkunzwei/gbm_data/bkg_pipe/",
+    gbm_data="/ptmp/fkunzwei/gbm_data/",
 )
 
 structure["download"] = dict(

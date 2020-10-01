@@ -56,9 +56,9 @@ class BkgConfigWriter(object):
 
         saa_config = dict(
             saa=dict(
-                time_after_saa=100,
-                time_before_saa=30,
-                short_time_intervals=True,
+                time_after_saa=5000,  # 100,
+                time_before_saa=50,
+                short_time_intervals=False,  # False,  # True,
                 nr_decays_per_exit=1,
                 decay_at_day_start=True,
                 decay_per_detector=False,
@@ -71,7 +71,7 @@ class BkgConfigWriter(object):
     def _update_source_setup(self):
         setup_sources = dict(
             setup=dict(
-                use_saa=True,
+                use_saa=False,
                 use_constant=True,
                 use_cr=True,
                 use_earth=True,
@@ -92,7 +92,7 @@ class BkgConfigWriter(object):
 
     def _update_ps_setup(self):
         # Only inlcude point sources for echans 0-3
-        if int(max(self._echans)) < 4:
+        if int(max(self._echans)) < 3:
             ps_select = SelectPointsources(
                 limit1550Crab=0.1, time_string=f"{self._date:%y%m%d}", update=False
             )
@@ -107,6 +107,9 @@ class BkgConfigWriter(object):
                 )
 
             self._ps_dict = ps_select.ps_dict
+
+            self._config["setup"]["use_cr"] = False
+            self._config["setup"]["use_constant"] = False
 
         else:
             ps_setup = []

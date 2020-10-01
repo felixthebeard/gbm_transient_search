@@ -49,9 +49,9 @@ class LocalizationHandler(object):
 
     def create_trigger_information(self, output_dir):
 
-        trigger_information = []
+        trigger_information = {}
 
-        for trigger in self._search_result["triggers"]:
+        for trigger in self._search_result["triggers"].values():
 
             use_dets = self._choose_dets(trigger["most_significant_detector"])
             peak_time = trigger["peak_time"]
@@ -59,6 +59,7 @@ class LocalizationHandler(object):
             active_time_start = peak_time - 10
             active_time_end = peak_time + 10
 
+            trigger["good_bkg_fit_mask"] = self._search_result["good_bkg_fit_mask"]
             trigger["data_type"] = self._search_result["data_type"]
             trigger["active_time_start"] = active_time_start
             trigger["active_time_end"] = active_time_end
@@ -73,7 +74,7 @@ class LocalizationHandler(object):
             with open(output_file, "w") as f:
                 yaml.dump(trigger, f, default_flow_style=False)
 
-            trigger_information.append(trigger)
+            trigger_information[trigger["trigger_name"]] = trigger
 
         self.trigger_information = trigger_information
 
@@ -117,8 +118,8 @@ class LocalizationHandler(object):
         Function to automatically choose the detectors which should be used in the fit
         :return:
         """
-        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5"] #, "b0"]
-        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb"] #, "b1"]
+        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5"]  # , "b0"]
+        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb"]  # , "b1"]
 
         # only use the detectors on the same side as the detector with the most significance
         if max_det in side_1_dets:
@@ -132,7 +133,7 @@ class LocalizationHandler(object):
 
     def write_pha(self, output_dir):
 
-        for t_info in self.trigger_information:
+        for t_info in self.trigger_information.values():
 
             output_path = os.path.join(output_dir, t_info["trigger_name"], "pha")
 
@@ -144,8 +145,5 @@ class LocalizationHandler(object):
                 active_time_start=t_info["active_time_start"],
                 active_time_end=t_info["active_time_end"],
                 file_name=t_info["trigger_name"],
-                overwrite=True
+                overwrite=True,
             )
-
-
-

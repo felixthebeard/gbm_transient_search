@@ -30,6 +30,9 @@ class SaaCalc(object):
         # between the first time bin and the time bin before that one)
         idx = jump_large.nonzero()[0] + 1
 
+        # make a saa mask from the slices:
+        self._saa_mask = np.ones(len(self._time_bins), bool)
+
         if idx.shape[0] > 0:
             # Build slices, that have as first entry start of SAA and as second end of SAA
             slice_idx = np.array(self.slice_disjoint_idx(idx))
@@ -37,9 +40,6 @@ class SaaCalc(object):
             slice_idx[:, 1][
                 np.where(slice_idx[:, 1] <= len(self._time_bins) - 1)
             ] = slice_idx[:, 1][np.where(slice_idx[:, 1] <= len(self._time_bins) - 1)]
-
-            # make a saa mask from the slices:
-            self._saa_mask = np.ones(len(self._time_bins), bool)
 
             for sl in slice_idx:
                 self._saa_mask[sl[0] : sl[1] + 1] = False

@@ -41,7 +41,7 @@ class PlotTriggers(luigi.Task):
             trigger_information = yaml.safe_load(f)
 
         plot_tasks = []
-        for t_info in trigger_information["triggers"]:
+        for t_info in trigger_information["triggers"].values():
 
             plot_tasks.append(
                 CreateAllPlots(

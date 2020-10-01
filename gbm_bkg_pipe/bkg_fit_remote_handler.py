@@ -26,6 +26,8 @@ from gbmbkgpy.io.file_utils import file_existing_and_readable
 
 from cmdstanpy import cmdstan_path, CmdStanModel
 
+import logging
+
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
 data_dir_remote = gbm_bkg_pipe_config["remote"]["gbm_data"]
@@ -165,7 +167,7 @@ class CopyResults(luigi.Task):
             bkg_fit=RunPhysBkgModel(
                 date=self.date, echans=self.echans, detectors=self.detectors
             ),
-            config=CreateBkgConfig(
+            config_file=CreateBkgConfig(
                 date=self.date,
                 data_type=self.data_type,
                 echans=self.echans,
@@ -187,8 +189,14 @@ class CopyResults(luigi.Task):
             "-".join(self.detectors),
             "-".join(self.echans),
         )
+        arviz_file_name = "fit_result_{}_{}_e{}.nc".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
         return {
             "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
+            "arviz_file": luigi.LocalTarget(os.path.join(job_dir, arviz_file_name)),
             "config_file": luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml")),
         }
 
@@ -196,8 +204,11 @@ class CopyResults(luigi.Task):
         # Copy result file to local folder
         self.input()["bkg_fit"]["result_file"].get(self.output()["result_file"].path)
 
+        # Copy arviz file to local folder
+        self.input()["bkg_fit"]["arviz_file"].get(self.output()["arviz_file"].path)
+
         # Copy config file to local folder
-        self.input()["confit_file"].get(self.output()["config_file"].path)
+        self.input()["config_file"].get(self.output()["config_file"].path)
 
 
 class RunPhysBkgModel(luigi.Task):
@@ -206,7 +217,12 @@ class RunPhysBkgModel(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
 
+    result_timeout = 2 * 60 * 60
     resources = {"cpu": 1}
+
+    @property
+    def retry_count(self):
+        return 0
 
     def requires(self):
         requires = {
@@ -246,6 +262,11 @@ class RunPhysBkgModel(luigi.Task):
             "-".join(self.detectors),
             "-".join(self.echans),
         )
+        arviz_file_name = "fit_result_{}_{}_e{}.nc".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
         return {
             "job_id": RemoteTarget(
                 os.path.join(job_dir_remote, "job_id.txt"),
@@ -261,6 +282,12 @@ class RunPhysBkgModel(luigi.Task):
             ),
             "result_file": RemoteTarget(
                 os.path.join(job_dir_remote, result_file_name),
+                host=remote_host,
+                username=remote_username,
+                sshpass=True,
+            ),
+            "arviz_file": RemoteTarget(
+                os.path.join(job_dir_remote, arviz_file_name),
                 host=remote_host,
                 username=remote_username,
                 sshpass=True,
@@ -281,21 +308,79 @@ class RunPhysBkgModel(luigi.Task):
 
         remote = RemoteContext(host=remote_host, username=remote_username, sshpass=True)
 
-        job_id = remote.check_output(
-            [
-                "sbatch",
-                "--parsable",
-                "--wait",
-                "-D",
-                f"{os.path.dirname(self.input()['config'].path)}",
-                f"{script_path}",
-                f"{self.date:%y%m%d}",
-                f"{self.input()['config'].path}",
-            ]
-        )
+        run_cmd = [
+            "sbatch",
+            "--parsable",
+            "-D",
+            f"{os.path.dirname(self.input()['config'].path)}",
+            f"{script_path}",
+            f"{self.date:%y%m%d}",
+            f"{self.input()['config'].path}",
+        ]
+        print(" ".join(run_cmd))
 
-        with self.output()["job_id"].open("w") as outfile:
-            outfile.write(str(job_id))
+        if not self.output()["success"].exists():
+            # job_id = remote.check_output(run_cmd)
+
+            # with self.output()["job_id"].open("w") as outfile:
+            #     outfile.write(str(job_id))
+            job_id = 123
+
+        else:
+
+            if not self.output()["job_id"].exitst():
+                with self.output()["job_id"].open("w") as outfile:
+                    outfile.write("dummy")
+
+            return True
+
+        check_status_cmd = [
+            "squeue",
+            "-u",
+            remote_username,
+        ]
+
+        # the time spent waiting so far
+        time_spent = 0  # seconds
+        wait_time = 20
+        max_time = 2 * 60 * 60
+
+        # Sleep for 10s initially
+        time.sleep(10)
+
+        while True:
+
+            if self.output()["success"].exists():
+
+                break
+
+            else:
+
+                if time_spent >= max_time:
+
+                    break
+
+                else:
+
+                    status = remote.check_output(check_status_cmd)
+
+                    status = status.decode()
+
+                    logging.info(f"The squeue status: {status}")
+
+                    if not str(job_id) in status:
+
+                        break
+
+                    for line in status.split("\n"):
+
+                        if str(job_id) in line:
+
+                            logging.info(f"The squeue status: {line}")
+
+                    time.sleep(wait_time)
+
+                    time_spent += wait_time
 
 
 class BkgModelResultPlot(luigi.Task):

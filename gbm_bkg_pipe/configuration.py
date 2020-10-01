@@ -1,25 +1,6 @@
 from configya import YAMLConfig
 import copy
 
-# setup_all_sources = dict(
-#     use_saa=False,
-#     use_constant=True,
-#     use_cr=True,
-#     use_earth=True,
-#     use_cgb=True,
-#     fix_earth=True,
-#     fix_cgb=True,
-#     use_sun=False,
-#     ps_list=dict(
-#         auto_swift=dict(update_catalog=False, flux_limit=0.1, exclude=["Crab"]),
-#         CRAB=dict(
-#             fixed=True, spectrum=dict(pl=dict(spectrum_type="pl", powerlaw_index=2,))
-#         ),
-#     ),
-#     cr_approximation="BGO",
-#     use_eff_area_correction=False,
-# )
-
 # # run_detectors = [
 # #     ["n0"],
 # #     ["n1"],
@@ -48,23 +29,17 @@ import copy
 # #     ["7"],
 # # ]
 
+# run_detectors = [
+#     ["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "na", "nb"],
+# ]
+# run_echans = [["0", "1", "2", "3"], ["4", "5", "6", "7"]]
+
 run_detectors = [
-    ["n0", "n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "na", "nb"],
+    ["n0", "n1", "n2", "n3", "n4", "n5"],  # , "b0"]
+    ["n6", "n7", "n8", "n9", "na", "nb"],  # , "b1"]
 ]
-run_echans = [["0", "1", "2", "3"], ["4", "5", "6", "7"]]
-# bkg_source_setup = {}
-# for echans in run_echans:
-#     bkg_source_setup["_".join(echans)] = copy.deepcopy(setup_all_sources)
 
-# bkg_source_setup["0_1_2_3_4"].update(dict(use_cr=True))
-# bkg_source_setup["5_6_7"].update(dict(ps_list=[]))
-
-# bkg_source_setup["0"].update(dict(use_cr=False))
-# bkg_source_setup["1"].update(dict(use_cr=False))
-# bkg_source_setup["4"].update(dict(ps_list=[]))
-# bkg_source_setup["5"].update(dict(ps_list=[]))
-# bkg_source_setup["6"].update(dict(ps_list=[]))
-# bkg_source_setup["7"].update(dict(use_cgb=False, ps_list=[]))
+run_echans = [["0", "1", "2"], ["3", "4", "5"]]
 
 structure = {}
 
@@ -77,11 +52,11 @@ structure["phys_bkg"] = dict(
 )
 
 structure["remote"] = dict(
-    host="cobra",
+    host="raven",  # cobra",
     username="fkunzwei",
     script_dir="/u/fkunzwei/scripts/bkg_pipe/",
-    base_dir="/u/fkunzwei/gbm_data/bkg_pipe/",
-    gbm_data="/u/fkunzwei/gbm_data/",
+    base_dir="/ptmp/fkunzwei/gbm_data/bkg_pipe/",
+    gbm_data="/ptmp/fkunzwei/gbm_data/",
 )
 
 structure["download"] = dict(

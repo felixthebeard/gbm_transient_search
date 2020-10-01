@@ -1,5 +1,6 @@
 import os
 import luigi
+import yaml
 from datetime import datetime
 from luigi.contrib.external_program import ExternalProgramTask
 
@@ -35,10 +36,20 @@ class LocalizeTriggers(luigi.Task):
         return requirements
 
     def output(self):
-        filename = f"localize_triggers_done.txt"
+        done_filename = f"localize_triggers_done.txt"
+        result_filename = f"localization_result.yml"
 
-        return luigi.LocalTarget(
-            os.path.join(base_dir, f"{self.date:%y%m%d}", self.data_type, filename)
+        return dict(
+            done=luigi.LocalTarget(
+                os.path.join(
+                    base_dir, f"{self.date:%y%m%d}", self.data_type, done_filename
+                )
+            ),
+            result_file=luigi.LocalTarget(
+                os.path.join(
+                    base_dir, f"{self.date:%y%m%d}", self.data_type, result_filename
+                )
+            ),
         )
 
     def run(self):
@@ -56,7 +67,7 @@ class LocalizeTriggers(luigi.Task):
         loc_handler.write_pha(output_dir)
 
         balrog_tasks = []
-        for t_info in loc_handler.trigger_information:
+        for t_info in loc_handler.trigger_information.values():
 
             balrog_tasks.append(
                 ProcessLocalizationResult(
@@ -67,7 +78,38 @@ class LocalizeTriggers(luigi.Task):
             )
         yield balrog_tasks
 
-        os.system(f"touch {self.output().path}")
+        with self.input()["trigger_search"].open("r") as f:
+
+            trigger_result = yaml.safe_load(f)
+
+        for task in balrog_tasks:
+
+            with task.output()["result_file"].open("r") as f:
+
+                result_yaml = yaml.safe_load(f)
+
+                # Write localization result in original yaml
+
+                trigger_result["triggers"][task.trigger_name].update(
+                    dict(
+                        balrog_one_sig_err_circle=result_yaml["fit_result"][
+                            "balrog_one_sig_err_circle"
+                        ],
+                        balrog_two_sig_err_circle=result_yaml["fit_result"][
+                            "balrog_two_sig_err_circle"
+                        ],
+                        dec=result_yaml["fit_result"]["dec"],
+                        dec_err=result_yaml["fit_result"]["dec_err"],
+                        ra=result_yaml["fit_result"]["ra"],
+                        ra_err=result_yaml["fit_result"]["ra_err"],
+                    )
+                )
+
+        with self.output()["result_file"].open("w") as f:
+
+            yaml.dump(trigger_result, f, default_flow_style=False)
+
+        os.system(f"touch {self.output()['done'].path}")
 
 
 class ProcessLocalizationResult(luigi.Task):

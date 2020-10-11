@@ -24,6 +24,8 @@ from threeML import (
     PointSource,
     BayesianAnalysis,
     display_spectrum_model_counts,
+    Log_normal,
+    Gaussian,
 )
 
 from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
@@ -88,7 +90,7 @@ class BalrogFit(object):
         self._good_bkg_fit_mask = self._trigger_info["good_bkg_fit_mask"]
 
         self._set_plugins()
-        self._define_model(spectrum="blackbody")
+        self._define_model(spectrum="cpl")
 
     def _set_plugins(self):
         """
@@ -172,6 +174,12 @@ class BalrogFit(object):
 
                     start_echan = e
 
+                elif e == 7:
+                    stop_echan = e
+                    echan_str = f"c{start_echan}-c{stop_echan}"
+                    fit_echans.append(echan_str)
+                    start_echan = None
+
             else:
 
                 if start_echan is not None:
@@ -196,7 +204,7 @@ class BalrogFit(object):
             # we define the spectral model
             cpl = Cutoff_powerlaw()
             cpl.K.max_value = 10 ** 4
-            cpl.K.prior = Log_uniform_prior(lower_bound=1e-3, upper_bound=10 ** 4)
+            cpl.K.prior = Log_uniform_prior(lower_bound=1e-3, upper_bound=1e4)
             cpl.xc.prior = Log_uniform_prior(lower_bound=1, upper_bound=1e4)
             cpl.index.set_uninformative_prior(Uniform_prior)
             # we define a point source model using the spectrum we just specified

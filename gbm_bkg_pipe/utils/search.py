@@ -36,6 +36,9 @@ valid_det_names = [
 
 
 def distance_mapping(x, ref_vector=None):
+    """
+    Maps a multi dimensional vector to the length of the vector
+    """
 
     if ref_vector is None:
         ref_vector = np.repeat(1, x.shape[1])
@@ -46,7 +49,9 @@ def distance_mapping(x, ref_vector=None):
 
 
 def angle(x, ref_vector):
-
+    """
+    Calculate the separation angle between a vector and a reference vector
+    """
     dot_prod = np.dot(x, ref_vector)
 
     norm1 = np.sqrt(np.sum(x ** 2))
@@ -60,7 +65,11 @@ def angle(x, ref_vector):
 
 
 def angle_mapping(x, ref_vector=None):
-
+    """
+    Map a multi demensional vector to the separation angle between the vector
+    and a reference vector.
+    If no reference vector is passed use the unity vector (1, 1, 1  ...)
+    """
     if ref_vector is None:
         ref_vector = np.repeat(1, x.shape[1])
 
@@ -70,14 +79,20 @@ def angle_mapping(x, ref_vector=None):
 
 
 def calc_snr(data, background):
-
+    """
+    Calculate the naive signale to noise ratio, without taking the errors
+    of the background estimation into account.
+    """
     snr = np.sum(data - background) / np.sqrt(np.sum(background))
 
     return snr
 
 
 def calc_significance(data, background, bkg_stat_err):
-
+    """
+    Calculate the significance of a signal with poisson noise
+    over background with gaussian erros.
+    """
     significance = poisson_gaussian.significance(
         n=np.sum(data), b=np.sum(background), sigma=np.sqrt(np.sum(bkg_stat_err ** 2))
     )
@@ -86,7 +101,17 @@ def calc_significance(data, background, bkg_stat_err):
 
 
 class Search(object):
+    """
+    Transient search class.
+    This finds change points in the time series,
+    calculates the significances of source intervals,
+    and filters them to construct triggers.
+    """
+
     def __init__(self, result_file, min_bin_width, mad=False, sub_min=False):
+        """
+        Instantiate the search class and prepare the data for processing.
+        """
 
         self._load_result_file(result_file)
 
@@ -120,6 +145,9 @@ class Search(object):
         self._transform_data(mad, sub_min)
 
     def _rebinn_data(self, min_bin_width):
+        """
+        Rebinn the observed data and background
+        """
         self._data_rebinner = Rebinner(
             self._time_bins, min_bin_width, mask=self._saa_mask
         )
@@ -144,6 +172,12 @@ class Search(object):
         self._rebinned_mean_time = np.mean(self._rebinned_time_bins, axis=1)
 
     def _mask_bad_bkg_fits(self, max_sig=50):
+        """
+        Mask energy channels that have a very high significance for the
+        interval covering the whole day.
+        This usually happens when the background underfits strongly,
+        and reduces the false triggers on bad background fits.
+        """
 
         good_bkg_fit_mask = np.zeros((14, 8), dtype=bool)
 
@@ -165,7 +199,10 @@ class Search(object):
 
         self._good_bkg_fit_mask = good_bkg_fit_mask
 
-    def _combine_energy_bins(self, echans=[0, 1, 2]):
+    def _combine_energy_bins(self, echans=[0, 1, 2, 3]):
+        """
+        Combine the energy bins that are used for the calculation of the significance
+        """
         data = {}
         background = {}
         bkg_stat_err = {}
@@ -210,6 +247,9 @@ class Search(object):
         self._bkg_stat_err_total = bkg_stat_err
 
     def _transform_data(self, mad, sub_min):
+        """
+        Transform the data to and apply mapping
+        """
         self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask].reshape(
             (self._data_cleaned.shape[0], -1)
         )
@@ -240,6 +280,9 @@ class Search(object):
         self._angles = angle_mapping(self._data_trans)
 
     def _load_result_file(self, result_file):
+        """
+        Load result file from background fit
+        """
         with h5py.File(result_file, "r") as f:
 
             dates = f.attrs["dates"]
@@ -275,7 +318,10 @@ class Search(object):
         self._bkg_stat_err = stat_err
 
     def find_changepoints_angles(self, indiv_echans=True, **kwargs):
-
+        """
+        Find changepoints applying the ruptures PELT method
+        in the angles time series
+        """
         change_points_sections = []
         change_points = []
 
@@ -325,7 +371,11 @@ class Search(object):
         self._change_points_all = change_points
 
     def calc_significances(self, required_significance=5):
-
+        """
+        Combine two arbitrary changepoints to a source interval and calculate the significance.
+        If the segnificance is higher than the threshold, then add this source interval to the intervals list.
+        This is treating each seaction (between SAA passages) individually.
+        """
         intervals = {}
         significances = {}
 
@@ -374,6 +424,11 @@ class Search(object):
         self._intervals_significance_all = significances
 
     def build_trigger_information(self):
+        """
+        Build the trigger information by filtering the found source intervals
+        for overlap and same trigger times.
+        At the end check if the selected active time is significant.
+        """
 
         # Filter out overlapping intervals and select the one with highest significance
         # This is done twice to get rid of some leftovers
@@ -469,11 +524,13 @@ class Search(object):
         self._intervals_significance = significances_selected
 
     def _filter_overlap(self, intervals, significances):
-
+        """
+        Filter overlapping source intervals and select the one with
+        the highest significance.
+        """
         intervals_selected = {}
         significances_selected = {}
 
-        # Filter out overlapping intervals and select the one with highest significance
         for det in self._detectors:
             max_ids = []
 
@@ -556,6 +613,10 @@ class Search(object):
         return intervals_selected, significances_selected
 
     def _filter_duplicate_peaks(self, peak_times, trigger_intervals):
+        """
+        Filter intervals that lead to the same peak times and keep the shorter one.
+        This gets rid of significant intervals that span very large times and not just the source.
+        """
 
         interval_lengths = trigger_intervals[:, 1] - trigger_intervals[:, 0]
 
@@ -576,6 +637,10 @@ class Search(object):
     def _filter_active_time_significance(
         self, valid_ids, most_significant_detectors, peak_times, required_significance=5
     ):
+        """
+        Filter the intervals by the significance of the active time
+        selected arround the trigger time.
+        """
 
         significant_ids = []
 
@@ -602,6 +667,9 @@ class Search(object):
         return significant_ids
 
     def create_result_dict(self):
+        """
+        Create the trigger result dictionary.
+        """
 
         good_bkg_mask = dict()
 

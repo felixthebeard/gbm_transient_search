@@ -52,6 +52,7 @@ model_param_lookup = {
         "Epiv-brems",
         "kT-brems",
     ],
+    "blackbody": ["ra (deg)", "dec (deg)", "K", "kT"],
 }
 
 

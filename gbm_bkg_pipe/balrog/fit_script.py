@@ -5,7 +5,7 @@ from gbm_bkg_pipe.balrog.utils.fit import BalrogFit
 
 from gbmbkgpy.utils import global_exept_hook
 
-global_exept_hook._add_hook()
+global_exept_hook.add_hook()
 
 
 warnings.simplefilter("ignore")

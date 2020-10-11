@@ -249,6 +249,14 @@ class RunPhysBkgModel(luigi.Task):
         return requires
 
     def output(self):
+        job_dir = os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
         job_dir_remote = os.path.join(
             base_dir_remote,
             f"{self.date:%y%m%d}",
@@ -268,12 +276,7 @@ class RunPhysBkgModel(luigi.Task):
             "-".join(self.echans),
         )
         return {
-            "job_id": RemoteTarget(
-                os.path.join(job_dir_remote, "job_id.txt"),
-                host=remote_host,
-                username=remote_username,
-                sshpass=True,
-            ),
+            "job_id": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
             "chains_dir": RemoteTarget(
                 os.path.join(job_dir_remote, "stan_chains"),
                 host=remote_host,
@@ -320,11 +323,10 @@ class RunPhysBkgModel(luigi.Task):
         print(" ".join(run_cmd))
 
         if not self.output()["success"].exists():
-            # job_id = remote.check_output(run_cmd)
+            job_id = remote.check_output(run_cmd)
 
-            # with self.output()["job_id"].open("w") as outfile:
-            #     outfile.write(str(job_id))
-            job_id = 123
+            with self.output()["job_id"].open("w") as outfile:
+                outfile.write(str(job_id))
 
         else:
 

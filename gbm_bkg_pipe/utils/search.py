@@ -418,6 +418,10 @@ class Search(object):
 
             trigger_significance.append(sig_dict)
 
+        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+            trigger_intervals[:, 0], 0
+        ]
+
         most_significant_detectors = []
         for sig in trigger_significance:
             most_significant_detectors.append(max(sig, key=sig.get))
@@ -442,17 +446,22 @@ class Search(object):
             trigger_peak_times, trigger_intervals
         )
 
-        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-            trigger_intervals[:, 0], 0
-        ]
+        significant_ids = self._filter_active_time_significance(
+            valid_ids=unique_peak_ids,
+            most_significant_detectors=np.array(most_significant_detectors)[
+                unique_peak_ids
+            ],
+            peak_times=np.array(trigger_peak_times)[unique_peak_ids],
+            required_significance=3,
+        )
 
-        self._trigger_intervals = np.array(trigger_intervals)[unique_peak_ids]
-        self._trigger_significance = np.array(trigger_significance)[unique_peak_ids]
+        self._trigger_intervals = np.array(trigger_intervals)[significant_ids]
+        self._trigger_significance = np.array(trigger_significance)[significant_ids]
         self._trigger_most_significant_detector = np.array(most_significant_detectors)[
-            unique_peak_ids
+            significant_ids
         ]
-        self._trigger_times = trigger_times[unique_peak_ids]
-        self._trigger_peak_times = np.array(trigger_peak_times)[unique_peak_ids]
+        self._trigger_times = trigger_times[significant_ids]
+        self._trigger_peak_times = np.array(trigger_peak_times)[significant_ids]
 
         self._tr_p = trigger_peak_times
 
@@ -563,6 +572,34 @@ class Search(object):
         min_length_ids = np.unique(min_length_ids)
 
         return min_length_ids
+
+    def _filter_active_time_significance(
+        self, valid_ids, most_significant_detectors, peak_times, required_significance=5
+    ):
+
+        significant_ids = []
+
+        for i, val_id in enumerate(valid_ids):
+
+            start_time = peak_times[i] - 10
+            stop_time = peak_times[i] + 10
+
+            idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
+            idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
+
+            det = most_significant_detectors[i]
+            print(det)
+
+            significance = calc_significance(
+                data=self._observed_counts_total[det][idx_low:idx_high],
+                background=self._bkg_counts_total[det][idx_low:idx_high],
+                bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
+            )
+
+            if significance >= required_significance:
+                significant_ids.append(val_id)
+
+        return significant_ids
 
     def create_result_dict(self):
 

@@ -446,7 +446,6 @@ class BalrogFit(object):
                         )
 
                         spectrum_plot.savefig(plot_path, bbox_inches="tight")
-
                     except Exception as e:
                         print("No spectral plot possible...")
                         print(e)
@@ -473,7 +472,6 @@ class BalrogFit(object):
                     )
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
-                
                 except Exception as e:
                     print("No spectral plot possible...")
                     print(e)

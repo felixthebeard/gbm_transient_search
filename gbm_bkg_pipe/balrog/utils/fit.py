@@ -441,5 +441,14 @@ class BalrogFit(object):
                 spectrum_plot.savefig(plot_path, bbox_inches="tight")
 
             except:
+                try:
+                    spectrum_plot = display_spectrum_model_counts(
+                        self._bayes,
+                        data_colors=color_list,
+                        model_colors=color_list,
+                        min_rate=-99,
+                    )
 
-                print("No spectral plot possible...")
+                    spectrum_plot.savefig(plot_path, bbox_inches="tight")
+                except:
+                    print("No spectral plot possible...")

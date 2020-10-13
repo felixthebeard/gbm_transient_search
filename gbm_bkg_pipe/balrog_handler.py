@@ -219,7 +219,15 @@ class RunBalrog(ExternalProgramTask):
         # Run with mpi in parallel
         if balrog_n_cores_multinest > 1:
 
-            command.extend(["mpiexec", f"-n", f"{balrog_n_cores_multinest}"])
+            command.extend(
+                [
+                    "mpiexec",
+                    "-n",
+                    f"{balrog_n_cores_multinest}",
+                    "--timeout",
+                    f"{balrog_timeout - 10}",  # Use timeout - 10s to quite mpi before the task gets killed
+                ]
+            )
 
         command.extend(
             [

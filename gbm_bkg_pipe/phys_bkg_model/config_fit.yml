@@ -19,7 +19,7 @@ saa:
   short_time_intervals: false
   nr_decays_per_exit: 1
   decay_at_day_start: true
-  decay_per_detector: false
+  decay_per_detector: true
   decay_model: exponential
 
 ###### Input for geometry calculation [n time bins per day to calculate the geometry ################

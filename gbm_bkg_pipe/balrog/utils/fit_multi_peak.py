@@ -90,7 +90,7 @@ class BalrogFit(object):
         self._good_bkg_fit_mask = self._trigger_info["good_bkg_fit_mask"]
 
         self._set_plugins()
-        self._define_model(spectrum="cpl")
+        self._define_model(spectrum="blackbody")
 
     def _set_plugins(self):
         """
@@ -140,7 +140,7 @@ class BalrogFit(object):
                 )
 
                 ogip_like = OGIPLike(
-                    f"grb{det}-{interval_id}",
+                    f"grb{det}i{interval_id}",
                     observation=os.path.join(
                         pha_output_dir, f"{self._trigger_name}_{interval_id}_{det}.pha"
                     ),
@@ -248,10 +248,16 @@ class BalrogFit(object):
             self._model = Model(PointSource("GRB_sbpl", 0.0, 0.0, spectral_shape=sbpl))
 
         elif spectrum == "blackbody":
-            blackbody = Blackbody()
-            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=1200)
-            blackbody.kT.set_uninformative_prior(Uniform_prior)
-
+            blackbody = Blackbody()                                                                                                                                                                                                                           
+            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=400)                
+            blackbody.kT.min_value = 1e-2                                                                                                                                                                                          
+            blackbody.kT.max_value = 50                                                                                                                                                                                                            
+            blackbody.kT.prior = Log_uniform_prior(lower_bound=1e-2, upper_bound=50)                                                                                                                                                                        
+            
+            #blackbody.K.prior = Log_normal(mu=-15, sigma=1)                                                                                            
+            #blackbody.kT.prior = Log_normal(mu=-15, sigma=1)                                                                                                                                                                                                 
+            # blackbody.kT.prior = Gaussian(mu=3, sigma=5) 
+            
             self._model = Model(
                 PointSource("GRB_blackbody", 0.0, 0.0, spectral_shape=blackbody)
             )
@@ -412,7 +418,7 @@ class BalrogFit(object):
         }
 
         color_list = []
-
+        
         for i in self._trigger_info["active_intervals"]:
             for d in self._trigger_info["use_dets"]:
                 color_list.append(color_dict[d])
@@ -467,7 +473,7 @@ class BalrogFit(object):
                     )
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
-
+                
                 except Exception as e:
                     print("No spectral plot possible...")
                     print(e)

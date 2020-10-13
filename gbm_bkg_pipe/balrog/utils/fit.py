@@ -90,7 +90,7 @@ class BalrogFit(object):
         self._good_bkg_fit_mask = self._trigger_info["good_bkg_fit_mask"]
 
         self._set_plugins()
-        self._define_model(spectrum="cpl")
+        self._define_model(spectrum="blackbody")
 
     def _set_plugins(self):
         """
@@ -191,7 +191,7 @@ class BalrogFit(object):
                         fit_echans.append(echan_str)
 
                     start_echan = None
-
+        print(fit_echans)
         return fit_echans
 
     def _define_model(self, spectrum="cpl"):
@@ -243,8 +243,13 @@ class BalrogFit(object):
 
         elif spectrum == "blackbody":
             blackbody = Blackbody()
-            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=1200)
-            blackbody.kT.set_uninformative_prior(Uniform_prior)
+            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-10, upper_bound=50)
+            blackbody.kT.min_value = 1e-10
+            blackbody.kT.max_value = 100
+            blackbody.kT.prior = Log_uniform_prior(lower_bound=1e-10, upper_bound=100)
+            #blackbody.K.prior = Log_normal(mu=-15, sigma=1)
+            #blackbody.kT.prior = Log_normal(mu=-15, sigma=1)
+            # blackbody.kT.prior = Gaussian(mu=3, sigma=5)
 
             self._model = Model(
                 PointSource("GRB_blackbody", 0.0, 0.0, spectral_shape=blackbody)
@@ -282,6 +287,8 @@ class BalrogFit(object):
         Fit the model to data using multinest
         :return:
         """
+        print(self._model.parameters)
+        print(self._model.free_parameters)
         # define bayes object with model and data_list
         self._bayes = BayesianAnalysis(self._model, self._data_list)
 

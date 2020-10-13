@@ -424,10 +424,21 @@ class BalrogFit(object):
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
 
-                except Exception as e:
+                except:
 
-                    print("No spectral plot possible...")
-                    print(e)
+                    try:
+                        spectrum_plot = display_spectrum_model_counts(
+                            self._bayes,
+                            data_colors=color_list,
+                            model_colors=color_list,
+                            min_rate=-99,
+                        )
+
+                        spectrum_plot.savefig(plot_path, bbox_inches="tight")
+
+                    except Exception as e:
+                        print("No spectral plot possible...")
+                        print(e)
 
         else:
 
@@ -441,6 +452,7 @@ class BalrogFit(object):
                 spectrum_plot.savefig(plot_path, bbox_inches="tight")
 
             except:
+
                 try:
                     spectrum_plot = display_spectrum_model_counts(
                         self._bayes,
@@ -450,5 +462,7 @@ class BalrogFit(object):
                     )
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
-                except:
+
+                except Exception as e:
                     print("No spectral plot possible...")
+                    print(e)

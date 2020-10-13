@@ -412,11 +412,10 @@ class BalrogFit(object):
         }
 
         color_list = []
-        for d in self._trigger_info["use_dets"]:
-            color_list.append(color_dict[d])
 
-        set = plt.get_cmap("Set1")
-        color_list = set.colors
+        for i in self._trigger_info["active_intervals"]:
+            for d in self._trigger_info["use_dets"]:
+                color_list.append(color_dict[d])
 
         if using_mpi:
             if rank == 0:
@@ -430,10 +429,21 @@ class BalrogFit(object):
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
 
-                except Exception as e:
+                except:
 
-                    print("No spectral plot possible...")
-                    print(e)
+                    try:
+                        spectrum_plot = display_spectrum_model_counts(
+                            self._bayes,
+                            data_colors=color_list,
+                            model_colors=color_list,
+                            min_rate=-99,
+                        )
+
+                        spectrum_plot.savefig(plot_path, bbox_inches="tight")
+
+                    except Exception as e:
+                        print("No spectral plot possible...")
+                        print(e)
 
         else:
 
@@ -447,6 +457,7 @@ class BalrogFit(object):
                 spectrum_plot.savefig(plot_path, bbox_inches="tight")
 
             except:
+
                 try:
                     spectrum_plot = display_spectrum_model_counts(
                         self._bayes,
@@ -456,5 +467,7 @@ class BalrogFit(object):
                     )
 
                     spectrum_plot.savefig(plot_path, bbox_inches="tight")
-                except:
+
+                except Exception as e:
                     print("No spectral plot possible...")
+                    print(e)

@@ -320,27 +320,50 @@ class RunPhysBkgModel(luigi.Task):
             f"{self.date:%y%m%d}",
             f"{self.input()['config'].path}",
         ]
-        print(" ".join(run_cmd))
-
-        if not self.output()["success"].exists():
-            job_id = remote.check_output(run_cmd)
-
-            with self.output()["job_id"].open("w") as outfile:
-                outfile.write(str(job_id))
-
-        else:
-
-            if not self.output()["job_id"].exitst():
-                with self.output()["job_id"].open("w") as outfile:
-                    outfile.write("dummy")
-
-            return True
 
         check_status_cmd = [
             "squeue",
             "-u",
             remote_username,
         ]
+
+        logging.info(" ".join(run_cmd))
+
+        if not self.output()["success"].exists():
+
+            # Check if job already has been created and is still running
+            if self.output()["job_id"].exists():
+                with self.output()["job_id"].open("r") as f:
+                    job_id = f.readlines()[0]
+
+                if isinstance(job_id, bytes):
+                    job_id = job_id.decode()
+
+                status = remote.check_output(check_status_cmd).decode()
+
+                if str(job_id) in status:
+
+                    run_fit = False
+
+                else:
+
+                    run_fit = True
+        else:
+            # Job has already successfully completed, if job_id file is missing
+            # just create a dummy version
+            if not self.output()["job_id"].exists():
+                with self.output()["job_id"].open("w") as outfile:
+                    outfile.write("dummy")
+
+            return True
+
+        if run_fit:
+            job_output = remote.check_output(run_cmd)
+
+            job_id = job_output.decode()
+
+            with self.output()["job_id"].open("w") as outfile:
+                outfile.write(job_id)
 
         # the time spent waiting so far
         time_spent = 0  # seconds

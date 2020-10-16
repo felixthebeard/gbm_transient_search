@@ -25,6 +25,7 @@ run_echans = gbm_bkg_pipe_config["data"]["echans"]
 class LocalizeTriggers(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
+    remote_host = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -39,8 +40,12 @@ class LocalizeTriggers(luigi.Task):
     def requires(self):
 
         requirements = {
-            "bkg_fit": GBMBackgroundModelFit(date=self.date, data_type=self.data_type),
-            "trigger_search": TriggerSearch(date=self.date, data_type=self.data_type),
+            "bkg_fit": GBMBackgroundModelFit(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
+            "trigger_search": TriggerSearch(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
         }
 
         return requirements
@@ -84,6 +89,7 @@ class LocalizeTriggers(luigi.Task):
                     date=datetime.strptime(t_info["date"], "%y%m%d"),
                     data_type=t_info["data_type"],
                     trigger_name=t_info["trigger_name"],
+                    remote_host=self.remote_host,
                 )
             )
         yield balrog_tasks
@@ -126,6 +132,7 @@ class ProcessLocalizationResult(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -140,7 +147,10 @@ class ProcessLocalizationResult(luigi.Task):
     def requires(self):
         return dict(
             balrog=RunBalrog(
-                date=self.date, data_type=self.data_type, trigger_name=self.trigger_name
+                date=self.date,
+                data_type=self.data_type,
+                trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
             ),
         )
 
@@ -184,6 +194,7 @@ class RunBalrog(ExternalProgramTask):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     resources = {"cpu": balrog_n_cores_multinest}
     worker_timeout = balrog_timeout
@@ -199,8 +210,12 @@ class RunBalrog(ExternalProgramTask):
 
     def requires(self):
         requirements = {
-            "bkg_fit": GBMBackgroundModelFit(date=self.date, data_type=self.data_type),
-            "trigger_search": TriggerSearch(date=self.date, data_type=self.data_type),
+            "bkg_fit": GBMBackgroundModelFit(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
+            "trigger_search": TriggerSearch(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
         }
 
         return requirements

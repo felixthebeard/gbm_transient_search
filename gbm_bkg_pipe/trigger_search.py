@@ -30,6 +30,7 @@ _gbm_detectors = (
 class TriggerSearch(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
+    remote_host = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -43,7 +44,9 @@ class TriggerSearch(luigi.Task):
 
     def requires(self):
 
-        return GBMBackgroundModelFit(date=self.date, data_type=self.data_type)
+        return GBMBackgroundModelFit(
+            date=self.date, data_type=self.data_type, remote_host=self.remote_host
+        )
 
     def output(self):
 

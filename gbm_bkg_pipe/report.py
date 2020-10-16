@@ -3,12 +3,16 @@ import os
 from datetime import datetime, timedelta
 
 import luigi
+from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
 from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
 from gbm_bkg_pipe.plots import PlotTriggers
+from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+
+remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
 
 
 class CreateReportDate(luigi.Task):
@@ -23,13 +27,6 @@ class CreateReportDate(luigi.Task):
         else:
             return 1
 
-    def requires(self):
-        return {
-            "loc_triggers": LocalizeTriggers(date=self.date, data_type=self.data_type),
-            "plot_triggers": PlotTriggers(date=self.date, data_type=self.data_type),
-            "bkg_model_plots": BkgModelPlots(date=self.date, data_type=self.data_type),
-        }
-
     def output(self):
         filename = f"{self.date}_{self.data_type}_report_done.txt"
         return luigi.LocalTarget(
@@ -37,4 +34,50 @@ class CreateReportDate(luigi.Task):
         )
 
     def run(self):
+
+        remote_hosts = list(remote_hosts_config["hosts"].values())
+
+        for remote_config in remote_hosts:
+
+            remote = RemoteContext(
+                host=remote_config["hostname"],
+                username=remote_config["username"],
+                sshpass=True,
+            )
+
+            check_status_cmd = ["squeue", "-u", remote_config["username"]]
+
+            status = remote.check_output(check_status_cmd)
+            nr_queued_jobs = len(status.decode().split("\n")) - 1
+
+            remote_config["nr_queued_jobs"] = nr_queued_jobs
+
+            remote_config["free_capacity"] = remote_config["job_limit"] - nr_queued_jobs
+
+        # If high priority use the priority host
+        if self.priority > 1:
+
+            run_host = remote_config["priority_host"]
+
+        # else use the host that has the most free capacity
+        else:
+
+            run_host = sorted(
+                remote_hosts, key=lambda k: k["free_capacity"], reverse=True
+            )[0]["hostname"]
+
+        required_tasks = {
+            "loc_triggers": LocalizeTriggers(
+                date=self.date, data_type=self.data_type, remote_host=run_host
+            ),
+            "plot_triggers": PlotTriggers(
+                date=self.date, data_type=self.data_type, remote_host=run_host
+            ),
+            "bkg_model_plots": BkgModelPlots(
+                date=self.date, data_type=self.data_type, remote_host=run_host
+            ),
+        }
+
+        yield required_tasks
+
         os.system(f"touch {self.output().path}")

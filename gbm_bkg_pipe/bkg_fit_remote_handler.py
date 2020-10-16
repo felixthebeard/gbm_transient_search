@@ -38,7 +38,13 @@ class GBMBackgroundModelFit(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
 
-    resources = {"cpu": 1}
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
 
@@ -92,6 +98,14 @@ class BkgModelPlots(luigi.WrapperTask):
 
     resources = {"cpu": 1}
 
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
     def requires(self):
 
         bkg_fit_tasks = {}
@@ -117,6 +131,14 @@ class CreateBkgConfig(luigi.Task):
     detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
         return None
@@ -155,6 +177,14 @@ class CopyResults(luigi.Task):
     detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
         return dict(
@@ -212,11 +242,18 @@ class RunPhysBkgModel(luigi.Task):
     detectors = luigi.ListParameter()
 
     result_timeout = 2 * 60 * 60
-    resources = {"cpu": 1}
 
     @property
     def retry_count(self):
         return 0
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
         requires = {
@@ -414,6 +451,14 @@ class BkgModelResultPlot(luigi.Task):
     def requires(self):
         return CopyResults(date=self.date, echans=self.echans, detectors=self.detectors)
 
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
     def output(self):
         job_dir = os.path.join(
             base_dir,
@@ -455,6 +500,14 @@ class BkgModelCornerPlot(luigi.Task):
     detectors = luigi.ListParameter()
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
         return CopyResults(date=self.date, echans=self.echans, detectors=self.detectors)
@@ -520,6 +573,14 @@ class DownloadData(luigi.Task):
 
     resources = {"cpu": 1}
 
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
     def output(self):
         datafile_name = (
             f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
@@ -569,6 +630,14 @@ class DownloadPoshistData(luigi.Task):
     date = luigi.DateParameter()
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def output(self):
         datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"

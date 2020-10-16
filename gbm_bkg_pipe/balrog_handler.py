@@ -1,11 +1,13 @@
+import datetime as dt
 import os
+from datetime import datetime, timedelta
+
 import luigi
 import yaml
-from datetime import datetime
 from luigi.contrib.external_program import ExternalProgramTask
 
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
+from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
 from gbm_bkg_pipe.utils.result_reader import ResultReader
@@ -25,6 +27,14 @@ class LocalizeTriggers(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
 
@@ -119,6 +129,14 @@ class ProcessLocalizationResult(luigi.Task):
 
     resources = {"cpu": 1}
 
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
     def requires(self):
         return dict(
             balrog=RunBalrog(
@@ -170,6 +188,14 @@ class RunBalrog(ExternalProgramTask):
     resources = {"cpu": balrog_n_cores_multinest}
     worker_timeout = balrog_timeout
     always_log_stderr = True
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
         requirements = {

@@ -1,12 +1,9 @@
+import datetime as dt
 import os
-import time
-import json
-import numpy as np
-import luigi
-import yaml
-from matplotlib import pyplot as plt
+from datetime import datetime, timedelta
 
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+import luigi
+
 from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
 from gbm_bkg_pipe.utils.search import Search
 
@@ -35,6 +32,14 @@ class TriggerSearch(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
 
     resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
 
     def requires(self):
 

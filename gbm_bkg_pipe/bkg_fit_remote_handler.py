@@ -392,7 +392,7 @@ class RunPhysBkgModel(luigi.Task):
         check_status_cmd = [
             "squeue",
             "-u",
-            remote_username,
+            username=remote_hosts_config["hosts"][self.remote_host]["username"],
         ]
 
         logging.info(" ".join(run_cmd))

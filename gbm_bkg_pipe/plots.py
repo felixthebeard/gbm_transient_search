@@ -22,11 +22,14 @@ base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 class PlotTriggers(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
+    remote_host = luigi.Parameter()
 
     resources = {"cpu": 1}
 
     def requires(self):
-        return TriggerSearch(date=self.date, data_type=self.data_type)
+        return TriggerSearch(
+            date=self.date, data_type=self.data_type, remote_host=self.remote_host
+        )
 
     def output(self):
         filename = f"plot_triggers_done.txt"
@@ -48,6 +51,7 @@ class PlotTriggers(luigi.Task):
                     date=datetime.strptime(t_info["date"], "%y%m%d"),
                     data_type=trigger_information["data_type"],
                     trigger_name=t_info["trigger_name"],
+                    remote_host=self.remote_host,
                 )
             )
         yield plot_tasks
@@ -59,6 +63,7 @@ class CreateAllPlots(luigi.WrapperTask):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return {
@@ -66,28 +71,33 @@ class CreateAllPlots(luigi.WrapperTask):
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
             ),
             "corner": CreateCornerPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
             ),
             # "satellite": CreateSatellitePlot(
             #     grb_name=self.grb_name,
             #     report_type=self.report_type,
             #     version=self.version,
             #     phys_bkg=self.phys_bkg
+            # remote_host=self.remote_host
             # ),
             # "molllocation": CreateMollLocationPlot(
             #     grb_name=self.grb_name,
             #     report_type=self.report_type,
             #     version=self.version,
             #     phys_bkg=self.phys_bkg
+            # remote_host=self.remote_host
             # ),
             "spectrum": CreateSpectrumPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
             ),
         }
 
@@ -96,12 +106,14 @@ class CreateLocationPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
             date=self.date,
             data_type=self.data_type,
             trigger_name=self.trigger_name,
+            remote_host=self.remote_host,
         )
 
     def output(self):
@@ -132,12 +144,14 @@ class CreateCornerPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
             date=self.date,
             data_type=self.data_type,
             trigger_name=self.trigger_name,
+            remote_host=self.remote_host,
         )
 
     def output(self):
@@ -168,6 +182,7 @@ class CreateMollLocationPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return dict(
@@ -175,8 +190,11 @@ class CreateMollLocationPlot(luigi.Task):
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
             ),
-            poshist_file=DownloadPoshistData(date=self.date),
+            poshist_file=DownloadPoshistData(
+                date=self.date, remote_host=self.remote_host
+            ),
         )
 
     def output(self):
@@ -215,12 +233,14 @@ class CreateSatellitePlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
             date=self.date,
             data_type=self.data_type,
             trigger_name=self.trigger_name,
+            remote_host=self.remote_host,
         )
 
     def output(self):
@@ -271,12 +291,14 @@ class CreateSpectrumPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
             date=self.date,
             data_type=self.data_type,
             trigger_name=self.trigger_name,
+            remote_host=self.remote_host,
         )
 
     def output(self):
@@ -301,12 +323,14 @@ class Create3DLocationPlot(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
+    remote_host = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
             date=self.date,
             data_type=self.data_type,
             trigger_name=self.trigger_name,
+            remote_host=self.remote_host,
         )
 
     def output(self):

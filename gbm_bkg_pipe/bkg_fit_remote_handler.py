@@ -277,6 +277,7 @@ class RunPhysBkgModel(luigi.Task):
                 data_type=self.data_type,
                 echans=self.echans,
                 detectors=self.detectors,
+                remote_host=self.remote_host,
             ),
             "poshist_file": DownloadPoshistData(
                 date=self.date, remote_host=self.remote_host

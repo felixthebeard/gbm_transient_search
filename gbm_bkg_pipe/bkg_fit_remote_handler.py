@@ -1,34 +1,28 @@
-import os
-import time
 import json
-import numpy as np
-import luigi
-import yaml
-import arviz
-from chainconsumer import ChainConsumer
+import logging
+import os
+import tempfile
+import time
+from datetime import datetime, timedelta
+import datetime as dt
 
-from luigi.contrib.external_program import ExternalProgramTask
+import luigi
+import numpy as np
+import yaml
+from chainconsumer import ChainConsumer
+from gbmbkgpy.io.export import PHAWriter
+from gbmbkgpy.io.package_data import get_path_of_external_data_dir
+from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
+from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter, TableWrapper
-
+from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
 
-from gbmbkgpy.io.export import PHAWriter, StanDataExporter
-from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
-from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
-from gbmbkgpy.utils.stan import StanDataConstructor, StanModelConstructor
-
-from gbmbkgpy.io.package_data import get_path_of_external_data_dir
-from gbmbkgpy.io.downloading import download_data_file
-from gbmbkgpy.io.file_utils import file_existing_and_readable
-
-from cmdstanpy import cmdstan_path, CmdStanModel
-
-import logging
-
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+
+data_dir = os.environ.get("GBMDATA")
 
 data_dir_remote = gbm_bkg_pipe_config["remote"]["gbm_data"]
 base_dir_remote = gbm_bkg_pipe_config["remote"]["base_dir"]
@@ -233,6 +227,7 @@ class RunPhysBkgModel(luigi.Task):
                 detectors=self.detectors,
             ),
             "poshist_file": DownloadPoshistData(date=self.date),
+            "pointsource_db": UpdatePointsourceDB(date=self.date),
         }
 
         for det in self.detectors:
@@ -609,3 +604,125 @@ class DownloadPoshistData(luigi.Task):
         if file_readable:
 
             self.output().put(local_path)
+
+
+class UpdatePointsourceDB(luigi.Task):
+    """
+    Downloads a DataFile
+    """
+
+    date = luigi.DateParameter()
+
+    resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
+    def output(self):
+        return dict(
+            local_ps_db_file=luigi.LocalTarget(
+                os.path.join(
+                    data_dir, "background_point_sources", "pointsources_swift.h5"
+                )
+            ),
+            remote_ps_db_file=RemoteTarget(
+                os.path.join(
+                    data_dir_remote, "background_point_sources", "pointsources_swift.h5"
+                ),
+                host=remote_host,
+                username=remote_username,
+                sshpass=True,
+            ),
+            db_updated=luigi.LocalTarget(
+                os.path.join(base_dir, f"{self.date:%y%m%d}", "ps_db_updated.txt")
+            ),
+        )
+
+    def run(self):
+
+        update_running = os.path.join(
+            os.path.dirname(self.output()["local_ps_db_file"].path), "updating.txt"
+        )
+
+        local_db_creation = datetime.fromtimestamp(
+            os.path.getmtime(self.output()["local_ps_db_file"].path)
+        )
+
+        # the time spent waiting so far
+        time_spent = 0  # seconds
+        wait_time = 20
+        max_time = 1 * 60 * 60
+
+        # Check if local db is older than one day
+        if (datetime.now() - local_db_creation) > timedelta(days=1):
+
+            # Check if there is already an update running
+            # this could be from running the pipeline on a different day of data
+            if os.path.exists(update_running):
+
+                while True:
+
+                    if not os.path.exists(update_running):
+
+                        local_db_creation = datetime.fromtimestamp(
+                            os.path.getmtime(self.output()["local_ps_db_file"].path)
+                        )
+
+                        if (datetime.now() - local_db_creation) < timedelta(days=1):
+
+                            break
+
+                    else:
+
+                        if time_spent >= max_time:
+
+                            break
+
+                        else:
+
+                            time.sleep(wait_time)
+
+            # Check again the creation time in case we exited from the loop
+            local_db_creation = datetime.fromtimestamp(
+                os.path.getmtime(self.output()["local_ps_db_file"].path)
+            )
+
+            # If the db file is older then start building it
+            if (datetime.now() - local_db_creation) > timedelta(days=1):
+
+                os.system(f"touch {update_running}")
+
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    build_swift_pointsource_database(
+                        tmpdirname, multiprocessing=True, force=True
+                    )
+
+                # delete the update running file once we are done
+                os.remove(update_running)
+
+        # Now check if the ps db file exists on the remote machine and is up to date
+        # if not copy it over
+        if self.output()["remote_ps_db_file"].exists():
+
+            remote_db_creation = datetime.fromtimestamp(
+                os.path.getmtime(self.output()["remote_ps_db_file"].path)
+            )
+
+            if (local_db_creation - remote_db_creation) > timedelta(days=1):
+
+                self.output()["remote_ps_db_file"].put(
+                    self.output()["local_ps_db_file"].path
+                )
+
+        else:
+
+            self.output()["remote_ps_db_file"].put(
+                self.output()["local_ps_db_file"].path
+            )
+
+        os.system(f"touch {self.output()['db_updated'].path}")

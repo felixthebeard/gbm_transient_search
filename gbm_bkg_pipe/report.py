@@ -9,6 +9,7 @@ from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
 from gbm_bkg_pipe.plots import PlotTriggers
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+import logging
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
@@ -37,34 +38,46 @@ class CreateReportDate(luigi.Task):
 
         remote_hosts = list(remote_hosts_config["hosts"].values())
 
+        available_host_names = []
+        available_hosts = []
+
         for remote_config in remote_hosts:
+            try:
+                remote = RemoteContext(
+                    host=remote_config["hostname"],
+                    username=remote_config["username"],
+                    sshpass=True,
+                )
 
-            remote = RemoteContext(
-                host=remote_config["hostname"],
-                username=remote_config["username"],
-                sshpass=True,
-            )
+                check_status_cmd = ["squeue", "-u", remote_config["username"]]
 
-            check_status_cmd = ["squeue", "-u", remote_config["username"]]
+                status = remote.check_output(check_status_cmd)
+                nr_queued_jobs = len(status.decode().split("\n")) - 1
 
-            status = remote.check_output(check_status_cmd)
-            nr_queued_jobs = len(status.decode().split("\n")) - 1
+                remote_config["nr_queued_jobs"] = nr_queued_jobs
 
-            remote_config["nr_queued_jobs"] = nr_queued_jobs
+                remote_config["free_capacity"] = (
+                    remote_config["job_limit"] - nr_queued_jobs
+                )
 
-            remote_config["free_capacity"] = remote_config["job_limit"] - nr_queued_jobs
+                available_hosts.append(remote_config)
+                available_host_names.append(remote_config["hostname"])
 
-        # If high priority use the priority host
+            except Exception as e:
+
+                logging.exception(f"Check remote capacity resulted in: {e}")
+
+        # use the host that has the most free capacity
+        run_host = sorted(
+            available_hosts, key=lambda k: k["free_capacity"], reverse=True
+        )[0]["hostname"]
+
+        # if high priority use the priority host
         if self.priority > 1:
 
-            run_host = remote_config["priority_host"]
+            if remote_config["priority_host"] in available_hosts:
 
-        # else use the host that has the most free capacity
-        else:
-
-            run_host = sorted(
-                remote_hosts, key=lambda k: k["free_capacity"], reverse=True
-            )[0]["hostname"]
+                run_host = remote_config["priority_host"]
 
         required_tasks = {
             "loc_triggers": LocalizeTriggers(

@@ -26,7 +26,7 @@ structure["remote_hosts_config"] = dict(
             username="fkunzwei",
             script_dir="/u/fkunzwei/scripts/bkg_pipe/",
             base_dir="/ptmp/fkunzwei/gbm_data/bkg_pipe/",
-            gbm_data="/ptmp/fkunzwei/gbm_data/",
+            data_dir="/ptmp/fkunzwei/gbm_data/",
             job_limit=8,
         ),
         cobra=dict(
@@ -34,7 +34,7 @@ structure["remote_hosts_config"] = dict(
             username="fkunzwei",
             script_dir="/u/fkunzwei/scripts/bkg_pipe/",
             base_dir="/ptmp/fkunzwei/gbm_data/bkg_pipe/",
-            gbm_data="/ptmp/fkunzwei/gbm_data/",
+            data_dir="/ptmp/fkunzwei/gbm_data/",
             job_limit=8,
         ),
     ),

@@ -365,7 +365,8 @@ class RunPhysBkgModel(luigi.Task):
     def run(self):
 
         script_path = os.path.join(
-            gbm_bkg_pipe_config["remote"]["script_dir"], "stan_fit_pipe.job"
+            remote_hosts_config["hosts"][self.remote_host]["script_dir"],
+            "stan_fit_pipe.job",
         )
 
         remote = RemoteContext(

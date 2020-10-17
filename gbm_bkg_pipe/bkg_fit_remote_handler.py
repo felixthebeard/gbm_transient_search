@@ -378,7 +378,7 @@ class RunPhysBkgModel(luigi.Task):
         if self.priority > 1:
             nice = 0
         else:
-            nice == 100
+            nice = 100
 
         run_cmd = [
             "sbatch",

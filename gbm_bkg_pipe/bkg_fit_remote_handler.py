@@ -780,9 +780,13 @@ class UpdatePointsourceDB(luigi.Task):
             os.path.dirname(self.output()["local_ps_db_file"].path), "updating.txt"
         )
 
-        local_db_creation = datetime.fromtimestamp(
-            os.path.getmtime(self.output()["local_ps_db_file"].path)
-        )
+        if self.output()["local_ps_db_file"].exists():
+            local_db_creation = datetime.fromtimestamp(
+                os.path.getmtime(self.output()["local_ps_db_file"].path)
+            )
+        else:
+            # Use old dummy date in this case
+            local_db_creation = datetime(year=2000, month=1, day=1)
 
         # the time spent waiting so far
         time_spent = 0  # seconds

@@ -760,19 +760,19 @@ class UpdatePointsourceDB(luigi.Task):
                     data_dir, "background_point_sources", "pointsources_swift.h5"
                 )
             ),
-            remote_ps_db_file=RemoteTarget(
-                os.path.join(
-                    remote_hosts_config["hosts"][self.remote_host]["data_dir"],
-                    "background_point_sources",
-                    "pointsources_swift.h5",
-                ),
-                host=self.remote_host,
-                username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
-            ),
             db_updated=luigi.LocalTarget(
                 os.path.join(base_dir, f"{self.date:%y%m%d}", "ps_db_updated.txt")
             ),
+            # remote_ps_db_file=RemoteTarget(
+            #     os.path.join(
+            #         remote_hosts_config["hosts"][self.remote_host]["data_dir"],
+            #         "background_point_sources",
+            #         "pointsources_swift.h5",
+            #     ),
+            #     host=self.remote_host,
+            #     username=remote_hosts_config["hosts"][self.remote_host]["username"],
+            #     sshpass=True,
+            # ),
         )
 
     def run(self):
@@ -843,29 +843,11 @@ class UpdatePointsourceDB(luigi.Task):
                 # delete the update running file once we are done
                 os.remove(update_running)
 
-        # Now check if the ps db file exists on the remote machine and is up to date
-        # if not copy it over
-        if self.output()["remote_ps_db_file"].exists():
+        # NOTE: This is not necessary as we write the PS to the config file
+        # Now copy the new db file over to the remote machine
+        # self.output()["remote_ps_db_file"].put(
+        #     self.output()["local_ps_db_file"].path
+        # )
 
-            if self.output()["remote_ps_db_file"].exists():
-                remote_db_creation = datetime.fromtimestamp(
-                    os.path.getmtime(self.output()["remote_ps_db_file"].path)
-                )
-            else:
-                # use old dummy date in this case
-                local_db_creation = datetime(year=2000, month=1, day=1)
-
-            if (local_db_creation - remote_db_creation) > timedelta(days=1):
-
-                self.output()["remote_ps_db_file"].put(
-                    self.output()["local_ps_db_file"].path
-                )
-
-        else:
-
-            self.output()["remote_ps_db_file"].put(
-                self.output()["local_ps_db_file"].path
-            )
-
-        self.output()["db_updated"].mkdir()
+        self.output()["db_updated"].makedirs()
         os.system(f"touch {self.output()['db_updated'].path}")

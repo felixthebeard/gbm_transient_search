@@ -150,7 +150,11 @@ class CreateBkgConfig(luigi.Task):
             return 1
 
     def requires(self):
-        return None
+        return {
+            "pointsource_db": UpdatePointsourceDB(
+                date=self.date, remote_host=self.remote_host
+            )
+        }
 
     def output(self):
         job_dir_remote = os.path.join(
@@ -280,9 +284,6 @@ class RunPhysBkgModel(luigi.Task):
                 remote_host=self.remote_host,
             ),
             "poshist_file": DownloadPoshistData(
-                date=self.date, remote_host=self.remote_host
-            ),
-            "pointsource_db": UpdatePointsourceDB(
                 date=self.date, remote_host=self.remote_host
             ),
         }

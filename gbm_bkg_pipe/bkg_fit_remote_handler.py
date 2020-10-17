@@ -786,7 +786,7 @@ class UpdatePointsourceDB(luigi.Task):
                 os.path.getmtime(self.output()["local_ps_db_file"].path)
             )
         else:
-            # Use old dummy date in this case
+            # use old dummy date in this case
             local_db_creation = datetime(year=2000, month=1, day=1)
 
         # the time spent waiting so far
@@ -805,9 +805,10 @@ class UpdatePointsourceDB(luigi.Task):
 
                     if not os.path.exists(update_running):
 
-                        local_db_creation = datetime.fromtimestamp(
-                            os.path.getmtime(self.output()["local_ps_db_file"].path)
-                        )
+                        if self.output()["local_ps_db_file"].exists():
+                            local_db_creation = datetime.fromtimestamp(
+                                os.path.getmtime(self.output()["local_ps_db_file"].path)
+                            )
 
                         if (datetime.now() - local_db_creation) < timedelta(days=1):
 
@@ -823,10 +824,11 @@ class UpdatePointsourceDB(luigi.Task):
 
                             time.sleep(wait_time)
 
-            # Check again the creation time in case we exited from the loop
-            local_db_creation = datetime.fromtimestamp(
-                os.path.getmtime(self.output()["local_ps_db_file"].path)
-            )
+            if self.output()["local_ps_db_file"].exists():
+                # Check again the creation time in case we exited from the loop
+                local_db_creation = datetime.fromtimestamp(
+                    os.path.getmtime(self.output()["local_ps_db_file"].path)
+                )
 
             # If the db file is older then start building it
             if (datetime.now() - local_db_creation) > timedelta(days=1):
@@ -845,9 +847,13 @@ class UpdatePointsourceDB(luigi.Task):
         # if not copy it over
         if self.output()["remote_ps_db_file"].exists():
 
-            remote_db_creation = datetime.fromtimestamp(
-                os.path.getmtime(self.output()["remote_ps_db_file"].path)
-            )
+            if self.output()["remote_ps_db_file"].exists():
+                remote_db_creation = datetime.fromtimestamp(
+                    os.path.getmtime(self.output()["remote_ps_db_file"].path)
+                )
+            else:
+                # use old dummy date in this case
+                local_db_creation = datetime(year=2000, month=1, day=1)
 
             if (local_db_creation - remote_db_creation) > timedelta(days=1):
 

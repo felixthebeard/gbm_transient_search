@@ -428,7 +428,7 @@ class RunPhysBkgModel(luigi.Task):
             if run_fit:
                 job_output = remote.check_output(run_cmd)
 
-                job_id = job_output.decode()
+                job_id = job_output.decode().strip().replace("\n", "")
 
                 with self.output()["job_id"].open("w") as outfile:
                     outfile.write(job_id)
@@ -445,13 +445,13 @@ class RunPhysBkgModel(luigi.Task):
 
             if self.output()["success"].exists():
 
-                break
+                return True
 
             else:
 
                 if time_spent >= max_time:
 
-                    break
+                    return False
 
                 else:
 
@@ -459,11 +459,13 @@ class RunPhysBkgModel(luigi.Task):
 
                     status = status.decode()
 
-                    logging.info(f"The squeue status: {status}")
+                    if (
+                        not str(job_id) in status
+                        and not self.output()["success"].exists()
+                    ):
 
-                    if not str(job_id) in status:
-
-                        break
+                        print(f"The job {job_id} did fail, kill task.")
+                        return False
 
                     for line in status.split("\n"):
 

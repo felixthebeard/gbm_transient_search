@@ -383,8 +383,7 @@ class RunPhysBkgModel(luigi.Task):
         run_cmd = [
             "sbatch",
             "--parsable",
-            "--nice",
-            f"{nice}",
+            f"--nice={nice}",
             "-D",
             f"{os.path.dirname(self.input()['config'].path)}",
             f"{script_path}",

@@ -867,4 +867,5 @@ class UpdatePointsourceDB(luigi.Task):
                 self.output()["local_ps_db_file"].path
             )
 
+        self.output()["db_updated"].mkdir()
         os.system(f"touch {self.output()['db_updated'].path}")

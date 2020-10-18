@@ -41,15 +41,17 @@ class ResultReader(object):
         self._xp_err = None
         self._beta = None
         self._beta_err = None
+        self._kT = None
+        self._kT_err = None
 
         self._phi_sat = None
         self._theta_sat = None
 
-        # read parameter values
-        self._read_fit_result(result_file)
-
         # read trigger_file
         self._read_trigger(trigger_file)
+
+        # read parameter values
+        self._read_fit_result(result_file, model=self._trigger_data["spectral_model"])
 
         # read parameter values
         self._read_post_equal_weights_file(post_equal_weights_file)
@@ -57,7 +59,7 @@ class ResultReader(object):
         # Create a report containing all the results of the pipeline
         self._build_report()
 
-    def _read_fit_result(self, result_file):
+    def _read_fit_result(self, result_file, model="cpl"):
 
         with fits.open(result_file) as f:
             values = f["ANALYSIS_RESULTS"].data["VALUE"]
@@ -91,16 +93,16 @@ class ResultReader(object):
         else:
             self._K_err = np.absolute(self._K_neg_err)
 
-        self._index = values[3]
-        self._index_pos_err = pos_error[3]
-        self._index_neg_err = neg_error[3]
+        if model == "cpl":
+            self._index = values[3]
+            self._index_pos_err = pos_error[3]
+            self._index_neg_err = neg_error[3]
 
-        if np.absolute(self._index_pos_err) > np.absolute(self._index_neg_err):
-            self._index_err = np.absolute(self._index_pos_err)
-        else:
-            self._index_err = np.absolute(self._index_neg_err)
+            if np.absolute(self._index_pos_err) > np.absolute(self._index_neg_err):
+                self._index_err = np.absolute(self._index_pos_err)
+            else:
+                self._index_err = np.absolute(self._index_neg_err)
 
-        try:
             self._xc = values[4]
             self._xc_pos_err = pos_error[4]
             self._xc_neg_err = neg_error[4]
@@ -108,9 +110,30 @@ class ResultReader(object):
                 self._xc_err = np.absolute(self._xc_pos_err)
             else:
                 self._xc_err = np.absolute(self._xc_neg_err)
-            self._model = "cpl"
-        except:
-            self._model = "pl"
+
+        elif model == "pl":
+            self._index = values[3]
+            self._index_pos_err = pos_error[3]
+            self._index_neg_err = neg_error[3]
+
+            if np.absolute(self._index_pos_err) > np.absolute(self._index_neg_err):
+                self._index_err = np.absolute(self._index_pos_err)
+            else:
+                self._index_err = np.absolute(self._index_neg_err)
+
+        elif model == "blackbody":
+            self._kT = values[3]
+            self._kT_pos_err = pos_error[3]
+            self._kT_neg_err = neg_error[3]
+
+            if np.absolute(self._kT_pos_err) > np.absolute(self._kT_neg_err):
+                self._kT_err = np.absolute(self._kT_pos_err)
+            else:
+                self._kT_err = np.absolute(self._kT_neg_err)
+        else:
+            raise Exception("Unknown spectral model")
+
+        self._model = model
 
     def _read_trigger(self, trigger_file):
         with open(trigger_file, "r") as f:
@@ -158,6 +181,8 @@ class ResultReader(object):
                 "spec_xp_err": convert_to_float(self._xp_err),
                 "spec_beta": convert_to_float(self._beta),
                 "spec_beta_err": convert_to_float(self._beta_err),
+                "spec_kT": convert_to_float(self._kT),
+                "spec_kT_err": convert_to_float(self._kT_err),
                 "sat_phi": convert_to_float(self._phi_sat),
                 "sat_theta": convert_to_float(self._theta_sat),
                 "balrog_one_sig_err_circle": convert_to_float(
@@ -179,7 +204,7 @@ class ResultReader(object):
         """
 
         print(f"Result Reader for {self.trigger_name}")
-        return self._report
+        return str(self._report)
 
     @property
     def ra(self):
@@ -222,6 +247,11 @@ class ResultReader(object):
         return self._xc, self._xc_err
 
     @property
+    def kT(self):
+
+        return self._kT, self._kT_err
+
+    @property
     def model(self):
 
         return self._model
@@ -232,6 +262,7 @@ model_param_lookup = {
     "cpl": ["ra (deg)", "dec (deg)", "K", "index", "xc"],
     "sbpl": ["ra (deg)", "dec (deg)", "K", "alpha", "break", "beta"],
     "band": ["ra (deg)", "dec (deg)", "K", "alpha", "xp", "beta"],
+    "blackbody": ["ra (deg)", "dec (deg)", "K", "kT"],
     "solar_flare": [
         "ra (deg)",
         "dec (deg)",

@@ -45,6 +45,7 @@ class LocalizationHandler(object):
             trigger["active_time_start"] = active_time_start
             trigger["active_time_end"] = active_time_end
             trigger["use_dets"] = use_dets
+            trigger["spectral_model"] = "blackbody"
 
             output_file = os.path.join(
                 output_dir, trigger["trigger_name"], "trigger_info.yml"

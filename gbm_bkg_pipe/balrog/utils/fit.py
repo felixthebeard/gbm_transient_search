@@ -90,7 +90,7 @@ class BalrogFit(object):
         self._good_bkg_fit_mask = self._trigger_info["good_bkg_fit_mask"]
 
         self._set_plugins()
-        self._define_model(spectrum="blackbody")
+        self._define_model(spectrum=self._trigger_info.get("spectral_model", "cpl"))
 
     def _set_plugins(self):
         """

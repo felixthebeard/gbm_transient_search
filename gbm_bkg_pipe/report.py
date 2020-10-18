@@ -75,9 +75,9 @@ class CreateReportDate(luigi.Task):
         # if high priority use the priority host
         if self.priority > 1:
 
-            if remote_config["priority_host"] in available_hosts:
+            if remote_hosts_config["priority_host"] in available_hosts:
 
-                run_host = remote_config["priority_host"]
+                run_host = remote_hosts_config["priority_host"]
 
         required_tasks = {
             "loc_triggers": LocalizeTriggers(

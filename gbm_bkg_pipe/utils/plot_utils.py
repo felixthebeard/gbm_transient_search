@@ -141,9 +141,10 @@ def create_corner_all_plot(post_equal_weights_file, model, save_path):
 
 
 def mollweide_plot(
-    grb_name,
-    trigdat_file,
+    trigger_name,
+    poshist_file,
     post_equal_weights_file,
+    trigger_time,
     used_dets,
     model,
     ra,
@@ -153,10 +154,15 @@ def mollweide_plot(
 ):
     # get earth pointing in icrs and the pointing of dets in icrs
 
-    with fits.open(trigdat_file) as f:
-        quat = f["TRIGRATE"].data["SCATTITD"][0]
-        sc_pos = f["TRIGRATE"].data["EIC"][0]
-        times = f["TRIGRATE"].data["TIME"][0]
+    with fits.open(poshist_file) as f:
+        times = f["TRIGRATE"].data["TIME"]
+
+        # Check which time bin in the poshist file is the closes to the trigger time
+        idx = (np.abs(times - trigger_time)).argmin()
+
+        quat = f["TRIGRATE"].data["SCATTITD"][idx]
+        sc_pos = f["TRIGRATE"].data["EIC"][idx]
+        times = times[idx]
 
     # get a det object and calculate with this the position of the earth, the moon and the sun seen from the satellite
     # in the icrs system
@@ -231,7 +237,7 @@ def mollweide_plot(
         ra_center, dec_center, label="Balrog Position", s=40, color="green", marker="*"
     )
     ax.annotate(
-        f"Balrog Position {grb_name}",
+        f"Balrog Position {trigger_name}",
         xy=(ra_center, dec_center),  # theta, radius
         xytext=(0.55, 0.15),  # fraction, fraction
         textcoords="figure fraction",
@@ -318,7 +324,7 @@ def mollweide_plot(
         )
 
     # set title, legend and grid
-    plt.title(f"{grb_name} Position (J2000)", y=1.08)
+    plt.title(f"{trigger_name} Position (J2000)", y=1.08)
     ax.grid()
     # Shrink current axis by 20%
     box = ax.get_position()
@@ -331,7 +337,9 @@ def mollweide_plot(
     fig.savefig(save_path, bbox_inches="tight", dpi=1000)
 
 
-def azimuthal_plot_sat_frame(grb_name, trigdat_file, ra, dec, save_path):
+def azimuthal_plot_sat_frame(
+    trigger_name, poshist_file, trigger_time, ra, dec, save_path
+):
     """
     plot azimuth plot in sat frame to check if burst comes from the solar panel sides
     :return:
@@ -341,10 +349,15 @@ def azimuthal_plot_sat_frame(grb_name, trigdat_file, ra, dec, save_path):
     if ra_center > np.pi:
         ra_center = ra_center - 2 * np.pi
 
-    with fits.open(trigdat_file) as f:
-        quat = f["TRIGRATE"].data["SCATTITD"][0]
-        sc_pos = f["TRIGRATE"].data["EIC"][0]
-        times = f["TRIGRATE"].data["TIME"][0]
+    with fits.open(poshist_file) as f:
+        times = f["TRIGRATE"].data["TIME"]
+
+        # Check which time bin in the poshist file is the closes to the trigger time
+        idx = (np.abs(times - trigger_time)).argmin()
+
+        quat = f["TRIGRATE"].data["SCATTITD"][idx]
+        sc_pos = f["TRIGRATE"].data["EIC"][idx]
+        times = times[idx]
 
     cone_opening = 45.0  # cone opening for solar panel side in deg
     loc_icrs = SkyCoord(
@@ -430,8 +443,8 @@ def azimuthal_plot_sat_frame(grb_name, trigdat_file, ra, dec, save_path):
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # Put a legend to the right of the current axis
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.8))
-    ax.quiverkey(q, X=1.3, Y=0.5, U=0.4, label=f"{grb_name}", labelpos="N")
-    ax.set_title(f"{grb_name} direction in the sat. frame", y=1.08)
+    ax.quiverkey(q, X=1.3, Y=0.5, U=0.4, label=f"{trigger_name}", labelpos="N")
+    ax.set_title(f"{trigger_name} direction in the sat. frame", y=1.08)
 
     file_utils.if_dir_containing_file_not_existing_then_make(save_path)
 
@@ -439,7 +452,7 @@ def azimuthal_plot_sat_frame(grb_name, trigdat_file, ra, dec, save_path):
 
 
 def swift_gbm_plot(
-    grb_name, ra, dec, model, post_equal_weights_file, save_path, swift=None
+    trigger_name, ra, dec, model, post_equal_weights_file, save_path, swift=None
 ):
     """
     If swift postion known make a small area plot with grb position, error contours and Swift position (in deg)
@@ -537,7 +550,7 @@ def swift_gbm_plot(
         # plot error contours
         ax.set_xlabel("RA (deg)")
         ax.set_ylabel("DEC (deg)")
-        plt.title(f"{grb_name} Position (J2000)", y=1.08)
+        plt.title(f"{trigger_name} Position (J2000)", y=1.08)
         # Shrink current axis by 20%
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -551,7 +564,7 @@ def swift_gbm_plot(
 
 
 def interactive_3D_plot(
-    post_equal_weights_file, trigdat_file, used_dets, model, save_path
+    post_equal_weights_file, poshist_file, trigger_time, used_dets, model, save_path
 ):
     # Plot 10 degree grid
     trace_grid = []
@@ -797,10 +810,15 @@ def interactive_3D_plot(
                 )
             )
 
-    with fits.open(trigdat_file) as f:
-        quat = f["TRIGRATE"].data["SCATTITD"][0]
-        sc_pos = f["TRIGRATE"].data["EIC"][0]
-        times = f["TRIGRATE"].data["TIME"][0]
+    with fits.open(poshist_file) as f:
+        times = f["TRIGRATE"].data["TIME"]
+
+        # Check which time bin in the poshist file is the closes to the trigger time
+        idx = (np.abs(times - trigger_time)).argmin()
+
+        quat = f["TRIGRATE"].data["SCATTITD"][idx]
+        sc_pos = f["TRIGRATE"].data["EIC"][idx]
+        times = times[idx]
 
     # Plot Earth Shadow
     det = gbm_detector_list["n0"](

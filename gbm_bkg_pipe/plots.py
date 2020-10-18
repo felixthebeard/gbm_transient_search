@@ -4,6 +4,7 @@ import luigi
 import yaml
 from datetime import datetime
 
+from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadPoshistData
 from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.env import get_env_value
@@ -79,20 +80,18 @@ class CreateAllPlots(luigi.WrapperTask):
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
             ),
-            # "satellite": CreateSatellitePlot(
-            #     grb_name=self.grb_name,
-            #     report_type=self.report_type,
-            #     version=self.version,
-            #     phys_bkg=self.phys_bkg
-            # remote_host=self.remote_host
-            # ),
-            # "molllocation": CreateMollLocationPlot(
-            #     grb_name=self.grb_name,
-            #     report_type=self.report_type,
-            #     version=self.version,
-            #     phys_bkg=self.phys_bkg
-            # remote_host=self.remote_host
-            # ),
+            "satellite": CreateSatellitePlot(
+                date=self.date,
+                data_type=self.data_type,
+                trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
+            ),
+            "molllocation": CreateMollLocationPlot(
+                date=self.date,
+                data_type=self.data_type,
+                trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
+            ),
             "spectrum": CreateSpectrumPlot(
                 date=self.date,
                 data_type=self.data_type,
@@ -220,6 +219,7 @@ class CreateMollLocationPlot(luigi.Task):
             post_equal_weights_file=self.input()["fit_result"][
                 "post_equal_weights"
             ].path,
+            trigger_time=result["trigger"]["trigger_time"],
             used_dets=result["time_selection"]["used_detectors"],
             model=result["fit_result"]["model"],
             ra=result["fit_result"]["ra"],
@@ -236,11 +236,16 @@ class CreateSatellitePlot(luigi.Task):
     remote_host = luigi.Parameter()
 
     def requires(self):
-        return ProcessLocalizationResult(
-            date=self.date,
-            data_type=self.data_type,
-            trigger_name=self.trigger_name,
-            remote_host=self.remote_host,
+        return dict(
+            fit_result=ProcessLocalizationResult(
+                date=self.date,
+                data_type=self.data_type,
+                trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
+            ),
+            poshist_file=DownloadPoshistData(
+                date=self.date, remote_host=self.remote_host
+            ),
         )
 
     def output(self):
@@ -260,27 +265,10 @@ class CreateSatellitePlot(luigi.Task):
         with self.input()["fit_result"]["result_file"].open() as f:
             result = yaml.safe_load(f)
 
-        if self.report_type.lower() == "tte":
-            with self.input()["trigdat_version"].open() as f:
-                trigdat_version = yaml.safe_load(f)["trigdat_version"]
-
-            trigdat_file = DownloadTrigdat(
-                grb_name=self.grb_name, version=trigdat_version
-            ).output()
-
-        elif self.report_type.lower() == "trigdat":
-            trigdat_file = DownloadTrigdat(
-                grb_name=self.grb_name, version=self.version
-            ).output()
-
-        else:
-            raise UnkownReportType(
-                f"The report_type '{self.report_type}' is not valid!"
-            )
-
         azimuthal_plot_sat_frame(
-            grb_name=self.grb_name,
-            trigdat_file=trigdat_file.path,
+            trigger_name=self.trigger_name,
+            poshist_file=self.input()["poshist_file"].path,
+            trigger_time=result["trigger"]["trigger_time"],
             ra=result["fit_result"]["ra"],
             dec=result["fit_result"]["dec"],
             save_path=self.output().path,
@@ -326,11 +314,16 @@ class Create3DLocationPlot(luigi.Task):
     remote_host = luigi.Parameter()
 
     def requires(self):
-        return ProcessLocalizationResult(
-            date=self.date,
-            data_type=self.data_type,
-            trigger_name=self.trigger_name,
-            remote_host=self.remote_host,
+        return dict(
+            fit_result=ProcessLocalizationResult(
+                date=self.date,
+                data_type=self.data_type,
+                trigger_name=self.trigger_name,
+                remote_host=self.remote_host,
+            ),
+            poshist_file=DownloadPoshistData(
+                date=self.date, remote_host=self.remote_host
+            ),
         )
 
     def output(self):
@@ -350,29 +343,12 @@ class Create3DLocationPlot(luigi.Task):
         with self.input()["fit_result"]["result_file"].open() as f:
             result = yaml.safe_load(f)
 
-        if self.report_type.lower() == "tte":
-            with self.input()["trigdat_version"].open() as f:
-                trigdat_version = yaml.safe_load(f)["trigdat_version"]
-
-            trigdat_file = DownloadTrigdat(
-                grb_name=self.grb_name, version=trigdat_version
-            ).output()
-
-        elif self.report_type.lower() == "trigdat":
-            trigdat_file = DownloadTrigdat(
-                grb_name=self.grb_name, version=self.version
-            ).output()
-
-        else:
-            raise UnkownReportType(
-                f"The report_type '{self.report_type}' is not valid!"
-            )
-
         interactive_3D_plot(
-            trigdat_file=trigdat_file.path,
+            poshist_file=self.input()["poshist_file"].path,
             post_equal_weights_file=self.input()["fit_result"][
                 "post_equal_weights"
             ].path,
+            trigger_time=result["trigger"]["trigger_time"],
             used_dets=result["time_selection"]["used_detectors"],
             model=result["fit_result"]["model"],
             save_path=self.output().path,

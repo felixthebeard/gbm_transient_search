@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import subprocess
+from datetime import date
 
 from gbm_bkg_pipe.handler import form_cmd_string
 from gbm_bkg_pipe import gbm_bkg_pipe_config
@@ -8,11 +9,16 @@ from gbm_bkg_pipe import gbm_bkg_pipe_config
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("-date", type=str, help="Date string", required=True)
+parser.add_argument("-date", "--date", type=str, help="Date string")
 
 args = parser.parse_args()
 
-cmd = form_cmd_string(args.date)
+date = date.today().strftime("%y%m%d")
+
+if args.date is not None:
+    date = args.date
+
+cmd = form_cmd_string(date)
 
 # launch luigi
 subprocess.Popen(cmd)

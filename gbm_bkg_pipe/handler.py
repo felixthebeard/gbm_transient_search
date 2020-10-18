@@ -18,7 +18,7 @@ def form_cmd_string(date):
 
     base_cmd = "luigi --module gbm_bkg_pipe "
 
-    cmd = f"{base_cmd} GBMBackgroundModelFit --date {date} --data-type ctime "
+    cmd = f"{base_cmd} CreateReportDate --date {date} --data-type ctime "
 
     cmd += f"--workers {n_workers} --scheduler-host localhost"
 

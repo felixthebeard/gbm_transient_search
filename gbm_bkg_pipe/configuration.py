@@ -11,7 +11,7 @@ run_echans = [["0", "1", "2"], ["3", "4", "5"]]
 
 structure = {}
 
-structure["luigi"] = dict(n_workers=4)
+structure["luigi"] = dict(n_workers=32)
 structure["phys_bkg"] = dict(
     stan=dict(n_cores=16),
     multinest=dict(n_cores=4, path_to_python="python"),

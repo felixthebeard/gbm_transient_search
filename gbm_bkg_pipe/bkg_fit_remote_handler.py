@@ -636,28 +636,28 @@ class DownloadData(luigi.Task):
         datafile_name = (
             f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
         )
-
-        return RemoteTarget(
-            os.path.join(
-                remote_hosts_config["hosts"][self.remote_host]["data_dir"],
-                self.data_type,
-                f"{self.date:%y%m%d}",
-                datafile_name,
+        return dict(
+            local_file=luigi.LocalTarget(
+                os.path.join(
+                    data_dir, self.data_type, f"{self.date:%y%m%d}", datafile_name
+                )
             ),
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            remote_file=RemoteTarget(
+                os.path.join(
+                    remote_hosts_config["hosts"][self.remote_host]["data_dir"],
+                    self.data_type,
+                    f"{self.date:%y%m%d}",
+                    datafile_name,
+                ),
+                host=self.remote_host,
+                username=remote_hosts_config["hosts"][self.remote_host]["username"],
+                sshpass=True,
+            ),
         )
 
     def run(self):
-        local_path = os.path.join(
-            get_path_of_external_data_dir(),
-            self.data_type,
-            f"{self.date:%y%m%d}",
-            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha",
-        )
 
-        if not os.path.exists(local_path):
+        if not self.output()["local_file"].exists():
 
             dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",
@@ -673,7 +673,7 @@ class DownloadData(luigi.Task):
 
         if file_readable:
 
-            self.output().put(local_path)
+            self.output()["remote_file"].put(self.output()["local_file"].path)
 
 
 class DownloadPoshistData(luigi.Task):
@@ -697,15 +697,20 @@ class DownloadPoshistData(luigi.Task):
     def output(self):
         datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
 
-        return RemoteTarget(
-            os.path.join(
-                remote_hosts_config["hosts"][self.remote_host]["data_dir"],
-                "poshist",
-                datafile_name,
+        return dict(
+            local_file=luigi.LocalTarget(
+                os.path.join(data_dir, "poshist", datafile_name)
             ),
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            remote_file=RemoteTarget(
+                os.path.join(
+                    remote_hosts_config["hosts"][self.remote_host]["data_dir"],
+                    "poshist",
+                    datafile_name,
+                ),
+                host=self.remote_host,
+                username=remote_hosts_config["hosts"][self.remote_host]["username"],
+                sshpass=True,
+            ),
         )
 
     def run(self):
@@ -715,7 +720,7 @@ class DownloadPoshistData(luigi.Task):
             f"glg_poshist_all_{self.date:%y%m%d}_v00.fit",
         )
 
-        if not os.path.exists(local_path):
+        if not self.output()["local_file"].exists():
 
             dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",
@@ -731,7 +736,7 @@ class DownloadPoshistData(luigi.Task):
 
         if file_readable:
 
-            self.output().put(local_path)
+            self.output()["remote_file"].put(self.output()["local_file"].path)
 
 
 class UpdatePointsourceDB(luigi.Task):

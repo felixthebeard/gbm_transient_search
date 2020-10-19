@@ -215,12 +215,12 @@ class CreateMollLocationPlot(luigi.Task):
 
         mollweide_plot(
             trigger_name=self.trigger_name,
-            poshist_file=self.input()["poshist_file"].path,
+            poshist_file=self.input()["poshist_file"]["local_file"].path,
             post_equal_weights_file=self.input()["fit_result"][
                 "post_equal_weights"
             ].path,
             trigger_time=result["trigger"]["trigger_time"],
-            used_dets=result["time_selection"]["used_detectors"],
+            used_dets=result["trigger"]["use_dets"],
             model=result["fit_result"]["model"],
             ra=result["fit_result"]["ra"],
             dec=result["fit_result"]["dec"],
@@ -267,7 +267,7 @@ class CreateSatellitePlot(luigi.Task):
 
         azimuthal_plot_sat_frame(
             trigger_name=self.trigger_name,
-            poshist_file=self.input()["poshist_file"].path,
+            poshist_file=self.input()["poshist_file"]["local_file"].path,
             trigger_time=result["trigger"]["trigger_time"],
             ra=result["fit_result"]["ra"],
             dec=result["fit_result"]["dec"],
@@ -344,7 +344,7 @@ class Create3DLocationPlot(luigi.Task):
             result = yaml.safe_load(f)
 
         interactive_3D_plot(
-            poshist_file=self.input()["poshist_file"].path,
+            poshist_file=self.input()["poshist_file"]["local_file"].path,
             post_equal_weights_file=self.input()["fit_result"][
                 "post_equal_weights"
             ].path,

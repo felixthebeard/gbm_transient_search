@@ -163,7 +163,7 @@ def mollweide_plot(
 
     # get a det object and calculate with this the position of the earth, the moon and the sun seen from the satellite
     # in the icrs system
-    det_1 = gbm_detector_list[_gbm_detectors[used_dets[-1]]](
+    det_1 = gbm_detector_list[used_dets[-1]](
         quaternion=quat, sc_pos=sc_pos, time=astro_time.Time(utc(times))
     )
     earth_pos = det_1.earth_position_icrs
@@ -171,11 +171,10 @@ def mollweide_plot(
     moon_pos = det_1.moon_position_icrs
     # get pointing of all used dets
     det_pointing = {}
-    for det_number in used_dets:
-        det = gbm_detector_list[_gbm_detectors[det_number]](
-            quaternion=quat, sc_pos=sc_pos
-        )
-        det_pointing[_gbm_detectors[det_number]] = det.det_ra_dec_icrs
+    for det_name in used_dets:
+
+        det = gbm_detector_list[det_name](quaternion=quat, sc_pos=sc_pos)
+        det_pointing[det_name] = det.det_ra_dec_icrs
 
     # set a figure with a hammer projection
     fig = plt.figure()

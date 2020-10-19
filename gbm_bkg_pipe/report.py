@@ -67,6 +67,9 @@ class CreateReportDate(luigi.Task):
 
                 logging.exception(f"Check remote capacity resulted in: {e}")
 
+        if len(available_hosts) == 0:
+            raise Exception("No remote host available to run the heavy tasks")
+
         # use the host that has the most free capacity
         run_host = sorted(
             available_hosts, key=lambda k: k["free_capacity"], reverse=True

@@ -13,7 +13,7 @@ parser.add_argument("-date", "--date", type=str, help="Date string")
 
 args = parser.parse_args()
 
-date = date.today().strftime("%y%m%d")
+date = date.today().strftime("%Y-%m-%d")
 
 if args.date is not None:
     date = args.date

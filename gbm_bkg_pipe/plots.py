@@ -224,7 +224,7 @@ class CreateMollLocationPlot(luigi.Task):
             model=result["fit_result"]["model"],
             ra=result["fit_result"]["ra"],
             dec=result["fit_result"]["dec"],
-            swift=result["general"]["swift"],
+            swift=None,
             save_path=self.output().path,
         )
 

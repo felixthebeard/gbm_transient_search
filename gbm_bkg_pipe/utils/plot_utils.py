@@ -14,6 +14,7 @@ from gbm_drm_gen.io.balrog_healpix_map import BALROGHealpixMap
 from gbmgeometry import gbm_detector_list
 from gbmgeometry.gbm_frame import GBMFrame
 from gbmgeometry.utils.gbm_time import GBMTime
+from gbmgeometry import PositionInterpolator
 
 import gbm_bkg_pipe.utils.file_utils as file_utils
 from gbm_bkg_pipe.utils.env import get_env_value
@@ -85,7 +86,8 @@ def create_corner_loc_plot(post_equal_weights_file, model, save_path):
     # get list with all ra values that have a value of less than 0.99 asigned
     prob_list = []
     for val_array in val_contour.T:
-        found = False
+        found = Fals
+
         for val in val_array:
             if val < 0.99:
                 found = True
@@ -153,16 +155,11 @@ def mollweide_plot(
     swift=None,
 ):
     # get earth pointing in icrs and the pointing of dets in icrs
+    position_interpolator = PositionInterpolator.from_poshist(poshist_file=poshist_file)
 
-    with fits.open(poshist_file) as f:
-        times = f["TRIGRATE"].data["TIME"]
-
-        # Check which time bin in the poshist file is the closes to the trigger time
-        idx = (np.abs(times - trigger_time)).argmin()
-
-        quat = f["TRIGRATE"].data["SCATTITD"][idx]
-        sc_pos = f["TRIGRATE"].data["EIC"][idx]
-        times = times[idx]
+    times = trigger_time
+    quat = position_interpolator.quaternion(trigger_time)
+    sc_pos = position_interpolator.sc_pos(trigger_time)
 
     # get a det object and calculate with this the position of the earth, the moon and the sun seen from the satellite
     # in the icrs system
@@ -349,15 +346,11 @@ def azimuthal_plot_sat_frame(
     if ra_center > np.pi:
         ra_center = ra_center - 2 * np.pi
 
-    with fits.open(poshist_file) as f:
-        times = f["TRIGRATE"].data["TIME"]
+    position_interpolator = PositionInterpolator.from_poshist(poshist_file=poshist_file)
 
-        # Check which time bin in the poshist file is the closes to the trigger time
-        idx = (np.abs(times - trigger_time)).argmin()
-
-        quat = f["TRIGRATE"].data["SCATTITD"][idx]
-        sc_pos = f["TRIGRATE"].data["EIC"][idx]
-        times = times[idx]
+    times = trigger_time
+    quat = position_interpolator.quaternion(trigger_time)
+    sc_pos = position_interpolator.sc_pos(trigger_time)
 
     cone_opening = 45.0  # cone opening for solar panel side in deg
     loc_icrs = SkyCoord(
@@ -810,15 +803,11 @@ def interactive_3D_plot(
                 )
             )
 
-    with fits.open(poshist_file) as f:
-        times = f["TRIGRATE"].data["TIME"]
+    position_interpolator = PositionInterpolator.from_poshist(poshist_file=poshist_file)
 
-        # Check which time bin in the poshist file is the closes to the trigger time
-        idx = (np.abs(times - trigger_time)).argmin()
-
-        quat = f["TRIGRATE"].data["SCATTITD"][idx]
-        sc_pos = f["TRIGRATE"].data["EIC"][idx]
-        times = times[idx]
+    times = trigger_time
+    quat = position_interpolator.quaternion(trigger_time)
+    sc_pos = position_interpolator.sc_pos(trigger_time)
 
     # Plot Earth Shadow
     det = gbm_detector_list["n0"](

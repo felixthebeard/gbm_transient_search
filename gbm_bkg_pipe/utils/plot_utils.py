@@ -86,7 +86,7 @@ def create_corner_loc_plot(post_equal_weights_file, model, save_path):
     # get list with all ra values that have a value of less than 0.99 asigned
     prob_list = []
     for val_array in val_contour.T:
-        found = Fals
+        found = False
 
         for val in val_array:
             if val < 0.99:

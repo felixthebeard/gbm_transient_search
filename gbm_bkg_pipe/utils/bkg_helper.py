@@ -2,6 +2,7 @@ import os
 import re
 import yaml
 import h5py
+import numpy as np
 from datetime import timedelta
 
 from gbmbkgpy.utils.select_pointsources import SelectPointsources
@@ -120,7 +121,7 @@ class BkgConfigWriter(object):
 
         fit_method = "stan"
 
-        for delta_days in range(1, 5):
+        for delta_days in range(0, 5):
 
             day_before = self._date - timedelta(days=delta_days)
 

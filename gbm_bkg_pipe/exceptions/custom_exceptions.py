@@ -1,4 +1,4 @@
-class GRBNotFound(RuntimeError):
+class TransientNotFound(RuntimeError):
     pass
 
 

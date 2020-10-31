@@ -436,6 +436,33 @@ class TriggerPlot(object):
 
                 ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
 
+                ymin = np.percentile(
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 0, axis=0
+                )
+                ymax = np.percentile(
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 99.9, axis=0
+                )
+                ymin_bkg = np.percentile(
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    0,
+                    axis=0,
+                )
+                ymax_bkg = np.percentile(
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    99.9,
+                    axis=0,
+                )
+
+                ymin = min(ymin, ymin_bkg)
+                ymax = max(ymax, ymax_bkg)
+
+                ymin *= 0.9
+                ymax *= 1.1
+
+                ax[i].set_ylim(ymin, ymax)
+
+                ax[i].margins(x=0)
+
         ax[0].legend()
 
         if self._show_counts_cleaned:
@@ -660,6 +687,31 @@ class TriggerPlot(object):
 
                     ax[i, 0].set_ylabel(f"Counts e{e}", fontsize=fontsize)
 
+                    ymin = np.percentile(
+                        self._counts[:, d, e][self._saa_mask][time_mask], 0, axis=0
+                    )
+                    ymax = np.percentile(
+                        self._counts[:, d, e][self._saa_mask][time_mask], 99.9, axis=0
+                    )
+                    ymin_bkg = np.percentile(
+                        self._bkg_counts[:, d, e][self._saa_mask][time_mask], 0, axis=0
+                    )
+                    ymax_bkg = np.percentile(
+                        self._bkg_counts[:, d, e][self._saa_mask][time_mask],
+                        99.9,
+                        axis=0,
+                    )
+
+                    ymin = min(ymin, ymin_bkg)
+                    ymax = max(ymax, ymax_bkg)
+
+                    ymin *= 0.9
+                    ymax *= 1.1
+
+                    ax[i, d].set_ylim(ymin, ymax)
+
+                    ax[i, d].margins(x=0)
+
             if self._show_counts_cleaned:
                 i += 1
                 ax[i, d].plot(
@@ -755,8 +807,8 @@ class TriggerPlot(object):
             fig, ax = plt.subplots(len(self._echans), 1, sharex=True, figsize=[6.4, 10])
 
             time_mask = np.logical_and(
-                self._time[self._saa_mask] > trigger["interval"]["start"] - 500,
-                self._time[self._saa_mask] < trigger["interval"]["stop"] + 500,
+                self._time[self._saa_mask] > trigger["interval"]["start"] - 800,
+                self._time[self._saa_mask] < trigger["interval"]["stop"] + 800,
             )
 
             i = -1
@@ -790,6 +842,13 @@ class TriggerPlot(object):
                 )
 
                 ax[i].axvspan(
+                    trigger["interval"]["start"] - trigger["trigger_time"],
+                    trigger["interval"]["stop"] - trigger["trigger_time"],
+                    alpha=0.1,
+                    color="blue",
+                )
+
+                ax[i].axvspan(
                     -10,
                     10,
                     alpha=0.4,
@@ -799,16 +858,43 @@ class TriggerPlot(object):
 
                 ax[i].axvline(
                     x=0,
-                    ymin=-1.2,
+                    ymin=0,
                     ymax=1,
-                    c="green",
+                    c="blue",
                     linewidth=1,
                     zorder=0,
                     clip_on=False,
-                    label="Peak counts",
+                    label="T0",
                 )
 
                 ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+
+                ymin = np.percentile(
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 0, axis=0
+                )
+                ymax = np.percentile(
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 99.9, axis=0
+                )
+                ymin_bkg = np.percentile(
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    0,
+                    axis=0,
+                )
+                ymax_bkg = np.percentile(
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    99.9,
+                    axis=0,
+                )
+
+                ymin = min(ymin, ymin_bkg)
+                ymax = max(ymax, ymax_bkg)
+
+                ymin *= 0.9
+                ymax *= 1.1
+
+                ax[i].set_ylim(ymin, ymax)
+
+                ax[i].margins(x=0)
 
             ax[0].legend()
 

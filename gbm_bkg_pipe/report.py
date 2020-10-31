@@ -7,7 +7,7 @@ from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
 from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
-from gbm_bkg_pipe.upload import UploadTriggers
+from gbm_bkg_pipe.upload import UploadTriggers, UploadBkgResultPlots
 from gbm_bkg_pipe.plots import PlotTriggers
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 import logging
@@ -84,6 +84,9 @@ class CreateReportDate(luigi.Task):
                 run_host = remote_hosts_config["priority_host"]
 
         required_tasks = {
+            "upload_bkg_plots": UploadBkgResultPlots(
+                date=self.date, data_type=self.data_type, remote_host=run_host
+            ),
             "upload_triggers": UploadTriggers(
                 date=self.date, data_type=self.data_type, remote_host=run_host
             ),

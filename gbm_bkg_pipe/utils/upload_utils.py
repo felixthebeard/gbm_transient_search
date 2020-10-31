@@ -59,7 +59,7 @@ def create_report_from_result(result):
             {
                 "version": web_version,
                 "model_type": model_lookup[result["fit_result"]["model"]],
-                "trigger_number": result["trigger"]["trigger_number"],
+                "trigger_number": None,
                 "trigger_timestamp": result["trigger"]["trigger_timestamp"],
                 "data_timestamp": result["trigger"]["data_timestamp"],
                 "localization_timestamp": result["trigger"]["localization_timestamp"],

@@ -173,7 +173,7 @@ class Search(object):
         self._rebinned_time_bin_width = np.diff(self._rebinned_time_bins, axis=1)[:, 0]
         self._rebinned_mean_time = np.mean(self._rebinned_time_bins, axis=1)
 
-    def _mask_bad_bkg_fits(self, max_sig=70):
+    def _mask_bad_bkg_fits(self, max_sig=150, max_neg_sig=-100):
         """
         Mask energy channels that have a very high significance for the
         interval covering the whole day.
@@ -195,7 +195,7 @@ class Search(object):
                     self._bkg_stat_err[:, det_idx, e],
                 )
 
-                if sig <= max_sig:
+                if sig <= max_sig & sig >= max_neg_sig:
 
                     good_bkg_fit_mask[det_idx, e] = True
 

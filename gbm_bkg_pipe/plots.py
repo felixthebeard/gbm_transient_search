@@ -155,7 +155,6 @@ class CreateAllLightcurves(luigi.Task):
             trigger_yaml=self.input()["trigger_search"].path,
             data_path=os.path.join(
                 base_dir,
-                "bkg_pipe",
                 f"{self.date:%y%m%d}",
                 self.data_type,
                 "trigger",

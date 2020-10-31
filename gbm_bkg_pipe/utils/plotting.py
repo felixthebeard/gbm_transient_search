@@ -469,7 +469,7 @@ class TriggerPlot(object):
                 np.sum(
                     self._counts_cleaned[:, det_idx, :][
                         :, self._good_bkg_fit_mask[det_idx, :]
-                    ][time_mask],
+                    ][self._saa_mask][time_mask],
                     axis=1,
                 ),
             )
@@ -691,7 +691,7 @@ class TriggerPlot(object):
                     np.sum(
                         self._counts_cleaned[:, det_idx, :][
                             :, self._good_bkg_fit_mask[det_idx, :]
-                        ][time_mask],
+                        ][self._saa_mask][time_mask],
                         axis=1,
                     ),
                 )

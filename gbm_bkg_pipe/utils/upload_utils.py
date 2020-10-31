@@ -501,7 +501,7 @@ def upload_date_plot(
         "echan": echan,
     }
 
-    url = f"{base_url}/api/transients/date/{date}/plot/"
+    url = f"{base_url}/api/transients/date/{date:%y%m%d}/plot/"
 
     # set a flag to kill the job
     flag = True

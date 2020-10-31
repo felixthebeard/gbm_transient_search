@@ -664,7 +664,7 @@ class TriggerPlot(object):
                 i += 1
                 ax[i, d].plot(
                     self._time[self._saa_mask][time_mask],
-                    self._counts_cleaned[:, det_idx, :][time_mask],
+                    self._counts_cleaned[:, det_idx, :][self._saa_mask][time_mask],
                 )
 
                 ax[i, d].axvspan(

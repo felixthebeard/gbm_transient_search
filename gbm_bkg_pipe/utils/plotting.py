@@ -162,7 +162,7 @@ class TriggerPlot(object):
 
         self.create_day_overview_cleaned(outdir)
 
-    def create_trigger_plots(self, trigger_name, outdir=None):
+    def create_trigger_plots(self, trigger_name, outdir):
 
         trigger = self._triggers[trigger_name]
 
@@ -813,7 +813,7 @@ class TriggerPlot(object):
             ax[0].legend()
 
             ax[0].set_title(
-                f"Trigger {trigger['trigger_name']} | T0={trigger['trigger_time']} ({trigger['trigger_time_utc']}) | Det {det}"
+                f"Trigger {trigger['trigger_name']} | Det {det} \n T0={trigger['trigger_time']} ({trigger['trigger_time_utc']})"
             )
 
             # Now remove the space between the two subplots

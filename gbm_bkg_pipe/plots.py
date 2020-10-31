@@ -130,16 +130,6 @@ class CreateAllLightcurves(luigi.Task):
             trigger_search=TriggerSearch(
                 date=self.date, data_type=self.data_type, remote_host=self.remote_host
             ),
-            plot_data=luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    "bkg_pipe",
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    "trigger",
-                    "plot_data.hdf5",
-                )
-            ),
         )
 
     def output(self):
@@ -163,7 +153,14 @@ class CreateAllLightcurves(luigi.Task):
     def run(self):
         plotter = TriggerPlot.from_hdf5(
             trigger_yaml=self.input()["trigger_search"].path,
-            data_path=self.input()["plot_data"].path,
+            data_path=os.path.join(
+                base_dir,
+                "bkg_pipe",
+                f"{self.date:%y%m%d}",
+                self.data_type,
+                "trigger",
+                "plot_data.hdf5",
+            ),
         )
 
         plotter.create_trigger_plots(

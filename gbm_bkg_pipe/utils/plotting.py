@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-from matplotlib import pyplot as plt
-import numpy as np
-from matplotlib.ticker import MaxNLocator
 import os
-from matplotlib import cm
+
 import h5py
+import numpy as np
+import yaml
 from gbmgeometry import GBMTime
+from matplotlib import cm
+from matplotlib import pyplot as plt
 
 valid_det_names = [
     "n0",
@@ -73,11 +74,13 @@ class TriggerPlot(object):
             self._nr_subplots += 1
 
     @classmethod
-    def from_hdf5(cls, file_path):
+    def from_hdf5(cls, trigger_yaml, data_path):
 
-        with h5py.File(file_path, "r") as f:
+        with open(trigger_yaml, "r") as f:
 
-            triggers = f.attrs["triggers"]
+            triggers = yaml.safe_load(f)["triggers"]
+
+        with h5py.File(data_path, "r") as f:
 
             echans = f.attrs["echans"]
 
@@ -114,8 +117,6 @@ class TriggerPlot(object):
         output_path = os.path.join(outdir, "trigger", "plot_data.hdf5")
 
         with h5py.File(output_path, "w") as f:
-
-            f.attrs["triggers"] = self._triggers
             f.attrs["echans"] = self._triggers
             f.attrs["detectors"] = self._triggers
 

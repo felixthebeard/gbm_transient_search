@@ -126,6 +126,9 @@ class CreateAllLightcurves(luigi.Task):
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
             ),
+            trigger_search=TriggerSearch(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
             plot_data=luigi.LocalTarget(
                 os.path.join(
                     base_dir,
@@ -157,7 +160,10 @@ class CreateAllLightcurves(luigi.Task):
         return lightcurves
 
     def run(self):
-        plotter = TriggerPlot.from_hdf5(self.input()["plot_data"].path)
+        plotter = TriggerPlot.from_hdf5(
+            trigger_yaml=self.input()["trigger_search"].path,
+            data_path=self.input()["plot_data"].path,
+        )
 
         plotter.create_trigger_plots(
             trigger_name=self.trigger_name,

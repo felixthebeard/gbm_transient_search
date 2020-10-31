@@ -418,7 +418,7 @@ class Create3DLocationPlot(luigi.Task):
                 "post_equal_weights"
             ].path,
             trigger_time=result["trigger"]["trigger_time"],
-            used_dets=result["time_selection"]["used_detectors"],
+            used_dets=result["trigger"]["use_dets"],
             model=result["fit_result"]["model"],
             save_path=self.output().path,
         )

@@ -166,7 +166,6 @@ class CreateAllLightcurves(luigi.Task):
             trigger_name=self.trigger_name,
             outdir=os.path.join(
                 base_dir,
-                "bkg_pipe",
                 f"{self.date:%y%m%d}",
                 self.data_type,
             ),

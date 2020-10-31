@@ -744,6 +744,7 @@ class Search(object):
             triggers=self._trigger_information["triggers"],
             time=self._rebinned_mean_time,
             counts=self._rebinned_observed_counts,
+            detectors=self._detectors,
             echans=self._echans,
             bkg_counts=self._rebinned_bkg_counts,
             counts_cleaned=self._counts_cleaned,
@@ -754,7 +755,9 @@ class Search(object):
             show_angles=True,
         )
 
-        plotter.create_plots(output_dir)
+        plotter.create_overview_plots(output_dir)
+
+        plotter.save_plot_data(output_dir)
 
     def save_result(self, output_path):
         # output_file = os.path.join(os.path.dirname(output_path), "trigger_information.yml")

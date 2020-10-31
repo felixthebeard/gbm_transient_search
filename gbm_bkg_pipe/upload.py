@@ -8,7 +8,7 @@ from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
 from gbm_bkg_pipe.plots import (
     Create3DLocationPlot,
     CreateCornerPlot,
-    CreateLightcurve,
+    CreateAllLightcurves,
     CreateLocationPlot,
     CreateMollLocationPlot,
     CreateSatellitePlot,
@@ -251,12 +251,11 @@ class UploadLightcurve(luigi.Task):
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
             ),
-            "plot_file": CreateLightcurve(
+            "plot_file": CreateAllLightcurves(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
-                detector=self.detector,
             ),
         }
 
@@ -278,7 +277,7 @@ class UploadLightcurve(luigi.Task):
         upload_plot(
             trigger_name=self.trigger_name,
             data_type=self.data_type,
-            plot_file=self.input()["plot_file"].path,
+            plot_file=self.input()["plot_file"][self.detector].path,
             plot_type="lightcurve",
             wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
             max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),

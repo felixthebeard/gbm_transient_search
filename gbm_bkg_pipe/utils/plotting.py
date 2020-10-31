@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 import os
 from matplotlib import cm
-
+import h5py
 from gbmgeometry import GBMTime
 
 valid_det_names = [
@@ -33,6 +33,7 @@ class TriggerPlot(object):
         counts_cleaned,
         saa_mask,
         good_bkg_fit_mask,
+        detectors,
         echans,
         angles=None,
         show_counts=True,
@@ -45,6 +46,7 @@ class TriggerPlot(object):
         self._saa_mask = saa_mask
         self._counts = counts
         self._echans = echans
+        self._detectors = detectors
         self._bkg_counts = bkg_counts
         self._counts_cleaned = counts_cleaned
         self._angles = angles
@@ -70,407 +72,104 @@ class TriggerPlot(object):
         if show_angles:
             self._nr_subplots += 1
 
-    def create_plots(self, outdir=None):
+    @classmethod
+    def from_hdf5(cls, file_path):
 
-        self.create_individual_plots(outdir)
+        with h5py.File(file_path, "r") as f:
 
-        self.create_individual_overview_plots(outdir)
+            triggers = f.attrs["triggers"]
+
+            echans = f.attrs["echans"]
+
+            detectors = f.attrs["detectors"]
+
+            time = f["time"][()]
+
+            saa_mask = f["saa_mask"][()]
+
+            counts = f["counts"][()]
+
+            bkg_counts = f["bkg_counts"][()]
+
+            angles = f["angles"][()]
+
+            good_bkg_fit_mask = f["good_bkg_fit_mask"][()]
+
+        counts_cleaned = counts - bkg_counts
+
+        return cls(
+            triggers,
+            time,
+            counts,
+            bkg_counts,
+            counts_cleaned,
+            saa_mask,
+            good_bkg_fit_mask,
+            detectors,
+            echans,
+            angles,
+        )
+
+    def save_plot_data(self, outdir):
+        output_path = os.path.join(outdir, "trigger", "plot_data.hdf5")
+
+        with h5py.File(output_path, "w") as f:
+
+            f.attrs["triggers"] = self._triggers
+            f.attrs["echans"] = self._triggers
+            f.attrs["detectors"] = self._triggers
+
+            f.create_dataset(
+                "time",
+                data=self._time,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "saa_mask",
+                data=self._saa_mask,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "counts",
+                data=self._counts,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "bkg_counts",
+                data=self._bkg_counts,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "angles",
+                data=self._angles,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "good_bkg_fit_mask",
+                data=self._good_bkg_fit_mask,
+                compression="lzf",
+            )
+
+    def create_overview_plots(self, outdir=None):
 
         self.create_day_overview(outdir)
 
         self.create_day_overview_cleaned(outdir)
 
-        self.create_lightcurves(outdir)
+    def create_trigger_plots(self, trigger_name, outdir=None):
 
-    def create_individual_plots(self, outdir=None):
-        fontsize = 8
+        trigger = self._triggers[trigger_name]
 
-        for trigger in self._triggers.values():
+        self.create_individual_plots(trigger, outdir)
 
-            det_idx = valid_det_names.index(trigger["most_significant_detector"])
+        self.create_individual_overview_plots(trigger, outdir)
 
-            fig, ax = plt.subplots(self._nr_subplots, 1, sharex=True, figsize=[6.4, 10])
-
-            time_mask = np.logical_and(
-                self._time[self._saa_mask] > trigger["interval"]["start"] - 1000,
-                self._time[self._saa_mask] < trigger["interval"]["stop"] + 1000,
-            )
-
-            i = -1
-
-            if self._show_counts:
-
-                for e in self._echans:
-                    i += 1
-
-                    good_fit = self._good_bkg_fit_mask[det_idx, e]
-
-                    if good_fit:
-                        data_color = "black"
-                    else:
-                        data_color = "lightcoral"
-
-                    ax[i].scatter(
-                        self._time[self._saa_mask][time_mask],
-                        self._counts[:, det_idx, e][self._saa_mask][time_mask],
-                        alpha=0.9,
-                        linewidth=0.5,
-                        s=2,
-                        facecolors="none",
-                        edgecolors=data_color,
-                    )
-
-                    ax[i].plot(
-                        self._time[self._saa_mask][time_mask],
-                        self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
-                        label="Bkg model",
-                        color="red",
-                        linewidth=1,
-                    )
-
-                    ax[i].axvspan(
-                        trigger["interval"]["start"],
-                        trigger["interval"]["stop"],
-                        alpha=0.1,
-                        color="blue",
-                        label="Trigger region",
-                    )
-
-                    ax[i].axvspan(
-                        trigger["trigger_time"] - 10,
-                        trigger["trigger_time"] + 10,
-                        alpha=0.4,
-                        color="orange",
-                        label="Selection",
-                    )
-
-                    ax[i].axvline(
-                        x=trigger["trigger_time"],
-                        ymin=-1.2,
-                        ymax=1,
-                        c="green",
-                        linewidth=1,
-                        zorder=0,
-                        clip_on=False,
-                        label="Peak counts",
-                    )
-
-                    ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
-
-            ax[0].legend()
-
-            if self._show_counts_cleaned:
-                i += 1
-                ax[i].plot(
-                    self._time[self._saa_mask][time_mask],
-                    self._counts_cleaned[:, det_idx, :][time_mask],
-                )
-
-                ax[i].axvspan(
-                    trigger["interval"]["start"],
-                    trigger["interval"]["stop"],
-                    alpha=0.1,
-                    color="blue",
-                    label="Trigger region",
-                )
-                ax[i].axvspan(
-                    trigger["trigger_time"] - 10,
-                    trigger["trigger_time"] + 10,
-                    alpha=0.4,
-                    color="orange",
-                    label="Selection",
-                )
-
-                ax[i].set_ylabel("Cleaned", fontsize=fontsize)
-
-            if self._show_all_echans:
-                i += 1
-                ax[i].plot(
-                    self._time[self._saa_mask][time_mask],
-                    np.sum(
-                        self._counts_cleaned[:, det_idx, :][
-                            :, self._good_bkg_fit_mask[det_idx, :]
-                        ][time_mask],
-                        axis=1,
-                    ),
-                )
-                ax[i].axvline(
-                    x=trigger["trigger_time"],
-                    ymin=0,
-                    ymax=1.2,
-                    c="green",
-                    linewidth=1,
-                    zorder=0,
-                    clip_on=False,
-                )
-
-                ax[i].axvspan(
-                    trigger["interval"]["start"],
-                    trigger["interval"]["stop"],
-                    alpha=0.1,
-                    color="blue",
-                )
-
-                ax[i].axvspan(
-                    trigger["trigger_time"] - 10,
-                    trigger["trigger_time"] + 10,
-                    alpha=0.4,
-                    color="orange",
-                    label="Selection",
-                )
-
-                ax[i].set_ylabel("Cleaned combined", fontsize=fontsize)
-
-            if self._show_angles:
-                i += 1
-
-                ax[i].plot(
-                    self._time[self._saa_mask][time_mask],
-                    self._angles[time_mask],
-                )
-
-                ax[i].axvspan(
-                    trigger["interval"]["start"],
-                    trigger["interval"]["stop"],
-                    alpha=0.1,
-                    color="blue",
-                )
-
-                ax[i].axvspan(
-                    trigger["trigger_time"] - 10,
-                    trigger["trigger_time"] + 10,
-                    alpha=0.4,
-                    color="orange",
-                    label="Selection",
-                )
-
-                ax[i].axvline(
-                    x=trigger["trigger_time"],
-                    ymin=0,
-                    ymax=1.2,
-                    c="green",
-                    linewidth=1,
-                    zorder=0,
-                    clip_on=False,
-                )
-
-                ax[i].set_ylabel("Angles", fontsize=fontsize)
-
-            # fig.tight_layout()
-
-            ax[0].set_title(
-                f"Trigger {trigger['trigger_name']} | Det {trigger['most_significant_detector']}"
-            )
-
-            # Now remove the space between the two subplots
-            # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
-            fig.subplots_adjust(hspace=0)
-
-            if outdir is not None:
-
-                plot_dir = os.path.join(
-                    outdir,
-                    "trigger",
-                    trigger["trigger_name"],
-                    "plots",
-                )
-
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
-
-                savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}.png")
-
-                fig.savefig(savepath, dpi=300)
-
-    def _choose_dets(self, max_det):
-        """
-        Function to automatically choose the detectors which should be used in the fit
-        :return:
-        """
-        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5"]  # , "b0"]
-        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb"]  # , "b1"]
-
-        # only use the detectors on the same side as the detector with the most significance
-        if max_det in side_1_dets:
-
-            use_dets = side_1_dets
-
-        else:
-            use_dets = side_2_dets
-
-        return use_dets
-
-    def create_individual_overview_plots(self, outdir=None):
-        fontsize = 8
-
-        for trigger in self._triggers.values():
-
-            use_dets = self._choose_dets(trigger["most_significant_detector"])
-
-            fig, ax = plt.subplots(
-                self._nr_subplots - 1,
-                len(use_dets),
-                sharex=True,
-                figsize=[6.4 * len(use_dets), 10],
-            )
-
-            time_mask = np.logical_and(
-                self._time[self._saa_mask] > trigger["interval"]["start"] - 1000,
-                self._time[self._saa_mask] < trigger["interval"]["stop"] + 1000,
-            )
-
-            for d, det in enumerate(use_dets):
-                det_idx = valid_det_names.index(det)
-
-                i = -1
-
-                if self._show_counts:
-
-                    for e in self._echans:
-                        i += 1
-
-                        good_fit = self._good_bkg_fit_mask[det_idx, e]
-
-                        if good_fit:
-                            data_color = "black"
-                        else:
-                            data_color = "lightcoral"
-
-                        ax[i, d].scatter(
-                            self._time[self._saa_mask][time_mask],
-                            self._counts[:, det_idx, e][self._saa_mask][time_mask],
-                            alpha=0.9,
-                            linewidth=0.5,
-                            s=2,
-                            facecolors="none",
-                            edgecolors=data_color,
-                        )
-
-                        ax[i, d].plot(
-                            self._time[self._saa_mask][time_mask],
-                            self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
-                            label="Bkg model",
-                            color="red",
-                            linewidth=1,
-                        )
-
-                        ax[i, d].axvspan(
-                            trigger["interval"]["start"],
-                            trigger["interval"]["stop"],
-                            alpha=0.1,
-                            color="blue",
-                            label="Trigger region",
-                        )
-
-                        ax[i, d].axvspan(
-                            trigger["trigger_time"] - 10,
-                            trigger["trigger_time"] + 10,
-                            alpha=0.4,
-                            color="orange",
-                            label="Selection",
-                        )
-
-                        ax[i, d].axvline(
-                            x=trigger["trigger_time"],
-                            ymin=-1.2,
-                            ymax=1,
-                            c="green",
-                            linewidth=1,
-                            zorder=0,
-                            clip_on=False,
-                            label="Peak counts",
-                        )
-
-                        ax[i, 0].set_ylabel(f"Counts e{e}", fontsize=fontsize)
-
-                if self._show_counts_cleaned:
-                    i += 1
-                    ax[i, d].plot(
-                        self._time[self._saa_mask][time_mask],
-                        self._counts_cleaned[:, det_idx, :][time_mask],
-                    )
-
-                    ax[i, d].axvspan(
-                        trigger["interval"]["start"],
-                        trigger["interval"]["stop"],
-                        alpha=0.1,
-                        color="blue",
-                        label="Trigger region",
-                    )
-                    ax[i, d].axvspan(
-                        trigger["trigger_time"] - 10,
-                        trigger["trigger_time"] + 10,
-                        alpha=0.4,
-                        color="orange",
-                        label="Selection",
-                    )
-
-                    ax[i, d].set_ylabel("Cleaned", fontsize=fontsize)
-
-                if self._show_all_echans:
-                    i += 1
-                    ax[i, d].plot(
-                        self._time[self._saa_mask][time_mask],
-                        np.sum(
-                            self._counts_cleaned[:, det_idx, :][
-                                :, self._good_bkg_fit_mask[det_idx, :]
-                            ][time_mask],
-                            axis=1,
-                        ),
-                    )
-                    ax[i, d].axvline(
-                        x=trigger["trigger_time"],
-                        ymin=0,
-                        ymax=1.2,
-                        c="green",
-                        linewidth=1,
-                        zorder=0,
-                        clip_on=False,
-                    )
-
-                    ax[i, d].axvspan(
-                        trigger["interval"]["start"],
-                        trigger["interval"]["stop"],
-                        alpha=0.1,
-                        color="blue",
-                    )
-
-                    ax[i, d].axvspan(
-                        trigger["trigger_time"] - 10,
-                        trigger["trigger_time"] + 10,
-                        alpha=0.4,
-                        color="orange",
-                        label="Selection",
-                    )
-
-                    ax[i, d].set_ylabel("Cleaned combined", fontsize=fontsize)
-
-                ax[0, d].set_title(f"Trigger {trigger['trigger_name']} | Det {det}")
-            # fig.tight_layout()
-
-            ax[0, 0].legend()
-
-            # Now remove the space between the two subplots
-            # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
-            fig.subplots_adjust(hspace=0)
-
-            if outdir is not None:
-
-                plot_dir = os.path.join(
-                    outdir,
-                    "trigger",
-                    trigger["trigger_name"],
-                    "plots",
-                )
-
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
-
-                savepath = os.path.join(
-                    plot_dir, f"{trigger['trigger_name']}_overview.png"
-                )
-
-                fig.savefig(savepath, dpi=300)
+        self.create_lightcurves(trigger, outdir)
 
     def create_day_overview(self, outdir=None):
         echans = [0, 1, 2]
@@ -663,23 +362,245 @@ class TriggerPlot(object):
                 savepath, dpi=300, bbox_extra_artists=(lgd,), bbox_inches="tight"
             )
 
-    def create_lightcurves(self, outdir=None):
+    def create_individual_plots(self, trigger, outdir=None):
         fontsize = 8
 
-        for trigger in self._triggers.values():
+        det_idx = valid_det_names.index(trigger["most_significant_detector"])
 
-            for det_idx, det in enumerate(valid_det_names):
+        fig, ax = plt.subplots(self._nr_subplots, 1, sharex=True, figsize=[6.4, 10])
 
-                fig, ax = plt.subplots(
-                    self._nr_subplots, 1, sharex=True, figsize=[6.4, 10]
+        time_mask = np.logical_and(
+            self._time[self._saa_mask] > trigger["interval"]["start"] - 1000,
+            self._time[self._saa_mask] < trigger["interval"]["stop"] + 1000,
+        )
+
+        i = -1
+
+        if self._show_counts:
+
+            for e in self._echans:
+                i += 1
+
+                good_fit = self._good_bkg_fit_mask[det_idx, e]
+
+                if good_fit:
+                    data_color = "black"
+                else:
+                    data_color = "lightcoral"
+
+                ax[i].scatter(
+                    self._time[self._saa_mask][time_mask],
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask],
+                    alpha=0.9,
+                    linewidth=0.5,
+                    s=2,
+                    facecolors="none",
+                    edgecolors=data_color,
                 )
 
-                time_mask = np.logical_and(
-                    self._time[self._saa_mask] > trigger["interval"]["start"] - 600,
-                    self._time[self._saa_mask] < trigger["interval"]["stop"] + 600,
+                ax[i].plot(
+                    self._time[self._saa_mask][time_mask],
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    label="Bkg model",
+                    color="red",
+                    linewidth=1,
                 )
 
-                i = -1
+                ax[i].axvspan(
+                    trigger["interval"]["start"],
+                    trigger["interval"]["stop"],
+                    alpha=0.1,
+                    color="blue",
+                    label="Trigger region",
+                )
+
+                ax[i].axvspan(
+                    trigger["trigger_time"] - 10,
+                    trigger["trigger_time"] + 10,
+                    alpha=0.4,
+                    color="orange",
+                    label="Selection",
+                )
+
+                ax[i].axvline(
+                    x=trigger["trigger_time"],
+                    ymin=-1.2,
+                    ymax=1,
+                    c="green",
+                    linewidth=1,
+                    zorder=0,
+                    clip_on=False,
+                    label="Peak counts",
+                )
+
+                ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+
+        ax[0].legend()
+
+        if self._show_counts_cleaned:
+            i += 1
+            ax[i].plot(
+                self._time[self._saa_mask][time_mask],
+                self._counts_cleaned[:, det_idx, :][time_mask],
+            )
+
+            ax[i].axvspan(
+                trigger["interval"]["start"],
+                trigger["interval"]["stop"],
+                alpha=0.1,
+                color="blue",
+                label="Trigger region",
+            )
+            ax[i].axvspan(
+                trigger["trigger_time"] - 10,
+                trigger["trigger_time"] + 10,
+                alpha=0.4,
+                color="orange",
+                label="Selection",
+            )
+
+            ax[i].set_ylabel("Cleaned", fontsize=fontsize)
+
+        if self._show_all_echans:
+            i += 1
+            ax[i].plot(
+                self._time[self._saa_mask][time_mask],
+                np.sum(
+                    self._counts_cleaned[:, det_idx, :][
+                        :, self._good_bkg_fit_mask[det_idx, :]
+                    ][time_mask],
+                    axis=1,
+                ),
+            )
+            ax[i].axvline(
+                x=trigger["trigger_time"],
+                ymin=0,
+                ymax=1.2,
+                c="green",
+                linewidth=1,
+                zorder=0,
+                clip_on=False,
+            )
+
+            ax[i].axvspan(
+                trigger["interval"]["start"],
+                trigger["interval"]["stop"],
+                alpha=0.1,
+                color="blue",
+            )
+
+            ax[i].axvspan(
+                trigger["trigger_time"] - 10,
+                trigger["trigger_time"] + 10,
+                alpha=0.4,
+                color="orange",
+                label="Selection",
+            )
+
+            ax[i].set_ylabel("Cleaned combined", fontsize=fontsize)
+
+        if self._show_angles:
+            i += 1
+
+            ax[i].plot(
+                self._time[self._saa_mask][time_mask],
+                self._angles[time_mask],
+            )
+
+            ax[i].axvspan(
+                trigger["interval"]["start"],
+                trigger["interval"]["stop"],
+                alpha=0.1,
+                color="blue",
+            )
+
+            ax[i].axvspan(
+                trigger["trigger_time"] - 10,
+                trigger["trigger_time"] + 10,
+                alpha=0.4,
+                color="orange",
+                label="Selection",
+            )
+
+            ax[i].axvline(
+                x=trigger["trigger_time"],
+                ymin=0,
+                ymax=1.2,
+                c="green",
+                linewidth=1,
+                zorder=0,
+                clip_on=False,
+            )
+
+            ax[i].set_ylabel("Angles", fontsize=fontsize)
+
+        # fig.tight_layout()
+
+        ax[0].set_title(
+            f"Trigger {trigger['trigger_name']} | Det {trigger['most_significant_detector']}"
+        )
+
+        # Now remove the space between the two subplots
+        # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
+        fig.subplots_adjust(hspace=0)
+
+        if outdir is not None:
+
+            plot_dir = os.path.join(
+                outdir,
+                "trigger",
+                trigger["trigger_name"],
+                "plots",
+            )
+
+            if not os.path.exists(plot_dir):
+                os.makedirs(plot_dir)
+
+            savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}.png")
+
+            fig.savefig(savepath, dpi=300)
+
+    def _choose_dets(self, max_det):
+        """
+        Function to automatically choose the detectors which should be used in the fit
+        :return:
+        """
+        side_1_dets = ["n0", "n1", "n2", "n3", "n4", "n5"]  # , "b0"]
+        side_2_dets = ["n6", "n7", "n8", "n9", "na", "nb"]  # , "b1"]
+
+        # only use the detectors on the same side as the detector with the most significance
+        if max_det in side_1_dets:
+
+            use_dets = side_1_dets
+
+        else:
+            use_dets = side_2_dets
+
+        return use_dets
+
+    def create_individual_overview_plots(self, trigger, outdir=None):
+        fontsize = 8
+
+        use_dets = self._choose_dets(trigger["most_significant_detector"])
+
+        fig, ax = plt.subplots(
+            self._nr_subplots - 1,
+            len(use_dets),
+            sharex=True,
+            figsize=[6.4 * len(use_dets), 10],
+        )
+
+        time_mask = np.logical_and(
+            self._time[self._saa_mask] > trigger["interval"]["start"] - 1000,
+            self._time[self._saa_mask] < trigger["interval"]["stop"] + 1000,
+        )
+
+        for d, det in enumerate(use_dets):
+            det_idx = valid_det_names.index(det)
+
+            i = -1
+
+            if self._show_counts:
 
                 for e in self._echans:
                     i += 1
@@ -689,9 +610,9 @@ class TriggerPlot(object):
                     if good_fit:
                         data_color = "black"
                     else:
-                        data_color = "darkgray"
+                        data_color = "lightcoral"
 
-                    ax[i].scatter(
+                    ax[i, d].scatter(
                         self._time[self._saa_mask][time_mask],
                         self._counts[:, det_idx, e][self._saa_mask][time_mask],
                         alpha=0.9,
@@ -701,7 +622,7 @@ class TriggerPlot(object):
                         edgecolors=data_color,
                     )
 
-                    ax[i].plot(
+                    ax[i, d].plot(
                         self._time[self._saa_mask][time_mask],
                         self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
                         label="Bkg model",
@@ -709,7 +630,15 @@ class TriggerPlot(object):
                         linewidth=1,
                     )
 
-                    ax[i].axvspan(
+                    ax[i, d].axvspan(
+                        trigger["interval"]["start"],
+                        trigger["interval"]["stop"],
+                        alpha=0.1,
+                        color="blue",
+                        label="Trigger region",
+                    )
+
+                    ax[i, d].axvspan(
                         trigger["trigger_time"] - 10,
                         trigger["trigger_time"] + 10,
                         alpha=0.4,
@@ -717,7 +646,7 @@ class TriggerPlot(object):
                         label="Selection",
                     )
 
-                    ax[i].axvline(
+                    ax[i, d].axvline(
                         x=trigger["trigger_time"],
                         ymin=-1.2,
                         ymax=1,
@@ -728,32 +657,184 @@ class TriggerPlot(object):
                         label="Peak counts",
                     )
 
-                    ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+                    ax[i, 0].set_ylabel(f"Counts e{e}", fontsize=fontsize)
 
-                ax[0].legend()
+            if self._show_counts_cleaned:
+                i += 1
+                ax[i, d].plot(
+                    self._time[self._saa_mask][time_mask],
+                    self._counts_cleaned[:, det_idx, :][time_mask],
+                )
 
-                ax[0].set_title(f"Trigger {trigger['trigger_name']} | Det {det}")
+                ax[i, d].axvspan(
+                    trigger["interval"]["start"],
+                    trigger["interval"]["stop"],
+                    alpha=0.1,
+                    color="blue",
+                    label="Trigger region",
+                )
+                ax[i, d].axvspan(
+                    trigger["trigger_time"] - 10,
+                    trigger["trigger_time"] + 10,
+                    alpha=0.4,
+                    color="orange",
+                    label="Selection",
+                )
 
-                # Now remove the space between the two subplots
-                # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
-                fig.subplots_adjust(hspace=0)
+                ax[i, d].set_ylabel("Cleaned", fontsize=fontsize)
 
-                if outdir is not None:
+            if self._show_all_echans:
+                i += 1
+                ax[i, d].plot(
+                    self._time[self._saa_mask][time_mask],
+                    np.sum(
+                        self._counts_cleaned[:, det_idx, :][
+                            :, self._good_bkg_fit_mask[det_idx, :]
+                        ][time_mask],
+                        axis=1,
+                    ),
+                )
+                ax[i, d].axvline(
+                    x=trigger["trigger_time"],
+                    ymin=0,
+                    ymax=1.2,
+                    c="green",
+                    linewidth=1,
+                    zorder=0,
+                    clip_on=False,
+                )
 
-                    plot_dir = os.path.join(
-                        outdir,
-                        "trigger",
-                        trigger["trigger_name"],
-                        "plots",
-                        "lightcurves",
-                    )
+                ax[i, d].axvspan(
+                    trigger["interval"]["start"],
+                    trigger["interval"]["stop"],
+                    alpha=0.1,
+                    color="blue",
+                )
 
-                    if not os.path.exists(plot_dir):
-                        os.makedirs(plot_dir)
+                ax[i, d].axvspan(
+                    trigger["trigger_time"] - 10,
+                    trigger["trigger_time"] + 10,
+                    alpha=0.4,
+                    color="orange",
+                    label="Selection",
+                )
 
-                    savepath = os.path.join(
-                        plot_dir,
-                        f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
-                    )
+                ax[i, d].set_ylabel("Cleaned combined", fontsize=fontsize)
 
-                    fig.savefig(savepath, dpi=300)
+            ax[0, d].set_title(f"Trigger {trigger['trigger_name']} | Det {det}")
+        # fig.tight_layout()
+
+        ax[0, 0].legend()
+
+        # Now remove the space between the two subplots
+        # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
+        fig.subplots_adjust(hspace=0)
+
+        if outdir is not None:
+
+            plot_dir = os.path.join(
+                outdir,
+                "trigger",
+                trigger["trigger_name"],
+                "plots",
+            )
+
+            if not os.path.exists(plot_dir):
+                os.makedirs(plot_dir)
+
+            savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}_overview.png")
+
+            fig.savefig(savepath, dpi=300)
+
+    def create_lightcurves(self, trigger, outdir=None):
+        fontsize = 8
+
+        for det_idx, det in enumerate(valid_det_names):
+
+            fig, ax = plt.subplots(len(self._echans), 1, sharex=True, figsize=[6.4, 10])
+
+            time_mask = np.logical_and(
+                self._time[self._saa_mask] > trigger["interval"]["start"] - 500,
+                self._time[self._saa_mask] < trigger["interval"]["stop"] + 500,
+            )
+
+            i = -1
+
+            for e in self._echans:
+                i += 1
+
+                good_fit = self._good_bkg_fit_mask[det_idx, e]
+
+                if good_fit:
+                    data_color = "black"
+                else:
+                    data_color = "darkgray"
+
+                ax[i].scatter(
+                    self._time[self._saa_mask][time_mask] - trigger["trigger_time"],
+                    self._counts[:, det_idx, e][self._saa_mask][time_mask],
+                    alpha=0.9,
+                    linewidth=0.5,
+                    s=2,
+                    facecolors="none",
+                    edgecolors=data_color,
+                )
+
+                ax[i].plot(
+                    self._time[self._saa_mask][time_mask] - trigger["trigger_time"],
+                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                    label="Bkg model",
+                    color="red",
+                    linewidth=1,
+                )
+
+                ax[i].axvspan(
+                    -10,
+                    10,
+                    alpha=0.4,
+                    color="orange",
+                    label="Selection",
+                )
+
+                ax[i].axvline(
+                    x=0,
+                    ymin=-1.2,
+                    ymax=1,
+                    c="green",
+                    linewidth=1,
+                    zorder=0,
+                    clip_on=False,
+                    label="Peak counts",
+                )
+
+                ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+
+            ax[0].legend()
+
+            ax[0].set_title(
+                f"Trigger {trigger['trigger_name']} | T0={trigger['trigger_time']} ({trigger['trigger_time_utc']}) | Det {det}"
+            )
+
+            # Now remove the space between the two subplots
+            # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
+            fig.subplots_adjust(hspace=0)
+
+            if outdir is not None:
+
+                plot_dir = os.path.join(
+                    outdir,
+                    "trigger",
+                    trigger["trigger_name"],
+                    "plots",
+                    "lightcurves",
+                )
+
+                if not os.path.exists(plot_dir):
+                    os.makedirs(plot_dir)
+
+                savepath = os.path.join(
+                    plot_dir,
+                    f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
+                )
+
+                fig.savefig(savepath, dpi=300)

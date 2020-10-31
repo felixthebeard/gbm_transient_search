@@ -8,6 +8,7 @@ from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadPoshistData, BkgModelPlo
 from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.env import get_env_value
+from gbm_bkg_pipe.utils.plotting import TriggerPlot
 
 from gbm_bkg_pipe.utils.plot_utils import (
     azimuthal_plot_sat_frame,
@@ -118,69 +119,55 @@ class CreateAllLightcurves(luigi.Task):
     remote_host = luigi.Parameter()
 
     def requires(self):
-        upload_lightcurves = {}
-
-        for det in _valid_gbm_detectors:
-            upload_lightcurves[det] = CreateLightcurve(
+        return dict(
+            loc_result=ProcessLocalizationResult(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
-                detector=det,
-            )
-        return upload_lightcurves
-
-    def output(self):
-        return luigi.LocalTarget(
-            os.path.join(
-                base_dir,
-                f"{self.date:%y%m%d}",
-                self.data_type,
-                "trigger",
-                self.trigger_name,
-                f"{self.trigger_name}_create_plot_all_lightcurves.done",
-            )
+            ),
+            plot_data=luigi.LocalTarget(
+                os.path.join(
+                    base_dir,
+                    "bkg_pipe",
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    "trigger",
+                    "plot_data.hdf5",
+                )
+            ),
         )
 
+    def output(self):
+        lightcurves = dict()
+
+        for det in _valid_gbm_detectors:
+            lightcurves[det] = luigi.LocalTarget(
+                os.path.join(
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    "trigger",
+                    self.trigger_name,
+                    "plots",
+                    "lightcurves",
+                    f"{self.trigger_name}_lightcurve_detector_{det}_plot.png",
+                )
+            )
+        return lightcurves
+
     def run(self):
-        if_dir_containing_file_not_existing_then_make(self.output().path)
+        plotter = TriggerPlot.from_hdf5(self.input()["plot_data"].path)
 
-        os.system(f"touch {self.output().path}")
-
-
-class CreateLightcurve(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter()
-    trigger_name = luigi.Parameter()
-    remote_host = luigi.Parameter()
-    detector = luigi.Parameter()
-
-    def requires(self):
-        return ProcessLocalizationResult(
-            date=self.date,
-            data_type=self.data_type,
+        plotter.create_trigger_plots(
             trigger_name=self.trigger_name,
-            remote_host=self.remote_host,
-        )
-
-    def output(self):
-        return luigi.LocalTarget(
-            os.path.join(
+            outdir=os.path.join(
                 base_dir,
+                "bkg_pipe",
                 f"{self.date:%y%m%d}",
                 self.data_type,
-                "trigger",
-                self.trigger_name,
-                "plots",
-                "lightcurves",
-                f"{self.trigger_name}_lightcurve_detector_{self.detector}_plot.png",
-            )
+            ),
         )
-
-    def run(self):
-        # The lightcurve is created plot triggers task,
-        # This task will check if the creation was successful
-        pass
 
 
 class CreateLocationPlot(luigi.Task):

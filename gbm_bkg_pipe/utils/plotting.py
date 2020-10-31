@@ -23,6 +23,17 @@ valid_det_names = [
     "nb",
 ]
 
+echan_dict = {
+    "0": "4-12 keV",
+    "1": "12-27 keV",
+    "2": "27-50 keV",
+    "3": "50-102 keV",
+    "4": "102-295 keV",
+    "5": "295-540 keV",
+    "6": "540-985 keV",
+    "7": "985-2000 keV",
+}
+
 
 class TriggerPlot(object):
     def __init__(
@@ -866,8 +877,9 @@ class TriggerPlot(object):
                     clip_on=False,
                     label="T0",
                 )
-
-                ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+                ax[i].set_ylabel(f"Counts \n{echan_dict[str(e)]}", fontsize=fontsize)
+                ax[i].tick_params(axis="both", which="major", labelsize=fontsize)
+                ax[i].tick_params(axis="both", which="minor", labelsize=fontsize)
 
                 ymin = np.percentile(
                     self._counts[:, det_idx, e][self._saa_mask][time_mask], 0, axis=0

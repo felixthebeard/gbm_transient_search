@@ -53,6 +53,11 @@ structure["balrog"] = dict(
 
 structure["data"] = dict(data_type="ctime", detectors=run_detectors, echans=run_echans)
 
+structure["upload"] = dict(
+    report=dict(interval=30, max_time=2 * 60 * 60),
+    plot=dict(interval=30, max_time=2 * 60 * 60),
+)
+
 
 class GBMBkgPipeConfig(YAMLConfig):
     def __init__(self):

@@ -53,7 +53,7 @@ def create_report_from_result(result):
         "name": result["trigger"]["trigger_name"],
         "name_gcn": result["trigger"].get("trigger_name_gcn", None),
         "hide_burst": False,
-        "trigger_number": result["trigger"]["trigger_number"],
+        "trigger_number": None,
         "trigger_timestamp": result["trigger"]["trigger_time_utc"],
         "transient_params": [
             {

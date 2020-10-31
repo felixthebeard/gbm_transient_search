@@ -80,14 +80,16 @@ class TriggerPlot(object):
 
         self.create_day_overview_cleaned(outdir)
 
+        self.create_lightcurves(outdir)
+
     def create_individual_plots(self, outdir=None):
         fontsize = 8
 
         for trigger in self._triggers.values():
 
-            fig, ax = plt.subplots(self._nr_subplots, 1, sharex=True, figsize=[6.4, 10])
-
             det_idx = valid_det_names.index(trigger["most_significant_detector"])
+
+            fig, ax = plt.subplots(self._nr_subplots, 1, sharex=True, figsize=[6.4, 10])
 
             time_mask = np.logical_and(
                 self._time[self._saa_mask] > trigger["interval"]["start"] - 1000,
@@ -660,3 +662,98 @@ class TriggerPlot(object):
             fig.savefig(
                 savepath, dpi=300, bbox_extra_artists=(lgd,), bbox_inches="tight"
             )
+
+    def create_lightcurves(self, outdir=None):
+        fontsize = 8
+
+        for trigger in self._triggers.values():
+
+            for det_idx, det in enumerate(valid_det_names):
+
+                fig, ax = plt.subplots(
+                    self._nr_subplots, 1, sharex=True, figsize=[6.4, 10]
+                )
+
+                time_mask = np.logical_and(
+                    self._time[self._saa_mask] > trigger["interval"]["start"] - 600,
+                    self._time[self._saa_mask] < trigger["interval"]["stop"] + 600,
+                )
+
+                i = -1
+
+                for e in self._echans:
+                    i += 1
+
+                    good_fit = self._good_bkg_fit_mask[det_idx, e]
+
+                    if good_fit:
+                        data_color = "black"
+                    else:
+                        data_color = "darkgray"
+
+                    ax[i].scatter(
+                        self._time[self._saa_mask][time_mask],
+                        self._counts[:, det_idx, e][self._saa_mask][time_mask],
+                        alpha=0.9,
+                        linewidth=0.5,
+                        s=2,
+                        facecolors="none",
+                        edgecolors=data_color,
+                    )
+
+                    ax[i].plot(
+                        self._time[self._saa_mask][time_mask],
+                        self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                        label="Bkg model",
+                        color="red",
+                        linewidth=1,
+                    )
+
+                    ax[i].axvspan(
+                        trigger["trigger_time"] - 10,
+                        trigger["trigger_time"] + 10,
+                        alpha=0.4,
+                        color="orange",
+                        label="Selection",
+                    )
+
+                    ax[i].axvline(
+                        x=trigger["trigger_time"],
+                        ymin=-1.2,
+                        ymax=1,
+                        c="green",
+                        linewidth=1,
+                        zorder=0,
+                        clip_on=False,
+                        label="Peak counts",
+                    )
+
+                    ax[i].set_ylabel(f"Counts e{e}", fontsize=fontsize)
+
+                ax[0].legend()
+
+                ax[0].set_title(f"Trigger {trigger['trigger_name']} | Det {det}")
+
+                # Now remove the space between the two subplots
+                # NOTE: this must be placed *after* tight_layout, otherwise it will be ineffective
+                fig.subplots_adjust(hspace=0)
+
+                if outdir is not None:
+
+                    plot_dir = os.path.join(
+                        outdir,
+                        "trigger",
+                        trigger["trigger_name"],
+                        "plots",
+                        "lightcurves",
+                    )
+
+                    if not os.path.exists(plot_dir):
+                        os.makedirs(plot_dir)
+
+                    savepath = os.path.join(
+                        plot_dir,
+                        f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
+                    )
+
+                    fig.savefig(savepath, dpi=300)

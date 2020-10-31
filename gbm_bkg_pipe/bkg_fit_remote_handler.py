@@ -509,8 +509,7 @@ class BkgModelResultPlot(luigi.Task):
             f"{self.date:%y%m%d}",
             self.data_type,
             "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
+            "plots",
         )
 
         plot_files = []
@@ -518,12 +517,17 @@ class BkgModelResultPlot(luigi.Task):
         for detector in self.detectors:
             for echan in self.echans:
 
-                filename = f"plot_date_{self.date:%y%m%d}_det_{detector}_echan_{echan}__{''}.pdf"
+                filename = (
+                    f"bkg_model_{self.date:%y%m%d}_det_{detector}_echan_{echan}.pdf"
+                )
 
                 plot_files.append(luigi.LocalTarget(os.path.join(job_dir, filename)))
         return plot_files
 
     def run(self):
+        self.output()[0].makedirs()
+
+        output_dir = os.path.dirname(self.output()[0].path)
 
         config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_result_plot.yml"
 
@@ -533,7 +537,7 @@ class BkgModelResultPlot(luigi.Task):
         )
 
         plot_generator.create_plots(
-            output_dir=os.path.dirname(self.output()[0].path), time_stamp=""
+            output_dir=output_dir, plot_name="bkg_model_", time_stamp=""
         )
 
 

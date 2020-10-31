@@ -62,13 +62,12 @@ class TriggerSearch(luigi.Task):
 
     def run(self):
         search = Search(
-            result_file=self.input().path,
-            min_bin_width=5,
+            result_file=self.input().path, min_bin_width=5, bad_fit_threshold=150
         )
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
 
-        search.calc_significances(required_significance=3)
+        search.calc_significances(required_significance=3, max_interval_time=1000)
 
         search.build_trigger_information()
 

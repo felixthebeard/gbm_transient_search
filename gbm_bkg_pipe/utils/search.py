@@ -108,7 +108,9 @@ class Search(object):
     and filters them to construct triggers.
     """
 
-    def __init__(self, result_file, min_bin_width, mad=False, sub_min=False):
+    def __init__(
+        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=70
+    ):
         """
         Instantiate the search class and prepare the data for processing.
         """
@@ -126,7 +128,7 @@ class Search(object):
 
         self._rebinn_data(min_bin_width)
 
-        self._mask_bad_bkg_fits()
+        self._mask_bad_bkg_fits(bad_fit_threshold)
 
         # Combine all energy bins for significance calculation
         self._combine_energy_bins()
@@ -370,7 +372,7 @@ class Search(object):
         self._cpts_sections_all = change_points_sections
         self._change_points_all = change_points
 
-    def calc_significances(self, required_significance=5):
+    def calc_significances(self, required_significance=5, max_interval_time=1000):
         """
         Combine two arbitrary changepoints to a source interval and calculate the significance.
         If the segnificance is higher than the threshold, then add this source interval to the intervals list.
@@ -392,6 +394,23 @@ class Search(object):
                     for idx_high in self._change_points_all[segment]:
 
                         if idx_low != idx_high and idx_low < idx_high:
+
+                            # If the interval is longer than the max interval, use the max interval length
+                            # this the does not use a change point as interval stop, but avoids discarding
+                            # very smooth signals that only have a change point at the beginnen and the end
+                            # of the long interval
+                            if (
+                                self._rebinned_mean_time[idx_high]
+                                - self._rebinned_mean_time[idx_low]
+                            ) > max_interval_time:
+
+                                idx_high = np.argmax(
+                                    self._rebinned_mean_time
+                                    > (
+                                        self._rebinned_mean_time[idx_low]
+                                        + max_interval_time
+                                    )
+                                )
 
                             significance = calc_significance(
                                 data=self._observed_counts_total[det][idx_low:idx_high],

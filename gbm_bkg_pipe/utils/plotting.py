@@ -117,8 +117,8 @@ class TriggerPlot(object):
         output_path = os.path.join(outdir, "trigger", "plot_data.hdf5")
 
         with h5py.File(output_path, "w") as f:
-            f.attrs["echans"] = self._triggers
-            f.attrs["detectors"] = self._triggers
+            f.attrs["echans"] = self._echans
+            f.attrs["detectors"] = self._detectors
 
             f.create_dataset(
                 "time",

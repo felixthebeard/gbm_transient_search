@@ -27,7 +27,7 @@ model_lookup = {
 def check_transient_on_website(trigger_name):
     headers = {"Authorization": f"Token {auth_token}"}
 
-    check_existing_url = f"{base_url}/api/check_trigger_name/{trigger_name}/"
+    check_existing_url = f"{base_url}/api/check_transient_name/{trigger_name}/"
 
     response = requests.get(url=check_existing_url, headers=headers, verify=True)
 

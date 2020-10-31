@@ -195,7 +195,7 @@ class Search(object):
                     self._bkg_stat_err[:, det_idx, e],
                 )
 
-                if sig <= max_sig & sig >= max_neg_sig:
+                if sig <= max_sig and sig >= max_neg_sig:
 
                     good_bkg_fit_mask[det_idx, e] = True
 

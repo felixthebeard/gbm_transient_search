@@ -2,6 +2,7 @@ import json
 import time
 
 import requests
+from datetime import datetime
 
 from gbm_bkg_pipe.exceptions.custom_exceptions import (
     EmptyFileError,
@@ -60,9 +61,11 @@ def create_report_from_result(result):
                 "version": web_version,
                 "model_type": model_lookup[result["fit_result"]["model"]],
                 "trigger_number": None,
-                "trigger_timestamp": result["trigger"]["trigger_timestamp"],
-                "data_timestamp": result["trigger"]["data_timestamp"],
-                "localization_timestamp": result["trigger"]["localization_timestamp"],
+                "trigger_timestamp": result["trigger"]["trigger_time_utc"],
+                "data_timestamp": None,
+                "localization_timestamp": datetime.utcnow().strftime(
+                    "%Y-%m-%dT%H:%M:%S.%fZ"
+                ),
                 "balrog_ra": result["fit_result"]["ra"],
                 "balrog_ra_err": result["fit_result"]["ra_err"],
                 "balrog_dec": result["fit_result"]["dec"],

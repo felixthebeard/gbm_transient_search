@@ -243,10 +243,10 @@ class BalrogFit(object):
 
         elif spectrum == "blackbody":
             blackbody = Blackbody()
-            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-10, upper_bound=1e4)
-            blackbody.kT.min_value = 1e-10
-            blackbody.kT.max_value = 100
-            blackbody.kT.prior = Log_uniform_prior(lower_bound=1e-10, upper_bound=100)
+            blackbody.K.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=1e5)
+            blackbody.kT.min_value = 1e-5
+            blackbody.kT.max_value = 5e2
+            blackbody.kT.prior = Log_uniform_prior(lower_bound=1e-5, upper_bound=5e2)
             # blackbody.K.prior = Log_normal(mu=-15, sigma=1)
             # blackbody.kT.prior = Log_normal(mu=-15, sigma=1)
             # blackbody.kT.prior = Gaussian(mu=3, sigma=5)

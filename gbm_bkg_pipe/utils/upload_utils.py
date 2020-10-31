@@ -29,7 +29,7 @@ def check_transient_on_website(trigger_name):
 
     check_existing_url = f"{base_url}/api/check_trigger_name/{trigger_name}/"
 
-    response = requests.get(url=check_existing_url, headers=headers, verify=False)
+    response = requests.get(url=check_existing_url, headers=headers, verify=True)
 
     # TRANSIENT not in DB
     if response.status_code == 204:
@@ -142,7 +142,7 @@ def upload_transient_report(trigger_name, result, wait_time, max_time):
         try:
 
             response = requests.post(
-                url=url, data=json.dumps(report), headers=headers, verify=False
+                url=url, data=json.dumps(report), headers=headers, verify=True
             )
             if response.status_code == 201:
                 print("Uploaded new TRANSIENT")
@@ -236,7 +236,7 @@ def update_transient_report(trigger_name, result, wait_time, max_time):
         try:
 
             response = requests.put(
-                url=url, data=json.dumps(report), headers=headers, verify=False
+                url=url, data=json.dumps(report), headers=headers, verify=True
             )
             if response.status_code == 201:
                 print("Updated TRANSIENT")
@@ -327,7 +327,7 @@ def upload_plot(
                     data=payload,
                     headers=headers,
                     files={"file": file_},
-                    verify=False,
+                    verify=True,
                 )
                 if response.status_code == 201:
                     print("Uploaded new plot")
@@ -430,7 +430,7 @@ def upload_datafile(
                     data=payload,
                     headers=headers,
                     files={"file": file_},
-                    verify=False,
+                    verify=True,
                 )
                 if response.status_code == 201:
                     print("Uploaded new plot")
@@ -520,7 +520,7 @@ def upload_date_plot(
                     data=payload,
                     headers=headers,
                     files={"file": file_},
-                    verify=False,
+                    verify=True,
                 )
                 if response.status_code == 201:
                     print("Uploaded new plot")

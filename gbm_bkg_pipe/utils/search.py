@@ -174,7 +174,7 @@ class Search(object):
         self._rebinned_mean_time = np.mean(self._rebinned_time_bins, axis=1)
 
     def _mask_bad_bkg_fits(
-        self, max_med_sig=50, max_neg_med_sig=-30, max_neg_sig=-100, n_parts=10
+        self, max_med_sig=60, max_neg_med_sig=-30, max_neg_sig=-100, n_parts=20
     ):
         """
         Mask energy channels that have a very high significance for the

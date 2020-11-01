@@ -442,7 +442,7 @@ class CreateBkgModelPlot(luigi.Task):
                 self.data_type,
                 "phys_bkg",
                 "plots",
-                f"bkg_model_{self.date:%y%m%d}_det_{self.detector}_echan_{self.echan}.pdf",
+                f"bkg_model_{self.date:%y%m%d}_det_{self.detector}_echan_{self.echan}.png",
             )
         )
 

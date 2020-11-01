@@ -518,7 +518,7 @@ class BkgModelResultPlot(luigi.Task):
             for echan in self.echans:
 
                 filename = (
-                    f"bkg_model_{self.date:%y%m%d}_det_{detector}_echan_{echan}.pdf"
+                    f"bkg_model_{self.date:%y%m%d}_det_{detector}_echan_{echan}.png"
                 )
 
                 plot_files.append(luigi.LocalTarget(os.path.join(job_dir, filename)))
@@ -537,7 +537,9 @@ class BkgModelResultPlot(luigi.Task):
         )
 
         plot_generator.create_plots(
-            output_dir=output_dir, plot_name="bkg_model_", time_stamp=""
+            output_dir=output_dir,
+            plot_name="bkg_model_",
+            time_stamp="",
         )
 
 

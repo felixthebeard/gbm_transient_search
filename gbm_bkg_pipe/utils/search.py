@@ -109,7 +109,7 @@ class Search(object):
     """
 
     def __init__(
-        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=70
+        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=50
     ):
         """
         Instantiate the search class and prepare the data for processing.
@@ -173,7 +173,9 @@ class Search(object):
         self._rebinned_time_bin_width = np.diff(self._rebinned_time_bins, axis=1)[:, 0]
         self._rebinned_mean_time = np.mean(self._rebinned_time_bins, axis=1)
 
-    def _mask_bad_bkg_fits(self, max_sig=150, max_neg_sig=-100):
+    def _mask_bad_bkg_fits(
+        self, max_med_sig=50, max_neg_med_sig=-30, max_neg_sig=-100, n_parts=10
+    ):
         """
         Mask energy channels that have a very high significance for the
         interval covering the whole day.
@@ -183,11 +185,28 @@ class Search(object):
 
         good_bkg_fit_mask = np.zeros((14, 8), dtype=bool)
 
+        part_idx = np.linspace(0, self._observed_counts.shape[0], n_parts, dtype=int)
+
         for det in self._detectors:
 
             det_idx = valid_det_names.index(det)
 
             for e in self._echans:
+
+                sigs = []
+
+                for i in range(n_parts - 1):
+
+                    sig = calc_significance(
+                        self._observed_counts[
+                            part_idx[i] : part_idx[i + 1] + 1, det_idx, e
+                        ],
+                        self._bkg_counts[part_idx[i] : part_idx[i + 1] + 1, det_idx, e],
+                        self._bkg_stat_err[
+                            part_idx[i] : part_idx[i + 1] + 1, det_idx, e
+                        ],
+                    )
+                    sigs.append(sig)
 
                 sig = calc_significance(
                     self._observed_counts[:, det_idx, e],
@@ -195,8 +214,15 @@ class Search(object):
                     self._bkg_stat_err[:, det_idx, e],
                 )
 
-                if sig <= max_sig and sig >= max_neg_sig:
+                median_sig = np.median(sigs)
 
+                good = True
+                if sig <= max_neg_sig or median_sig <= max_neg_med_sig:
+                    good = False
+                if median_sig >= max_med_sig:
+                    good = False
+
+                if good:
                     good_bkg_fit_mask[det_idx, e] = True
 
         self._good_bkg_fit_mask = good_bkg_fit_mask

@@ -109,8 +109,8 @@ class BkgConfigWriter(object):
 
             self._ps_dict = ps_select.ps_dict
 
-            self._config["setup"]["use_cr"] = False
-            self._config["setup"]["use_constant"] = False
+            # self._config["setup"]["use_cr"] = False
+            # self._config["setup"]["use_constant"] = False
 
         else:
             ps_setup = []

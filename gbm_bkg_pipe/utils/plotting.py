@@ -597,7 +597,7 @@ class TriggerPlot(object):
 
             savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}.png")
 
-            fig.savefig(savepath, dpi=300)
+            fig.savefig(savepath, dpi=300, bbox_inches="tight")
 
     def _choose_dets(self, max_det):
         """
@@ -808,7 +808,7 @@ class TriggerPlot(object):
 
             savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}_overview.png")
 
-            fig.savefig(savepath, dpi=300)
+            fig.savefig(savepath, dpi=300, bbox_inches="tight")
 
     def create_lightcurves(self, trigger, outdir=None):
         fontsize = 8
@@ -936,4 +936,4 @@ class TriggerPlot(object):
                     f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
                 )
 
-                fig.savefig(savepath, dpi=300)
+                fig.savefig(savepath, dpi=300, bbox_inches="tight")

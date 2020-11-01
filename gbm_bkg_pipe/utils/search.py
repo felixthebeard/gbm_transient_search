@@ -109,7 +109,7 @@ class Search(object):
     """
 
     def __init__(
-        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=50
+        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=60
     ):
         """
         Instantiate the search class and prepare the data for processing.
@@ -716,7 +716,6 @@ class Search(object):
             idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
 
             det = most_significant_detectors[i]
-            print(det)
 
             significance = calc_significance(
                 data=self._observed_counts_total[det][idx_low:idx_high],

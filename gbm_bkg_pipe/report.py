@@ -53,7 +53,7 @@ class CreateReportDate(luigi.Task):
                 check_status_cmd = ["squeue", "-u", remote_config["username"]]
 
                 status = remote.check_output(check_status_cmd)
-                nr_queued_jobs = len(status.decode().split("\n")) - 1
+                nr_queued_jobs = len(status.decode().strip().split("\n")) - 1
 
                 remote_config["nr_queued_jobs"] = nr_queued_jobs
 

@@ -282,7 +282,11 @@ class TriggerPlot(object):
             savepath = os.path.join(plot_dir, f"{date_utc_str}_triggers.png")
 
             fig.savefig(
-                savepath, dpi=300, bbox_extra_artists=(lgd,), bbox_inches="tight"
+                savepath,
+                dpi=300,
+                bbox_extra_artists=(lgd,),
+                bbox_inches="tight",
+                transparent=True,
             )
 
     def create_day_overview_cleaned(self, outdir=None):
@@ -371,7 +375,11 @@ class TriggerPlot(object):
             savepath = os.path.join(plot_dir, f"{date_utc_str}_triggers_cleaned.png")
 
             fig.savefig(
-                savepath, dpi=300, bbox_extra_artists=(lgd,), bbox_inches="tight"
+                savepath,
+                dpi=300,
+                bbox_extra_artists=(lgd,),
+                bbox_inches="tight",
+                transparent=True,
             )
 
     def create_individual_plots(self, trigger, outdir=None):
@@ -597,7 +605,7 @@ class TriggerPlot(object):
 
             savepath = os.path.join(plot_dir, f"{trigger['trigger_name']}.png")
 
-            fig.savefig(savepath, dpi=300, bbox_inches="tight")
+            fig.savefig(savepath, dpi=300, bbox_inches="tight", transparent=True)
 
     def _choose_dets(self, max_det):
         """
@@ -936,4 +944,4 @@ class TriggerPlot(object):
                     f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
                 )
 
-                fig.savefig(savepath, dpi=300, bbox_inches="tight")
+                fig.savefig(savepath, dpi=300, bbox_inches="tight", transparent=True)

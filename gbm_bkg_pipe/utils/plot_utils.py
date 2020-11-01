@@ -330,7 +330,7 @@ def mollweide_plot(
 
     # save figure
     file_utils.if_dir_containing_file_not_existing_then_make(save_path)
-    fig.savefig(save_path, bbox_inches="tight", dpi=1000)
+    fig.savefig(save_path, bbox_inches="tight", dpi=1000, transparent=True)
 
 
 def azimuthal_plot_sat_frame(
@@ -440,7 +440,7 @@ def azimuthal_plot_sat_frame(
 
     file_utils.if_dir_containing_file_not_existing_then_make(save_path)
 
-    fig.savefig(save_path, bbox_inches="tight", dpi=1000)
+    fig.savefig(save_path, bbox_inches="tight", dpi=1000, transparent=True)
 
 
 def swift_gbm_plot(
@@ -552,7 +552,7 @@ def swift_gbm_plot(
 
         # save plot
         file_utils.if_dir_containing_file_not_existing_then_make(save_path)
-        fig.savefig(save_path, bbox_inches="tight", dpi=1000)
+        fig.savefig(save_path, bbox_inches="tight", dpi=1000, transparent=True)
 
 
 def interactive_3D_plot(

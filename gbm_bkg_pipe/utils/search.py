@@ -495,24 +495,42 @@ class Search(object):
 
         trigger_intervals = np.unique(trigger_intervals, axis=0)
 
-        # Get the significance of all detectors for the trigger intervals
+        # we will now determine the most significant detector
+        # this is done by findind the peak in counts over background in each detector,
+        # and calculating the significance of the time interval of [t_peak-10s, t_peak+10s]
+        # That would later be used in balrog
+        # We dont use the entire interval as these could sometimes be long and weak deviations
+        # from the background that for long intervals can lead to relatively strong significance
+        # but without a "peak".
         trigger_significance = []
         for interval in trigger_intervals:
 
             sig_dict = {}
 
             for i, det in enumerate(self._detectors):
+
+                counts = (
+                    self._observed_counts_total[det][interval[0] : interval[1]]
+                    - self._bkg_counts_total[det][interval[0] : interval[1]]
+                )
+
+                max_index = np.argmax(counts) + interval[0]
+
+                peak_time = self._rebinned_time_bins[self._rebinned_saa_mask][
+                    max_index, 0
+                ]
+
+                start_time = peak_time - 10
+                stop_time = peak_time + 10
+
+                idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
+                idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
+
                 sig_dict[det] = float(
                     calc_significance(
-                        data=self._observed_counts_total[det][
-                            interval[0] : interval[1]
-                        ],
-                        background=self._bkg_counts_total[det][
-                            interval[0] : interval[1]
-                        ],
-                        bkg_stat_err=self._bkg_stat_err_total[det][
-                            interval[0] : interval[1]
-                        ],
+                        data=self._observed_counts_total[det][idx_low:idx_high],
+                        background=self._bkg_counts_total[det][idx_low:idx_high],
+                        bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
                     )
                 )
 

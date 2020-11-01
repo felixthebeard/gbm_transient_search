@@ -121,12 +121,6 @@ class CreateAllLightcurves(luigi.Task):
 
     def requires(self):
         return dict(
-            loc_result=ProcessLocalizationResult(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-            ),
             trigger_search=TriggerSearch(
                 date=self.date, data_type=self.data_type, remote_host=self.remote_host
             ),

@@ -42,6 +42,7 @@ class LocalizationHandler(object):
 
             trigger["good_bkg_fit_mask"] = self._search_result["good_bkg_fit_mask"]
             trigger["data_type"] = self._search_result["data_type"]
+            trigger["data_timestamp"] = self._search_result.get("data_timestamp", None)
             trigger["active_time_start"] = active_time_start
             trigger["active_time_end"] = active_time_end
             trigger["use_dets"] = use_dets

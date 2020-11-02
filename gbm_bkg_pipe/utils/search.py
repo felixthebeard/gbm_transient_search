@@ -1,23 +1,22 @@
-import os
 import copy
-import yaml
+from datetime import datetime
+
 import h5py
 import numpy as np
-from scipy import stats
-
-from gbmbkgpy.utils.saa_calc import SAA_calc
+import pytz
+import ruptures as rpt
+import yaml
+from astropy.io import fits
+from astropy.stats import bayesian_blocks
+from gbm_bkg_pipe.utils.plotting import TriggerPlot
+from gbm_bkg_pipe.utils.saa_calc import SaaCalc
 from gbmbkgpy.utils.binner import Rebinner
-
 from gbmgeometry import GBMTime
 from gbmgeometry.position_interpolator import slice_disjoint
+from scipy import stats
+from trigger_hunter.utils.stats import poisson_gaussian
 from trigger_hunter.wbs import WBS
 from trigger_hunter.wbs2 import wbs_sdll
-from trigger_hunter.utils.stats import poisson_gaussian
-from astropy.stats import bayesian_blocks
-import ruptures as rpt
-
-from gbm_bkg_pipe.utils.saa_calc import SaaCalc
-from gbm_bkg_pipe.utils.plotting import TriggerPlot
 
 valid_det_names = [
     "n0",
@@ -801,6 +800,18 @@ class Search(object):
         plotter.create_overview_plots(output_dir)
 
         plotter.save_plot_data(output_dir)
+
+    def set_data_timestamp(self, data_file_path):
+        with fits.open(data_file_path, "r") as f:
+            data_timestamp_goddard = f["PRIMARY"].header["DATE"] + ".000Z"
+
+        datetime_ob_goddard = pytz.timezone("US/Eastern").localize(
+            datetime.strptime(data_timestamp_goddard, "%Y-%m-%dT%H:%M:%S.%fZ")
+        )
+
+        data_timestamp = datetime_ob_goddard.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+        self._trigger_information["data_timestamp"] = data_timestamp
 
     def save_result(self, output_path):
         # output_file = os.path.join(os.path.dirname(output_path), "trigger_information.yml")

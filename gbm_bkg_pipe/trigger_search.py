@@ -3,28 +3,14 @@ import os
 from datetime import datetime, timedelta
 
 import luigi
+import numpy as np
 
-from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
+from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadData, GBMBackgroundModelFit
+from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.search import Search
 
+_valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
 base_dir = os.environ.get("GBMDATA")
-
-_gbm_detectors = (
-    "n0",
-    "n1",
-    "n2",
-    "n3",
-    "n4",
-    "n5",
-    "n6",
-    "n7",
-    "n8",
-    "n9",
-    "na",
-    "nb",
-    "b0",
-    "b1",
-)
 
 
 class TriggerSearch(luigi.Task):
@@ -43,9 +29,17 @@ class TriggerSearch(luigi.Task):
             return 1
 
     def requires(self):
-
-        return GBMBackgroundModelFit(
-            date=self.date, data_type=self.data_type, remote_host=self.remote_host
+        det = _valid_gbm_detectors[0]
+        return dict(
+            bkg_fit=GBMBackgroundModelFit(
+                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            ),
+            gbm_data_file=DownloadData(
+                date=self.date,
+                data_type=self.data_type,
+                detector=det,
+                remote_host=self.remote_host,
+            ),
         )
 
     def output(self):
@@ -62,7 +56,9 @@ class TriggerSearch(luigi.Task):
 
     def run(self):
         search = Search(
-            result_file=self.input().path, min_bin_width=5, bad_fit_threshold=60
+            result_file=self.input()["bkg_fit"].path,
+            min_bin_width=5,
+            bad_fit_threshold=60,
         )
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
@@ -76,5 +72,7 @@ class TriggerSearch(luigi.Task):
         plot_dir = os.path.join(os.path.dirname(self.output().path))
 
         search.plot_results(plot_dir)
+
+        search.set_data_timestamp(self.input()["gbm_data_file"].path)
 
         search.save_result(self.output().path)

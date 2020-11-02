@@ -62,7 +62,7 @@ def create_report_from_result(result):
                 "model_type": model_lookup[result["fit_result"]["model"]],
                 "trigger_number": None,
                 "trigger_timestamp": result["trigger"]["trigger_time_utc"],
-                "data_timestamp": None,
+                "data_timestamp": result["trigger"]["data_timestamp"],
                 "localization_timestamp": datetime.utcnow().strftime(
                     "%Y-%m-%dT%H:%M:%S.%fZ"
                 ),

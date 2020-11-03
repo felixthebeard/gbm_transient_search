@@ -48,7 +48,9 @@ structure["download"] = dict(
 )
 
 structure["balrog"] = dict(
-    multinest=dict(n_cores=8, path_to_python="python"), timeout=2 * 60 * 60  # 1 hour
+    multinest=dict(n_cores=8, path_to_python="python"),
+    timeout=2 * 60 * 60,  # 2 hour
+    run_destination="remote",
 )
 
 structure["data"] = dict(data_type="ctime", detectors=run_detectors, echans=run_echans)

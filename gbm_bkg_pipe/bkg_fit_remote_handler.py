@@ -375,10 +375,15 @@ class RunPhysBkgModel(luigi.Task):
             sshpass=True,
         )
 
-        if self.priority > 1:
-            nice = 0
+        if gbm_bkg_pipe_config["balrog"]["run_destination"] == "local":
+            balrog_offset = 0
         else:
-            nice = 100
+            balrog_offset = 1
+
+        if self.priority > 1:
+            nice = 0 + balrog_offset
+        else:
+            nice = 100 + balrog_offset
 
         run_cmd = [
             "sbatch",

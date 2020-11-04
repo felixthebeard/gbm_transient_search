@@ -36,7 +36,10 @@ class PlotTriggers(luigi.Task):
 
     def requires(self):
         return TriggerSearch(
-            date=self.date, data_type=self.data_type, remote_host=self.remote_host
+            date=self.date,
+            data_type=self.data_type,
+            remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -131,7 +134,10 @@ class CreateAllLightcurves(luigi.Task):
     def requires(self):
         return dict(
             trigger_search=TriggerSearch(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
         )
 

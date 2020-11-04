@@ -30,6 +30,7 @@ class PlotTriggers(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -71,6 +72,7 @@ class CreateAllPlots(luigi.WrapperTask):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -79,36 +81,42 @@ class CreateAllPlots(luigi.WrapperTask):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "location": CreateLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "corner": CreateCornerPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "satellite": CreateSatellitePlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "molllocation": CreateMollLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "spectrum": CreateSpectrumPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 
@@ -118,6 +126,7 @@ class CreateAllLightcurves(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return dict(
@@ -135,6 +144,7 @@ class CreateAllLightcurves(luigi.Task):
                     base_dir,
                     f"{self.date:%y%m%d}",
                     self.data_type,
+                    self.step,
                     "trigger",
                     self.trigger_name,
                     "plots",
@@ -151,6 +161,7 @@ class CreateAllLightcurves(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 "plot_data.hdf5",
             ),
@@ -159,9 +170,7 @@ class CreateAllLightcurves(luigi.Task):
         plotter.create_trigger_plots(
             trigger_name=self.trigger_name,
             outdir=os.path.join(
-                base_dir,
-                f"{self.date:%y%m%d}",
-                self.data_type,
+                base_dir, f"{self.date:%y%m%d}", self.data_type, self.step
             ),
         )
 
@@ -171,6 +180,7 @@ class CreateLocationPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
@@ -178,6 +188,7 @@ class CreateLocationPlot(luigi.Task):
             data_type=self.data_type,
             trigger_name=self.trigger_name,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -186,6 +197,7 @@ class CreateLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -209,6 +221,7 @@ class CreateCornerPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
@@ -216,6 +229,7 @@ class CreateCornerPlot(luigi.Task):
             data_type=self.data_type,
             trigger_name=self.trigger_name,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -224,6 +238,7 @@ class CreateCornerPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -247,6 +262,7 @@ class CreateMollLocationPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return dict(
@@ -255,6 +271,7 @@ class CreateMollLocationPlot(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             poshist_file=DownloadPoshistData(
                 date=self.date, remote_host=self.remote_host
@@ -267,6 +284,7 @@ class CreateMollLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -299,6 +317,7 @@ class CreateSatellitePlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return dict(
@@ -307,6 +326,7 @@ class CreateSatellitePlot(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             poshist_file=DownloadPoshistData(
                 date=self.date, remote_host=self.remote_host
@@ -319,6 +339,7 @@ class CreateSatellitePlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -345,6 +366,7 @@ class CreateSpectrumPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
@@ -352,6 +374,7 @@ class CreateSpectrumPlot(luigi.Task):
             data_type=self.data_type,
             trigger_name=self.trigger_name,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -360,6 +383,7 @@ class CreateSpectrumPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -377,6 +401,7 @@ class Create3DLocationPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return dict(
@@ -385,6 +410,7 @@ class Create3DLocationPlot(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             poshist_file=DownloadPoshistData(
                 date=self.date, remote_host=self.remote_host
@@ -397,6 +423,7 @@ class Create3DLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "plots",
@@ -426,12 +453,14 @@ class CreateBkgModelPlot(luigi.Task):
     remote_host = luigi.Parameter()
     detector = luigi.Parameter()
     echan = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return BkgModelPlots(
             date=self.date,
             data_type=self.data_type,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -440,6 +469,7 @@ class CreateBkgModelPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "phys_bkg",
                 "plots",
                 f"bkg_model_{self.date:%y%m%d}_det_{self.detector}_echan_{self.echan}.png",

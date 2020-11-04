@@ -2,8 +2,8 @@
 #SBATCH -J balrog_loc 
 #SBATCH --partition=express
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=40
+#SBATCH --ntasks-per-node=40
+#SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=fkunzwei@mpe.mpg.de
 #SBATCH --time=04:00:00   # run time in h:m:s, up to 24h possible
@@ -15,11 +15,9 @@ module load gcc/9 impi mkl anaconda/3 mpi4py
 #module load intel/19.1.2 impi/2019.8 anaconda/3/2020.02
 
 # avoid overbooking of the cores which might occur via NumPy/MKL threading
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # date is passed as argument
-TRIGGER_NAMES_FILE=$1
-TRIGGER_DIR=$2
-BALROG_TIMEOUT=$3
+TRIGGER_INFO_FILE=$1
 
-srun loc_triggers.sh ${TRIGGER_NAMES_FILE} ${TRIGGER_DIR} ${BALROG_TIMEOUT}
+srun python ${TRIGGER_INFO_FILE}

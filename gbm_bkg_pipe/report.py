@@ -20,6 +20,7 @@ remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
 class CreateReportDate(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
+    remote_host = luigi.Parameter(default="default")
 
     @property
     def priority(self):
@@ -36,52 +37,54 @@ class CreateReportDate(luigi.Task):
         )
 
     def run(self):
+        if self.remote_host == "default":
+            remote_hosts = list(remote_hosts_config["hosts"].values())
 
-        remote_hosts = list(remote_hosts_config["hosts"].values())
+            available_host_names = []
+            available_hosts = []
 
-        available_host_names = []
-        available_hosts = []
+            for remote_config in remote_hosts:
+                try:
+                    remote = RemoteContext(
+                        host=remote_config["hostname"],
+                        username=remote_config["username"],
+                        sshpass=True,
+                    )
 
-        for remote_config in remote_hosts:
-            try:
-                remote = RemoteContext(
-                    host=remote_config["hostname"],
-                    username=remote_config["username"],
-                    sshpass=True,
-                )
+                    check_status_cmd = ["squeue", "-u", remote_config["username"]]
 
-                check_status_cmd = ["squeue", "-u", remote_config["username"]]
+                    status = remote.check_output(check_status_cmd)
+                    nr_queued_jobs = len(status.decode().strip().split("\n")) - 1
 
-                status = remote.check_output(check_status_cmd)
-                nr_queued_jobs = len(status.decode().strip().split("\n")) - 1
+                    remote_config["nr_queued_jobs"] = nr_queued_jobs
 
-                remote_config["nr_queued_jobs"] = nr_queued_jobs
+                    remote_config["free_capacity"] = (
+                        remote_config["job_limit"] - nr_queued_jobs
+                    )
 
-                remote_config["free_capacity"] = (
-                    remote_config["job_limit"] - nr_queued_jobs
-                )
+                    available_hosts.append(remote_config)
+                    available_host_names.append(remote_config["hostname"])
 
-                available_hosts.append(remote_config)
-                available_host_names.append(remote_config["hostname"])
+                except Exception as e:
 
-            except Exception as e:
+                    logging.exception(f"Check remote capacity resulted in: {e}")
 
-                logging.exception(f"Check remote capacity resulted in: {e}")
+            if len(available_hosts) == 0:
+                raise Exception("No remote host available to run the heavy tasks")
 
-        if len(available_hosts) == 0:
-            raise Exception("No remote host available to run the heavy tasks")
+            # use the host that has the most free capacity
+            run_host = sorted(
+                available_hosts, key=lambda k: k["free_capacity"], reverse=True
+            )[0]["hostname"]
 
-        # use the host that has the most free capacity
-        run_host = sorted(
-            available_hosts, key=lambda k: k["free_capacity"], reverse=True
-        )[0]["hostname"]
+            # if high priority use the priority host
+            if self.priority > 1:
 
-        # if high priority use the priority host
-        if self.priority > 1:
+                if remote_hosts_config["priority_host"] in available_host_names:
 
-            if remote_hosts_config["priority_host"] in available_host_names:
-
-                run_host = remote_hosts_config["priority_host"]
+                    run_host = remote_hosts_config["priority_host"]
+        else:
+            run_host = self.remote_host
 
         required_tasks = {
             "upload_bkg_plots": UploadBkgResultPlots(

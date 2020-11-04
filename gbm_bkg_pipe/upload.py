@@ -35,6 +35,7 @@ class UploadTriggers(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -47,7 +48,9 @@ class UploadTriggers(luigi.Task):
         filename = f"upload_triggers_done.txt"
 
         return luigi.LocalTarget(
-            os.path.join(base_dir, f"{self.date:%y%m%d}", self.data_type, filename)
+            os.path.join(
+                base_dir, f"{self.date:%y%m%d}", self.data_type, self.step, filename
+            )
         )
 
     def run(self):
@@ -65,12 +68,14 @@ class UploadTriggers(luigi.Task):
                         data_type=trigger_information["data_type"],
                         trigger_name=t_info["trigger_name"],
                         remote_host=self.remote_host,
+                        step=self.step,
                     ),
                     UploadAllPlots(
                         date=datetime.strptime(t_info["date"], "%y%m%d"),
                         data_type=trigger_information["data_type"],
                         trigger_name=t_info["trigger_name"],
                         remote_host=self.remote_host,
+                        step=self.step,
                     ),
                 ]
             )
@@ -84,6 +89,7 @@ class UploadReport(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return ProcessLocalizationResult(
@@ -91,6 +97,7 @@ class UploadReport(luigi.Task):
             data_type=self.data_type,
             trigger_name=self.trigger_name,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -99,6 +106,7 @@ class UploadReport(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 f"{self.trigger_name}_report.yml",
@@ -125,6 +133,7 @@ class UploadAllPlots(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -133,48 +142,56 @@ class UploadAllPlots(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "location": UploadLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "corner": UploadCornerPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "molllocation": UploadMollLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "satellite": UploadSatellitePlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "spectrum": UploadSpectrumPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "3d_location": Upload3DLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             # "balrogswift": UploadBalrogSwiftPlot(
             #     date=self.date,
             #     data_type=self.data_type,
             #     trigger_name=self.trigger_name,
             #     remote_host=self.remote_host,
+            #     step=self.step
             # ),
         }
 
@@ -185,6 +202,7 @@ class UploadAllPlots(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -203,6 +221,7 @@ class UploadAllLightcurves(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         upload_lightcurves = {}
@@ -214,6 +233,7 @@ class UploadAllLightcurves(luigi.Task):
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
                 detector=det,
+                step=self.step,
             )
         return upload_lightcurves
 
@@ -223,6 +243,7 @@ class UploadAllLightcurves(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -242,6 +263,7 @@ class UploadLightcurve(luigi.Task):
     detector = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -250,12 +272,14 @@ class UploadLightcurve(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "plot_file": CreateAllLightcurves(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 
@@ -265,6 +289,7 @@ class UploadLightcurve(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -294,6 +319,7 @@ class UploadLocationPlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -302,12 +328,14 @@ class UploadLocationPlot(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "plot_file": CreateLocationPlot(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 
@@ -317,6 +345,7 @@ class UploadLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -345,6 +374,7 @@ class UploadCornerPlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -353,12 +383,14 @@ class UploadCornerPlot(luigi.Task):
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
             "plot_file": CreateCornerPlot(
                 date=self.date,
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
         }
 
@@ -368,6 +400,7 @@ class UploadCornerPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -396,6 +429,7 @@ class UploadMollLocationPlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -404,12 +438,14 @@ class UploadMollLocationPlot(luigi.Task):
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
             "plot_file": CreateMollLocationPlot(
                 date=self.date,
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
         }
 
@@ -419,6 +455,7 @@ class UploadMollLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -446,6 +483,7 @@ class UploadSatellitePlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -454,12 +492,14 @@ class UploadSatellitePlot(luigi.Task):
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
             "plot_file": CreateSatellitePlot(
                 date=self.date,
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
         }
 
@@ -469,6 +509,7 @@ class UploadSatellitePlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -497,6 +538,7 @@ class UploadSpectrumPlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -505,12 +547,14 @@ class UploadSpectrumPlot(luigi.Task):
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
             "plot_file": CreateSpectrumPlot(
                 date=self.date,
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
         }
 
@@ -520,6 +564,7 @@ class UploadSpectrumPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -548,6 +593,7 @@ class Upload3DLocationPlot(luigi.Task):
     data_type = luigi.Parameter()
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -556,12 +602,14 @@ class Upload3DLocationPlot(luigi.Task):
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
             "plot_file": Create3DLocationPlot(
                 date=self.date,
                 remote_host=self.remote_host,
                 trigger_name=self.trigger_name,
                 data_type=self.data_type,
+                step=self.step,
             ),
         }
 
@@ -571,6 +619,7 @@ class Upload3DLocationPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger",
                 self.trigger_name,
                 "upload",
@@ -607,12 +656,14 @@ class Upload3DLocationPlot(luigi.Task):
 #                 remote_host=self.remote_host,
 #                 trigger_name=self.trigger_name,
 #                 data_type=self.data_type,
+#                        step=self.step
 #             ),
 #             "plot_file": CreateBalrogSwiftPlot(
 #                 date=self.date,
 #                 remote_host=self.remote_host,
 #                 trigger_name=self.trigger_name,
 #                 data_type=self.data_type,
+#                        step=self.step
 #             ),
 #         }
 
@@ -621,7 +672,7 @@ class Upload3DLocationPlot(luigi.Task):
 #             os.path.join(
 #                 base_dir,
 #                 f"{self.date:%y%m%d}",
-#                 self.data_type,
+#                 self.data_type, self.step,
 #                 "trigger",
 #                 self.trigger_name,
 #                 "upload",
@@ -649,6 +700,7 @@ class UploadBkgResultPlots(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         upload_bkg_plots = {}
@@ -661,6 +713,7 @@ class UploadBkgResultPlots(luigi.Task):
                     remote_host=self.remote_host,
                     detector=det,
                     echan=e,
+                    step=self.step,
                 )
         return upload_bkg_plots
 
@@ -670,6 +723,7 @@ class UploadBkgResultPlots(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "upload",
                 "upload_plot_all_bkg_results.done",
             )
@@ -687,6 +741,7 @@ class UploadBkgResultPlot(luigi.Task):
     detector = luigi.Parameter()
     echan = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     def requires(self):
         return {
@@ -696,6 +751,7 @@ class UploadBkgResultPlot(luigi.Task):
                 remote_host=self.remote_host,
                 detector=self.detector,
                 echan=self.echan,
+                step=self.step,
             ),
         }
 
@@ -705,6 +761,7 @@ class UploadBkgResultPlot(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "upload",
                 f"{self.detector}_{self.echan}_upload_plot_lightcurve.done",
             )

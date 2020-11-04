@@ -187,7 +187,10 @@ class SetupTriggerLocalization(luigi.Task):
                 step=self.step,
             ),
             "trigger_search": TriggerSearch(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 
@@ -377,7 +380,10 @@ class RunBalrog(ExternalProgramTask):
                 step=self.step,
             ),
             "trigger_search": TriggerSearch(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 

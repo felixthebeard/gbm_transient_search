@@ -840,18 +840,19 @@ class RunBalrogTasksRemote(luigi.Task):
 
         yield trigger_files
 
-        remote_trigger_names = RemoteTarget(
+        remote_trigger_information = RemoteTarget(
             os.path.join(
                 self.job_dir_remote,
-                f"trigger_names.txt",
+                f"trigger_information.yml",
             ),
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
             sshpass=True,
         )
 
-        with remote_trigger_names.open("w") as f:
-            f.write("\n".join(trigger_information.keys()))
+        remote_trigger_information.put(
+            self.input()["setup_loc"]["trigger_information"].path
+        )
 
         job_script_path = os.path.join(
             remote_hosts_config["hosts"][self.remote_host]["script_dir"],
@@ -876,9 +877,7 @@ class RunBalrogTasksRemote(luigi.Task):
             "-D",
             f"{self.job_dir_remote}",
             f"{job_script_path}",
-            f"{remote_trigger_names.path}",
-            f"{self.job_dir_remote}",
-            f"{balrog_timeout}",
+            f"{remote_trigger_information.path}",
         ]
 
         logging.info(" ".join(run_cmd))

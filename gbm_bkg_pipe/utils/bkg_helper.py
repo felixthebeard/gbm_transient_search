@@ -147,7 +147,7 @@ class BkgConfigWriter(object):
                 f"e{'_'.join(self._echans)}",
             )
 
-            file_name = f"fit_result_{self._date:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
+            file_name = f"fit_result_{self._date:%y%m%d}_{'-'.join(self._detectors)}_e{'-'.join(self._echans)}.hdf5"
 
             result_file = os.path.join(job_dir, file_name)
 
@@ -172,7 +172,7 @@ class BkgConfigWriter(object):
                     f"e{'_'.join(self._echans)}",
                 )
 
-                file_name = f"fit_result_{day_before:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
+                file_name = f"fit_result_{day_before:%y%m%d}_{'-'.join(self._detectors)}_e{'-'.join(self._echans)}.hdf5"
 
                 result_file = os.path.join(job_dir_day_before, file_name)
 

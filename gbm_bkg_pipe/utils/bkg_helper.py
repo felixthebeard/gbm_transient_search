@@ -21,6 +21,7 @@ class BkgConfigWriter(object):
 
         self._load_default_config()
 
+    def build_config(self):
         self._update_general()
 
         self._update_saa_setup()
@@ -30,6 +31,20 @@ class BkgConfigWriter(object):
         self._update_ps_setup()
 
         self._update_priors()
+
+    def mask_triggers(self, trigger_result):
+
+        with open(trigger_result, "r") as f:
+
+            trigger_info = yaml.safe_load(f)
+
+        self._config.update(
+            dict(
+                mask_intervals=[
+                    trigger["interval"] for trigger in trigger_info["triggers"].values()
+                ]
+            )
+        )
 
     def _load_default_config(self):
         config_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/phys_bkg_model/config_fit.yml"
@@ -134,7 +149,9 @@ class BkgConfigWriter(object):
                 f"e{'_'.join(self._echans)}",
             )
 
-            result_file = os.path.join(job_dir_day_before, "fit_result.hdf5")
+            file_name = f"fit_result_{day_before:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
+
+            result_file = os.path.join(job_dir_day_before, file_name)
 
             if os.path.exists(result_file):
 

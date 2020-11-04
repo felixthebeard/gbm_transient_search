@@ -15,7 +15,7 @@ from gbmbkgpy.io.package_data import get_path_of_external_data_dir
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
-
+from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
@@ -34,6 +34,7 @@ class GBMBackgroundModelFit(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     @property
     def priority(self):
@@ -58,6 +59,7 @@ class GBMBackgroundModelFit(luigi.Task):
                     echans=echans,
                     detectors=dets,
                     remote_host=self.remote_host,
+                    step=self.step,
                 )
 
         return bkg_fit_tasks
@@ -69,6 +71,7 @@ class GBMBackgroundModelFit(luigi.Task):
                 base_dir,
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "phys_bkg",
                 "phys_bkg_combined.hdf5",
             )
@@ -98,6 +101,7 @@ class BkgModelPlots(luigi.WrapperTask):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -123,6 +127,7 @@ class BkgModelPlots(luigi.WrapperTask):
                     echans=echans,
                     detectors=dets,
                     remote_host=self.remote_host,
+                    step=self.step,
                 )
 
                 # bkg_fit_tasks[
@@ -138,6 +143,7 @@ class CreateBkgConfig(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -150,17 +156,27 @@ class CreateBkgConfig(luigi.Task):
             return 1
 
     def requires(self):
-        return {
+        requires = {
             "pointsource_db": UpdatePointsourceDB(
                 date=self.date, remote_host=self.remote_host
             )
         }
+        if self.step == "final":
+            requires["trigger_search"] = TriggerSearch(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step="base",
+            )
+
+        return requires
 
     def output(self):
         job_dir_remote = os.path.join(
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
@@ -178,6 +194,11 @@ class CreateBkgConfig(luigi.Task):
             self.date, self.data_type, self.echans, self.detectors
         )
 
+        config_writer.build_config()
+
+        if self.step == "final":
+            config_writer.mask_triggers(self.input()["trigger_search"].path)
+
         with self.output().open("w") as outfile:
 
             yaml.dump(config_writer._config, outfile, default_flow_style=False)
@@ -189,6 +210,7 @@ class CopyResults(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -207,6 +229,7 @@ class CopyResults(luigi.Task):
                 echans=self.echans,
                 detectors=self.detectors,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             config_file=CreateBkgConfig(
                 date=self.date,
@@ -214,6 +237,7 @@ class CopyResults(luigi.Task):
                 echans=self.echans,
                 detectors=self.detectors,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         )
 
@@ -222,6 +246,7 @@ class CopyResults(luigi.Task):
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
@@ -259,6 +284,7 @@ class RunPhysBkgModel(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     result_timeout = 2 * 60 * 60
 
@@ -282,6 +308,7 @@ class RunPhysBkgModel(luigi.Task):
                 echans=self.echans,
                 detectors=self.detectors,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
             "poshist_file": DownloadPoshistData(
                 date=self.date, remote_host=self.remote_host
@@ -312,6 +339,7 @@ class RunPhysBkgModel(luigi.Task):
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
@@ -320,6 +348,7 @@ class RunPhysBkgModel(luigi.Task):
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
@@ -489,6 +518,7 @@ class BkgModelResultPlot(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -498,6 +528,7 @@ class BkgModelResultPlot(luigi.Task):
             echans=self.echans,
             detectors=self.detectors,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     @property
@@ -508,15 +539,18 @@ class BkgModelResultPlot(luigi.Task):
         else:
             return 1
 
-    def output(self):
-        job_dir = os.path.join(
+    @property
+    def job_dir(self):
+        return os.path.join(
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             "plots",
         )
 
+    def output(self):
         plot_files = []
 
         for detector in self.detectors:
@@ -526,13 +560,13 @@ class BkgModelResultPlot(luigi.Task):
                     f"bkg_model_{self.date:%y%m%d}_det_{detector}_echan_{echan}.png"
                 )
 
-                plot_files.append(luigi.LocalTarget(os.path.join(job_dir, filename)))
+                plot_files.append(
+                    luigi.LocalTarget(os.path.join(self.job_dir, filename))
+                )
         return plot_files
 
     def run(self):
         self.output()[0].makedirs()
-
-        output_dir = os.path.dirname(self.output()[0].path)
 
         config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_result_plot.yml"
 
@@ -542,7 +576,7 @@ class BkgModelResultPlot(luigi.Task):
         )
 
         plot_generator.create_plots(
-            output_dir=output_dir,
+            output_dir=self.job_dir,
             plot_name="bkg_model_",
             time_stamp="",
         )
@@ -554,6 +588,7 @@ class BkgModelCornerPlot(luigi.Task):
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -571,6 +606,7 @@ class BkgModelCornerPlot(luigi.Task):
             echans=self.echans,
             detectors=self.detectors,
             remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -578,6 +614,7 @@ class BkgModelCornerPlot(luigi.Task):
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "phys_bkg",
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",

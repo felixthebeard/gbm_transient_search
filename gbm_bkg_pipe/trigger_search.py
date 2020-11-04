@@ -17,6 +17,7 @@ class TriggerSearch(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -32,7 +33,10 @@ class TriggerSearch(luigi.Task):
         det = _valid_gbm_detectors[0]
         return dict(
             bkg_fit=GBMBackgroundModelFit(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
             gbm_data_file=DownloadData(
                 date=self.date,
@@ -50,6 +54,7 @@ class TriggerSearch(luigi.Task):
                 "bkg_pipe",
                 f"{self.date:%y%m%d}",
                 self.data_type,
+                self.step,
                 "trigger_result.yml",
             )
         )
@@ -58,7 +63,7 @@ class TriggerSearch(luigi.Task):
         search = Search(
             result_file=self.input()["bkg_fit"].path,
             min_bin_width=5,
-            bad_fit_threshold=60,
+            bad_fit_threshold=100,
         )
 
         search.find_changepoints_angles(min_size=3, jump=5, model="l2")
@@ -73,6 +78,6 @@ class TriggerSearch(luigi.Task):
 
         search.plot_results(plot_dir)
 
-        search.set_data_timestamp(self.input()["gbm_data_file"].path)
+        search.set_data_timestamp(self.input()["gbm_data_file"]["local_file"].path)
 
         search.save_result(self.output().path)

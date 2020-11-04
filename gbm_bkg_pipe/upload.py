@@ -15,6 +15,7 @@ from gbm_bkg_pipe.plots import (
     CreateSpectrumPlot,
     CreateBkgModelPlot,
 )
+from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
 from gbm_bkg_pipe.trigger_search import TriggerSearch
@@ -706,19 +707,12 @@ class UploadBkgResultPlots(luigi.Task):
     step = luigi.Parameter()
 
     def requires(self):
-        upload_bkg_plots = {}
-
-        for det in _valid_gbm_detectors:
-            for e in _valid_echans:
-                upload_bkg_plots[f"{det}_{e}"] = UploadBkgResultPlot(
-                    date=self.date,
-                    data_type=self.data_type,
-                    remote_host=self.remote_host,
-                    detector=det,
-                    echan=e,
-                    step=self.step,
-                )
-        return upload_bkg_plots
+        return BkgModelPlots(
+            date=self.date,
+            data_type=self.data_type,
+            remote_host=self.remote_host,
+            step=self.step,
+        )
 
     def output(self):
         return luigi.LocalTarget(
@@ -733,6 +727,31 @@ class UploadBkgResultPlots(luigi.Task):
         )
 
     def run(self):
+
+        for det in _valid_gbm_detectors:
+            for echan in _valid_echans:
+
+                for run_dets in gbm_bkg_pipe_config["data"]["detectors"]:
+                    if det in run_dets:
+                        break
+
+                for run_echans in gbm_bkg_pipe_config["data"]["echans"]:
+                    if det in run_dets:
+                        break
+
+                task_name = f"result_plot_d{'_'.join(run_dets)}_e{'_'.join(run_echans)}"
+
+                upload_date_plot(
+                    date=self.date,
+                    data_type=self.data_type,
+                    plot_file=self.input().input()[task_name][f"{det}_{echan}"].path,
+                    plot_type="bkg_result",
+                    wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
+                    max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+                    det_name=det,
+                    echan=echan,
+                )
+
         if_dir_containing_file_not_existing_then_make(self.output().path)
 
         os.system(f"touch {self.output().path}")

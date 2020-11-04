@@ -1,0 +1,25 @@
+#!/bin/bash -l
+#SBATCH -J balrog_loc 
+#SBATCH --partition=express
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=40
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=fkunzwei@mpe.mpg.de
+#SBATCH --time=04:00:00   # run time in h:m:s, up to 24h possible
+
+module purge
+export GBMDATA=/ptmp/fkunzwei/gbm_data
+export LD_LIBRARY_PATH=$HOME/sw/MultiNest/lib                                                                                                                                                                                                                 
+module load gcc/9 impi mkl anaconda/3 mpi4py
+#module load intel/19.1.2 impi/2019.8 anaconda/3/2020.02
+
+# avoid overbooking of the cores which might occur via NumPy/MKL threading
+export OMP_NUM_THREADS=1
+
+# date is passed as argument
+TRIGGER_NAMES_FILE=$1
+TRIGGER_DIR=$2
+BALROG_TIMEOUT=$3
+
+srun loc_triggers.sh ${TRIGGER_NAMES_FILE} ${TRIGGER_DIR} ${BALROG_TIMEOUT}

@@ -575,7 +575,7 @@ class BkgModelResultPlot(luigi.Task):
         return plot_files
 
     def run(self):
-        self.output()["{self.detectors[0]}_{self.echans[0]}"].makedirs()
+        self.output()[f"{self.detectors[0]}_{self.echans[0]}"].makedirs()
 
         config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_result_plot.yml"
 

@@ -268,11 +268,11 @@ class BkgConfigWriter(object):
                 else:
                     raise Exception("Unknown fit method")
 
-            elif "norm_point_source" in param_name:
-                ps_name = re.search("norm_point_source-(.*?)_pl", param_name).groups()[
-                    0
-                ]
+            elif re.search("norm_(.*?)_pl", param_name):
+                ps_name = re.search("norm_(.*?)_pl", param_name).groups()[0]
+
                 self._config["priors"][f"ps"][ps_name.upper()] = dict(pl=dict())
+
                 if fit_method == "stan":
                     self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
                         prior="normal_on_log",

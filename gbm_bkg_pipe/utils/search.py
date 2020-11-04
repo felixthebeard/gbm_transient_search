@@ -495,10 +495,11 @@ class Search(object):
         # we will now determine the most significant detector
         # this is done by findind the peak in counts over background in each detector,
         # and calculating the significance of the time interval of [t_peak-10s, t_peak+10s]
-        # That would later be used in balrog
+        # that would later be used in balrog
         # We dont use the entire interval as these could sometimes be long and weak deviations
         # from the background that for long intervals can lead to relatively strong significance
-        # but without a "peak".
+        # but without a "good" signal, to prevent false detections its more useful to take the
+        # time around the peak.
         trigger_significance = []
         for interval in trigger_intervals:
 
@@ -556,6 +557,31 @@ class Search(object):
                 self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
             )
 
+        # Calculate the significance of each detector for the active interval
+        # that was selected based on the most significant detector
+        trigger_significance = []
+        for i, interval in enumerate(trigger_intervals):
+
+            sig_dict = {}
+
+            for det in self._detectors:
+
+                start_time = trigger_peak_times[i] - 10
+                stop_time = trigger_peak_times[i] + 10
+
+                idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
+                idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
+
+                sig_dict[det] = float(
+                    calc_significance(
+                        data=self._observed_counts_total[det][idx_low:idx_high],
+                        background=self._bkg_counts_total[det][idx_low:idx_high],
+                        bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
+                    )
+                )
+
+            trigger_significance.append(sig_dict)
+
         # Filter out duplicate peak times and keep the shorter intervals
         unique_peak_ids = self._filter_duplicate_peaks(
             trigger_peak_times, trigger_intervals
@@ -567,7 +593,7 @@ class Search(object):
                 unique_peak_ids
             ],
             peak_times=np.array(trigger_peak_times)[unique_peak_ids],
-            required_significance=3,
+            required_significance=5,
         )
 
         self._trigger_intervals = np.array(trigger_intervals)[significant_ids]
@@ -800,7 +826,7 @@ class Search(object):
         plotter.save_plot_data(output_dir)
 
     def set_data_timestamp(self, data_file_path):
-        with fits.open(data_file_path, "r") as f:
+        with fits.open(data_file_path) as f:
             data_timestamp_goddard = f["PRIMARY"].header["DATE"] + ".000Z"
 
         datetime_ob_goddard = pytz.timezone("US/Eastern").localize(

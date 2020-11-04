@@ -230,45 +230,6 @@ class BkgConfigWriter(object):
                 else:
                     raise Exception("Unknown fit method")
 
-            elif "norm_constant_echan-" in param_name:
-                echan = param_name[-1]
-
-                if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                    self._config["priors"][f"cr_echan-{echan}"] = {}
-
-                if fit_method == "stan":
-                    self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
-                        prior="normal_on_log",
-                        gaussian=[log_param_mean, 0.1],
-                    )
-                elif fit_method == "multinest":
-                    self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
-                        prior="truncated_gaussian",
-                        bounds=[1.0e-1, 1.0e2],
-                        gaussian=[param_mean, 0.1],
-                    )
-                else:
-                    raise Exception("Unknown fit method")
-            elif "norm_magnetic_echan-" in param_name:
-                echan = param_name[-1]
-
-                if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                    self._config["priors"][f"cr_echan-{echan}"] = {}
-
-                if fit_method == "stan":
-                    self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
-                        prior="normal_on_log",
-                        gaussian=[log_param_mean, 0.1],
-                    )
-                elif fit_method == "multinest":
-                    self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
-                        prior="truncated_gaussian",
-                        bounds=[1.0e-1, 1.0e2],
-                        gaussian=[param_mean, 0.1],
-                    )
-                else:
-                    raise Exception("Unknown fit method")
-
             elif re.search("norm_(.*?)_pl", param_name):
                 ps_name = re.search("norm_(.*?)_pl", param_name).groups()[0]
 
@@ -307,8 +268,59 @@ class BkgConfigWriter(object):
             elif "norm_saa-" in param_name:
                 pass
 
+        # TODO: Use detector specific prior instead of mean over priors
+        # this requires adjustment in the background model
+        for echan in self._echans:
+
+            detector_mean = np.mean(
+                [v for k, v in params.items() if f"norm_constant_echan-{echan}" in k]
+            )
+
+            param_mean = float("%.3g" % detector_mean)
+            log_param_mean = float("%.3g" % np.log(detector_mean))
+
+            if f"cr_echan-{echan}" not in self._config["priors"].keys():
+                self._config["priors"][f"cr_echan-{echan}"] = {}
+
+            if fit_method == "stan":
+                self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
+                    prior="normal_on_log",
+                    gaussian=[log_param_mean, 0.1],
+                )
+            elif fit_method == "multinest":
+                self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
+                    prior="truncated_gaussian",
+                    bounds=[1.0e-1, 1.0e2],
+                    gaussian=[param_mean, 0.1],
+                )
             else:
-                raise Exception(f"Unknown param_name '{param_name}' provided")
+                raise Exception("Unknown fit method")
+
+        for echan in self._echans:
+
+            detector_mean = np.mean(
+                [v for k, v in params.items() if f"norm_magnetic_echan-{echan}" in k]
+            )
+
+            param_mean = float("%.3g" % detector_mean)
+            log_param_mean = float("%.3g" % np.log(detector_mean))
+
+            if f"cr_echan-{echan}" not in self._config["priors"].keys():
+                self._config["priors"][f"cr_echan-{echan}"] = {}
+
+            if fit_method == "stan":
+                self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
+                    prior="normal_on_log",
+                    gaussian=[log_param_mean, 0.1],
+                )
+            elif fit_method == "multinest":
+                self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
+                    prior="truncated_gaussian",
+                    bounds=[1.0e-1, 1.0e2],
+                    gaussian=[param_mean, 0.1],
+                )
+            else:
+                raise Exception("Unknown fit method")
 
     def write_config_file(self, output):
 

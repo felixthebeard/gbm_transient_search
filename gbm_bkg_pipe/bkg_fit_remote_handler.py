@@ -301,6 +301,30 @@ class RunPhysBkgModel(luigi.Task):
         else:
             return 1
 
+    @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
+
+    @property
+    def job_dir_remote(self):
+        return os.path.join(
+            remote_hosts_config["hosts"][self.remote_host]["base_dir"],
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+        )
+
     def requires(self):
         requires = {
             "config": CreateBkgConfig(
@@ -336,24 +360,6 @@ class RunPhysBkgModel(luigi.Task):
         return requires
 
     def output(self):
-        job_dir = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
-        job_dir_remote = os.path.join(
-            remote_hosts_config["hosts"][self.remote_host]["base_dir"],
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
         result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
             f"{self.date:%y%m%d}",
             "-".join(self.detectors),
@@ -365,27 +371,27 @@ class RunPhysBkgModel(luigi.Task):
             "-".join(self.echans),
         )
         return {
-            "job_id": luigi.LocalTarget(os.path.join(job_dir, "job_id.txt")),
+            "job_id": luigi.LocalTarget(os.path.join(self.job_dir, "job_id.txt")),
             "chains_dir": RemoteTarget(
-                os.path.join(job_dir_remote, "stan_chains"),
+                os.path.join(self.job_dir_remote, "stan_chains"),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
                 sshpass=True,
             ),
             "result_file": RemoteTarget(
-                os.path.join(job_dir_remote, result_file_name),
+                os.path.join(self.job_dir_remote, result_file_name),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
                 sshpass=True,
             ),
             "arviz_file": RemoteTarget(
-                os.path.join(job_dir_remote, arviz_file_name),
+                os.path.join(self.job_dir_remote, arviz_file_name),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
                 sshpass=True,
             ),
             "success": RemoteTarget(
-                os.path.join(job_dir_remote, "success.txt"),
+                os.path.join(self.job_dir_remote, "success.txt"),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
                 sshpass=True,
@@ -420,10 +426,11 @@ class RunPhysBkgModel(luigi.Task):
             "--parsable",
             f"--nice={nice}",
             "-D",
-            f"{os.path.dirname(self.input()['config'].path)}",
+            f"{self.job_dir_remote}",
             f"{script_path}",
             f"{self.date:%y%m%d}",
             f"{self.input()['config'].path}",
+            f"{self.job_dir_remote}",
         ]
 
         check_status_cmd = [
@@ -552,7 +559,7 @@ class BkgModelResultPlot(luigi.Task):
         )
 
     def output(self):
-        plot_files = []
+        plot_files = {}
 
         for detector in self.detectors:
             for echan in self.echans:
@@ -561,13 +568,14 @@ class BkgModelResultPlot(luigi.Task):
                     f"bkg_model_{self.date:%y%m%d}_det_{detector}_echan_{echan}.png"
                 )
 
-                plot_files.append(
-                    luigi.LocalTarget(os.path.join(self.job_dir, filename))
+                plot_files[f"{detector}_{echan}"] = luigi.LocalTarget(
+                    os.path.join(self.job_dir, filename)
                 )
+
         return plot_files
 
     def run(self):
-        self.output()[0].makedirs()
+        self.output().values()[0].makedirs()
 
         config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/phys_bkg_model/config_result_plot.yml"
 

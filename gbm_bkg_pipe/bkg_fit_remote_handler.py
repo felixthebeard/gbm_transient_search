@@ -192,7 +192,7 @@ class CreateBkgConfig(luigi.Task):
     def run(self):
 
         config_writer = BkgConfigWriter(
-            self.date, self.data_type, self.echans, self.detectors
+            self.date, self.data_type, self.echans, self.detectors, step=self.step
         )
 
         config_writer.build_config()

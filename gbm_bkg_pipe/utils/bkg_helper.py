@@ -13,11 +13,12 @@ base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
 
 class BkgConfigWriter(object):
-    def __init__(self, date, data_type, echans, detectors):
+    def __init__(self, date, data_type, echans, detectors, step="final"):
         self._date = date
         self._data_type = data_type
         self._echans = echans
         self._detectors = detectors
+        self._step = step
 
         self._load_default_config()
 
@@ -134,164 +135,179 @@ class BkgConfigWriter(object):
 
     def _update_priors(self):
 
-        fit_method = "stan"
+        if self._step == "final":
 
-        for delta_days in range(0, 5):
-
-            day_before = self._date - timedelta(days=delta_days)
-
-            job_dir_day_before = os.path.join(
+            job_dir = os.path.join(
                 base_dir,
-                f"{day_before:%y%m%d}",
+                f"{self._date:%y%m%d}",
                 self._data_type,
+                "base",
                 "phys_bkg",
                 f"det_{'_'.join(self._detectors)}",
                 f"e{'_'.join(self._echans)}",
             )
 
-            file_name = f"fit_result_{day_before:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
+            file_name = f"fit_result_{self._date:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
 
-            result_file = os.path.join(job_dir_day_before, file_name)
+            result_file = os.path.join(job_dir, file_name)
 
             if os.path.exists(result_file):
 
-                print("daybefore found")
+                self.build_priors_from_result(result_file)
 
-                with h5py.File(result_file, "r") as f:
+                return True
+        else:
 
-                    param_names = f.attrs["param_names"]
+            for delta_days in range(0, 5):
 
-                    best_fit_values = f.attrs["best_fit_values"]
+                day_before = self._date - timedelta(days=delta_days)
 
-                params = dict(zip(param_names, best_fit_values))
+                job_dir_day_before = os.path.join(
+                    base_dir,
+                    f"{day_before:%y%m%d}",
+                    self._data_type,
+                    "final",
+                    "phys_bkg",
+                    f"det_{'_'.join(self._detectors)}",
+                    f"e{'_'.join(self._echans)}",
+                )
 
-                for param_name, best_fit_value in params.items():
+                file_name = f"fit_result_{day_before:%y%m%d}_{'_'.join(self._detectors)}_e{'_'.join(self._echans)}.hdf5"
 
-                    param_mean = float("%.3g" % best_fit_value)
+                result_file = os.path.join(job_dir_day_before, file_name)
 
-                    if param_name == "norm_earth_albedo":
-                        self._config["priors"]["earth"] = dict(fixed=dict())
+                if os.path.exists(result_file):
 
-                        if fit_method == "stan":
-                            self._config["priors"]["earth"]["fixed"]["norm"] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.1],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"]["earth"]["fixed"]["norm"] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[0.5e-2, 5.0e-2],
-                                gaussian=[param_mean, 0.1],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
+                    self.build_priors_from_result(result_file)
 
-                    elif param_name == "norm_cgb":
-                        self._config["priors"]["cgb"] = dict(fixed=dict())
-                        if fit_method == "stan":
-                            self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.1],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[4.0e-2, 3.0e-1],
-                                gaussian=[param_mean, 0.1],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
+                    return True
 
-                    elif "norm_constant_echan-" in param_name:
-                        echan = param_name[-1]
+    def build_priors_from_result(self, result_file, fit_method="stan"):
 
-                        if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                            self._config["priors"][f"cr_echan-{echan}"] = {}
+        with h5py.File(result_file, "r") as f:
 
-                        if fit_method == "stan":
-                            self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.1],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[1.0e-1, 1.0e2],
-                                gaussian=[param_mean, 0.1],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
-                    elif "norm_magnetic_echan-" in param_name:
-                        echan = param_name[-1]
+            param_names = f.attrs["param_names"]
 
-                        if f"cr_echan-{echan}" not in self._config["priors"].keys():
-                            self._config["priors"][f"cr_echan-{echan}"] = {}
+            best_fit_values = f.attrs["best_fit_values"]
 
-                        if fit_method == "stan":
-                            self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.1],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[1.0e-1, 1.0e2],
-                                gaussian=[param_mean, 0.1],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
+        params = dict(zip(param_names, best_fit_values))
 
-                    elif "norm_point_source" in param_name:
-                        ps_name = re.search(
-                            "norm_point_source-(.*?)_pl", param_name
-                        ).groups()[0]
-                        self._config["priors"][f"ps"][ps_name.upper()] = dict(pl=dict())
-                        if fit_method == "stan":
-                            self._config["priors"][f"ps"][ps_name.upper()]["pl"][
-                                "norm"
-                            ] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.1],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"][f"ps"][ps_name.upper()]["pl"][
-                                "norm"
-                            ] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[1.0e-4, 1.0e9],
-                                gaussian=[param_mean, 0.1],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
+        for param_name, best_fit_value in params.items():
 
-                    elif "eff_area_corr_" in param_name:
-                        det_name = re.search(
-                            "eff_area_corr_(.*?)\b", param_name
-                        ).groups()[0]
-                        if fit_method == "stan":
-                            self._config["priors"][
-                                f"eff_area_correction_{det_name}"
-                            ] = dict(
-                                prior="normal_on_log",
-                                gaussian=[np.log(param_mean), 0.01],
-                            )
-                        elif fit_method == "multinest":
-                            self._config["priors"][
-                                f"eff_area_correction_{det_name}"
-                            ] = dict(
-                                prior="truncated_gaussian",
-                                bounds=[0.8, 1.2],
-                                gaussian=[param_mean, 0.01],
-                            )
-                        else:
-                            raise Exception("Unknown fit method")
+            param_mean = float("%.3g" % best_fit_value)
 
-                    elif "norm_saa-" in param_name:
-                        pass
+            if param_name == "norm_earth_albedo":
+                self._config["priors"]["earth"] = dict(fixed=dict())
 
-                    else:
-                        raise Exception(f"Unknown param_name '{param_name}' provided")
-                break
+                if fit_method == "stan":
+                    self._config["priors"]["earth"]["fixed"]["norm"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.1],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"]["earth"]["fixed"]["norm"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[0.5e-2, 5.0e-2],
+                        gaussian=[param_mean, 0.1],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+
+            elif param_name == "norm_cgb":
+                self._config["priors"]["cgb"] = dict(fixed=dict())
+                if fit_method == "stan":
+                    self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.1],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[4.0e-2, 3.0e-1],
+                        gaussian=[param_mean, 0.1],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+
+            elif "norm_constant_echan-" in param_name:
+                echan = param_name[-1]
+
+                if f"cr_echan-{echan}" not in self._config["priors"].keys():
+                    self._config["priors"][f"cr_echan-{echan}"] = {}
+
+                if fit_method == "stan":
+                    self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.1],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[1.0e-1, 1.0e2],
+                        gaussian=[param_mean, 0.1],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+            elif "norm_magnetic_echan-" in param_name:
+                echan = param_name[-1]
+
+                if f"cr_echan-{echan}" not in self._config["priors"].keys():
+                    self._config["priors"][f"cr_echan-{echan}"] = {}
+
+                if fit_method == "stan":
+                    self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.1],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[1.0e-1, 1.0e2],
+                        gaussian=[param_mean, 0.1],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+
+            elif "norm_point_source" in param_name:
+                ps_name = re.search("norm_point_source-(.*?)_pl", param_name).groups()[
+                    0
+                ]
+                self._config["priors"][f"ps"][ps_name.upper()] = dict(pl=dict())
+                if fit_method == "stan":
+                    self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.1],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[1.0e-4, 1.0e9],
+                        gaussian=[param_mean, 0.1],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+
+            elif "eff_area_corr_" in param_name:
+                det_name = re.search("eff_area_corr_(.*?)\b", param_name).groups()[0]
+                if fit_method == "stan":
+                    self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
+                        prior="normal_on_log",
+                        gaussian=[np.log(param_mean), 0.01],
+                    )
+                elif fit_method == "multinest":
+                    self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
+                        prior="truncated_gaussian",
+                        bounds=[0.8, 1.2],
+                        gaussian=[param_mean, 0.01],
+                    )
+                else:
+                    raise Exception("Unknown fit method")
+
+            elif "norm_saa-" in param_name:
+                pass
+
+            else:
+                raise Exception(f"Unknown param_name '{param_name}' provided")
 
     def write_config_file(self, output):
 

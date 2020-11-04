@@ -15,7 +15,6 @@ from gbmbkgpy.io.package_data import get_path_of_external_data_dir
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
-from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
@@ -162,6 +161,8 @@ class CreateBkgConfig(luigi.Task):
             )
         }
         if self.step == "final":
+            from gbm_bkg_pipe.trigger_search import TriggerSearch
+
             requires["trigger_search"] = TriggerSearch(
                 date=self.date,
                 data_type=self.data_type,

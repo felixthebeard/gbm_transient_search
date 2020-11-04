@@ -46,6 +46,7 @@ class LocalizeTriggers(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -61,13 +62,22 @@ class LocalizeTriggers(luigi.Task):
 
         requirements = {
             "bkg_fit": GBMBackgroundModelFit(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
             "trigger_search": TriggerSearch(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
             "setup_loc": SetupTriggerLocalization(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
         }
 
@@ -80,12 +90,20 @@ class LocalizeTriggers(luigi.Task):
         return dict(
             done=luigi.LocalTarget(
                 os.path.join(
-                    base_dir, f"{self.date:%y%m%d}", self.data_type, done_filename
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    self.step,
+                    done_filename,
                 )
             ),
             result_file=luigi.LocalTarget(
                 os.path.join(
-                    base_dir, f"{self.date:%y%m%d}", self.data_type, result_filename
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    self.step,
+                    result_filename,
                 )
             ),
         )
@@ -104,6 +122,7 @@ class LocalizeTriggers(luigi.Task):
                     data_type=t_info["data_type"],
                     trigger_name=t_info["trigger_name"],
                     remote_host=self.remote_host,
+                    step=self.step,
                 )
             )
         yield balrog_tasks
@@ -146,6 +165,7 @@ class SetupTriggerLocalization(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -161,7 +181,10 @@ class SetupTriggerLocalization(luigi.Task):
 
         requirements = {
             "bkg_fit": GBMBackgroundModelFit(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
             "trigger_search": TriggerSearch(
                 date=self.date, data_type=self.data_type, remote_host=self.remote_host
@@ -176,7 +199,11 @@ class SetupTriggerLocalization(luigi.Task):
         return dict(
             done=luigi.LocalTarget(
                 os.path.join(
-                    base_dir, f"{self.date:%y%m%d}", self.data_type, done_filename
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    self.step,
+                    done_filename,
                 )
             ),
             trigger_information=luigi.LocalTarget(
@@ -184,6 +211,7 @@ class SetupTriggerLocalization(luigi.Task):
                     base_dir,
                     f"{self.date:%y%m%d}",
                     self.data_type,
+                    self.step,
                     "trigger",
                     "trigger_information.yml",
                 )
@@ -212,6 +240,7 @@ class ProcessLocalizationResult(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -223,6 +252,17 @@ class ProcessLocalizationResult(luigi.Task):
         else:
             return 1
 
+    @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "trigger",
+            self.trigger_name,
+        )
+
     def requires(self):
         if balrog_run_destination == "local":
             return dict(
@@ -231,49 +271,61 @@ class ProcessLocalizationResult(luigi.Task):
                     data_type=self.data_type,
                     trigger_name=self.trigger_name,
                     remote_host=self.remote_host,
+                    step=self.step,
                 ),
             )
         elif balrog_run_destination == "remote":
+            # Add all intermediate tasks to the requeriements here
+            # to speed up building the luigi DAG
             return dict(
                 balrog_remote_run=RunBalrogTasksRemote(
                     date=self.date,
                     data_type=self.data_type,
                     remote_host=self.remote_host,
+                    step=self.step,
+                ),
+                run_balrog=RunBalrogRemote(
+                    date=self.date,
+                    data_type=self.data_type,
+                    trigger_name=self.trigger_name,
+                    remote_host=self.remote_host,
+                    step=self.step,
                 ),
                 balrog=CopyRemoteBalrogResult(
                     date=self.date,
                     data_type=self.data_type,
                     trigger_name=self.trigger_name,
                     remote_host=self.remote_host,
+                    step=self.step,
+                ),
+                create_trigger_files=CreateTriggerFiles(
+                    date=self.date,
+                    data_type=self.data_type,
+                    trigger_name=self.trigger_name,
+                    remote_host=self.remote_host,
+                    step=self.step,
+                ),
+                copy_trigger_files=CopyTriggerFilesToRemote(
+                    date=self.date,
+                    data_type=self.data_type,
+                    trigger_name=self.trigger_name,
+                    remote_host=self.remote_host,
+                    step=self.step,
                 ),
             )
         else:
             raise Exception("Unkown balrog run destination")
 
     def output(self):
-        base_job = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            "trigger",
-            self.trigger_name,
-        )
         return {
             "result_file": luigi.LocalTarget(
-                os.path.join(base_job, "localization_result.yml")
+                os.path.join(self.job_dir, "localization_result.yml")
             ),
             "post_equal_weights": self.input()["balrog"]["post_equal_weights"],
         }
 
     def run(self):
-        trigger_file = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            "trigger",
-            self.trigger_name,
-            "trigger_info.yml",
-        )
+        trigger_file = os.path.join(self.job_dir, "trigger_info.yml")
 
         result_reader = ResultReader(
             trigger_name=self.trigger_name,
@@ -291,6 +343,7 @@ class RunBalrog(ExternalProgramTask):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": balrog_n_cores_multinest}
     worker_timeout = balrog_timeout
@@ -304,10 +357,24 @@ class RunBalrog(ExternalProgramTask):
         else:
             return 1
 
+    @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "trigger",
+            self.trigger_name,
+        )
+
     def requires(self):
         requirements = {
             "bkg_fit": GBMBackgroundModelFit(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
             "trigger_search": TriggerSearch(
                 date=self.date, data_type=self.data_type, remote_host=self.remote_host
@@ -317,35 +384,25 @@ class RunBalrog(ExternalProgramTask):
         return requirements
 
     def output(self):
-        base_job = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            "trigger",
-            self.trigger_name,
-        )
         fit_result_name = f"{self.trigger_name}_loc_results.fits"
         spectral_plot_name = f"{self.trigger_name}_spectrum_plot.png"
 
         return {
-            "fit_result": luigi.LocalTarget(os.path.join(base_job, fit_result_name)),
+            "fit_result": luigi.LocalTarget(
+                os.path.join(self.job_dir, fit_result_name)
+            ),
             "post_equal_weights": luigi.LocalTarget(
                 os.path.join(
-                    base_job, "chains", f"{self.trigger_name}_post_equal_weights.dat"
+                    self.job_dir,
+                    "chains",
+                    f"{self.trigger_name}_post_equal_weights.dat",
                 )
             ),
             #'spectral_plot': luigi.LocalTarget(os.path.join(base_job, 'plots', spectral_plot_name))
         }
 
     def program_args(self):
-        trigger_file = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            "trigger",
-            self.trigger_name,
-            "trigger_info.yml",
-        )
+        trigger_file = os.path.join(self.job_dir, "trigger_info.yml")
 
         fit_script_path = (
             f"{os.path.dirname(os.path.abspath(__file__))}/balrog/fit_script.py"
@@ -378,11 +435,12 @@ class RunBalrog(ExternalProgramTask):
         return command
 
 
-class CreateTriggerFiles(luigi.Task):
+class CopyTriggerFilesToRemote(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -400,53 +458,10 @@ class CreateTriggerFiles(luigi.Task):
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "trigger",
             self.trigger_name,
         )
-
-    def requires(self):
-        return SetupTriggerLocalization(
-            date=self.date, data_type=self.data_type, remote_host=self.remote_host
-        )
-
-    def output(self):
-        trigger_files = {}
-        for det in _valid_gbm_detectors:
-            trigger_files[f"local_{det}"] = luigi.LocalTarget(
-                os.path.join(self.job_dir, "pha", f"{self.trigger_name}_{det}.pha")
-            )
-            trigger_files[f"local_{det}_bak"] = luigi.LocalTarget(
-                os.path.join(self.job_dir, "pha", f"{self.trigger_name}_{det}_bak.pha")
-            )
-        trigger_files["trigger_info"] = luigi.LocalTarget(
-            os.path.join(
-                self.job_dir,
-                "trigger_info.yml",
-            ),
-        )
-        return trigger_files
-
-    def run(self):
-        # This is a dummy task to handle the requirements of the
-        # CopyTriggerFilesToRemote task
-        pass
-
-
-class CopyTriggerFilesToRemote(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    trigger_name = luigi.Parameter()
-    remote_host = luigi.Parameter()
-
-    resources = {"cpu": 1}
-
-    @property
-    def priority(self):
-        yesterday = dt.date.today() - timedelta(days=1)
-        if self.date >= yesterday:
-            return 10
-        else:
-            return 1
 
     @property
     def remote_job_dir(self):
@@ -454,6 +469,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "trigger",
             self.trigger_name,
         )
@@ -461,66 +477,43 @@ class CopyTriggerFilesToRemote(luigi.Task):
     def requires(self):
         return dict(
             setup_loc=SetupTriggerLocalization(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
-            ),
-            trigger_files=CreateTriggerFiles(
                 date=self.date,
                 data_type=self.data_type,
-                trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         )
 
     def output(self):
-        remote_files = {}
-        for det in _valid_gbm_detectors:
-
-            remote_files[f"{det}"] = RemoteTarget(
+        return dict(
+            pha_dir=RemoteTarget(
                 os.path.join(
                     self.remote_job_dir,
                     "pha",
-                    f"{self.trigger_name}_{det}.pha",
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
                 sshpass=True,
-            )
-
-            remote_files[f"{det}_bak"] = RemoteTarget(
-                os.path.join(
-                    self.remote_job_dir,
-                    "pha",
-                    f"{self.trigger_name}_{det}_bak.pha",
-                ),
-                host=self.remote_host,
-                username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
-            )
-        remote_files["trigger_info"] = RemoteTarget(
-            os.path.join(
-                self.remote_job_dir,
-                f"trigger_info.yml",
             ),
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            trigger_info=RemoteTarget(
+                os.path.join(
+                    self.remote_job_dir,
+                    f"trigger_info.yml",
+                ),
+                host=self.remote_host,
+                username=remote_hosts_config["hosts"][self.remote_host]["username"],
+                sshpass=True,
+            ),
         )
-        return remote_files
 
     def run(self):
+        local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
 
-        self.output()["t_info"].put(self.input()["trigger_files"]["trigger_info"].path)
+        self.output()["trigger_info"].put(
+            self.input()["trigger_files"]["trigger_info"].path
+        )
 
-        # Copy the local pha files to the remote target
-        for det in _valid_gbm_detectors:
-
-            self.output()["{det}"].put(
-                self.input()["trigger_files"]["local_{det}"].path
-            )
-
-            self.output()["{det}_bak"].put(
-                self.input()["trigger_files"]["local_{det}_bak"].path
-            )
+        self.output()["pha_dir"].put(local_pha_dir.path)
 
 
 class CopyRemoteBalrogResult(luigi.Task):
@@ -528,6 +521,7 @@ class CopyRemoteBalrogResult(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -545,6 +539,7 @@ class CopyRemoteBalrogResult(luigi.Task):
             base_dir,
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "trigger",
             self.trigger_name,
         )
@@ -556,6 +551,7 @@ class CopyRemoteBalrogResult(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
+                step=self.step,
             ),
         )
 
@@ -611,6 +607,7 @@ class RunBalrogRemote(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     resources = {"cpu": 1}
 
@@ -628,6 +625,7 @@ class RunBalrogRemote(luigi.Task):
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "trigger",
             self.trigger_name,
         )
@@ -638,6 +636,7 @@ class RunBalrogRemote(luigi.Task):
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=self.remote_host,
+                step=self.step,
             )
         )
 
@@ -755,9 +754,8 @@ class RunBalrogRemote(luigi.Task):
 class RunBalrogTasksRemote(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
+    step = luigi.Parameter()
 
     result_timeout = 2 * 60 * 60
 
@@ -779,6 +777,7 @@ class RunBalrogTasksRemote(luigi.Task):
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
             f"{self.date:%y%m%d}",
             self.data_type,
+            self.step,
             "trigger",
         )
 
@@ -788,7 +787,10 @@ class RunBalrogTasksRemote(luigi.Task):
                 date=self.date, remote_host=self.remote_host
             ),
             setup_loc=SetupTriggerLocalization(
-                date=self.date, data_type=self.data_type, remote_host=self.remote_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
             ),
         )
         for det in _valid_gbm_detectors:
@@ -820,7 +822,7 @@ class RunBalrogTasksRemote(luigi.Task):
 
             trigger_information = yaml.safe_load(f)
 
-        trigger_files = []
+        trigger_files = {}
 
         for t_info in trigger_information.values():
             trigger_files[t_info["trigger_name"]] = CopyTriggerFilesToRemote(
@@ -834,10 +836,7 @@ class RunBalrogTasksRemote(luigi.Task):
 
         remote_trigger_names = RemoteTarget(
             os.path.join(
-                remote_hosts_config["hosts"][self.remote_host]["base_dir"],
-                f"{self.date:%y%m%d}",
-                self.data_type,
-                "trigger",
+                self.job_dir_remote,
                 f"trigger_names.txt",
             ),
             host=self.remote_host,
@@ -845,7 +844,7 @@ class RunBalrogTasksRemote(luigi.Task):
             sshpass=True,
         )
 
-        with remote_trigger_names.open("r") as f:
+        with remote_trigger_names.open("w") as f:
             f.write("\n".join(trigger_information.keys()))
 
         job_script_path = os.path.join(
@@ -869,12 +868,14 @@ class RunBalrogTasksRemote(luigi.Task):
             "--parsable",
             f"--nice={nice}",
             "-D",
-            f"{os.path.dirname(remote_trigger_names.path)}",
+            f"{self.job_dir_remote}",
             f"{job_script_path}",
             f"{remote_trigger_names.path}",
-            f"{os.path.dirname(remote_trigger_names.path)}",
+            f"{self.job_dir_remote}",
             f"{balrog_timeout}",
         ]
+
+        logging.info(" ".join(run_cmd))
 
         job_output = remote.check_output(run_cmd)
 

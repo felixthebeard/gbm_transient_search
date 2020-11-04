@@ -85,19 +85,40 @@ class CreateReportDate(luigi.Task):
 
         required_tasks = {
             "upload_bkg_plots": UploadBkgResultPlots(
-                date=self.date, data_type=self.data_type, remote_host=run_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
             ),
             "upload_triggers": UploadTriggers(
-                date=self.date, data_type=self.data_type, remote_host=run_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
             ),
             "loc_triggers": LocalizeTriggers(
-                date=self.date, data_type=self.data_type, remote_host=run_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
             ),
             "plot_triggers": PlotTriggers(
-                date=self.date, data_type=self.data_type, remote_host=run_host
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
             ),
-            "bkg_model_plots": BkgModelPlots(
-                date=self.date, data_type=self.data_type, remote_host=run_host
+            "bkg_model_plots_base": BkgModelPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="base",
+            ),
+            "bkg_model_plots_final": BkgModelPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
             ),
         }
 

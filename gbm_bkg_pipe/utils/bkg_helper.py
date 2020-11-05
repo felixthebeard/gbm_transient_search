@@ -204,6 +204,7 @@ class BkgConfigWriter(object):
                     self._config["priors"]["earth"]["fixed"]["norm"] = dict(
                         prior="normal_on_log",
                         gaussian=[log_param_mean, 0.1],
+                        bounds=[0.5e-2, 5.0e-2],
                     )
                 elif fit_method == "multinest":
                     self._config["priors"]["earth"]["fixed"]["norm"] = dict(
@@ -220,6 +221,7 @@ class BkgConfigWriter(object):
                     self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
                         prior="normal_on_log",
                         gaussian=[log_param_mean, 0.1],
+                        bounds=[4.0e-2, 3.0e-1],
                     )
                 elif fit_method == "multinest":
                     self._config["priors"]["cgb"]["fixed"]["norm"] = dict(
@@ -239,6 +241,7 @@ class BkgConfigWriter(object):
                     self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
                         prior="normal_on_log",
                         gaussian=[log_param_mean, 0.1],
+                        bounds=[1.0e-4, 1.0e9],
                     )
                 elif fit_method == "multinest":
                     self._config["priors"][f"ps"][ps_name.upper()]["pl"]["norm"] = dict(
@@ -255,6 +258,7 @@ class BkgConfigWriter(object):
                     self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
                         prior="normal_on_log",
                         gaussian=[log_param_mean, 0.01],
+                        bounds=[0.8, 1.2],
                     )
                 elif fit_method == "multinest":
                     self._config["priors"][f"eff_area_correction_{det_name}"] = dict(
@@ -286,6 +290,7 @@ class BkgConfigWriter(object):
                 self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
                     prior="normal_on_log",
                     gaussian=[log_param_mean, 0.1],
+                    bounds=[1.0e-1, 1.0e2],
                 )
             elif fit_method == "multinest":
                 self._config["priors"][f"cr_echan-{echan}"]["const"] = dict(
@@ -312,6 +317,7 @@ class BkgConfigWriter(object):
                 self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(
                     prior="normal_on_log",
                     gaussian=[log_param_mean, 0.1],
+                    bounds=[1.0e-1, 1.0e2],
                 )
             elif fit_method == "multinest":
                 self._config["priors"][f"cr_echan-{echan}"]["norm"] = dict(

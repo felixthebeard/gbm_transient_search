@@ -410,9 +410,7 @@ class RunBalrog(ExternalProgramTask):
     def program_args(self):
         trigger_file = os.path.join(self.job_dir, "trigger_info.yml")
 
-        fit_script_path = (
-            f"{os.path.dirname(os.path.abspath(__file__))}/balrog/fit_script.py"
-        )
+        fit_script_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/scripts/run_balrog.py"
 
         command = []
 
@@ -433,7 +431,9 @@ class RunBalrog(ExternalProgramTask):
             [
                 f"{balrog_path_to_python}",
                 f"{fit_script_path}",
+                "--trigger_name",
                 f"{self.trigger_name}",
+                "--trigger_info",
                 f"{trigger_file}",
             ]
         )

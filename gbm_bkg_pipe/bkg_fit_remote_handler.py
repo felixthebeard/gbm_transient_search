@@ -291,7 +291,7 @@ class RunPhysBkgModel(luigi.Task):
 
     @property
     def retry_count(self):
-        return 0
+        return 4
 
     @property
     def priority(self):

@@ -1,3 +1,11 @@
+from mpi4py import MPI
+
+using_mpi = True
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
 import os
 import sys
 import warnings
@@ -5,7 +13,6 @@ import warnings
 import matplotlib.pyplot as plt
 import yaml
 from gbm_drm_gen import BALROG_DRM, BALROGLike, DRMGenCTIME
-from mpi4py import MPI
 
 warnings.simplefilter("ignore")
 from threeML import Band  # Thermal_bremsstrahlung_optical_thin,
@@ -73,12 +80,6 @@ _gbm_detectors = (
     "b0",
     "b1",
 )
-
-using_mpi = True
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 gbm_data = os.environ.get("GBMDATA")
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")

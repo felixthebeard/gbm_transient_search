@@ -48,7 +48,7 @@ class BkgConfigWriter(object):
         )
 
     def _load_default_config(self):
-        config_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/phys_bkg_model/config_fit.yml"
+        config_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}/data/bkg_model/config_fit.yml"
 
         # Load the default config file
         with open(config_path) as f:

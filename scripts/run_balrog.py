@@ -90,6 +90,7 @@ class BalrogFit(object):
         self,
         trigger_name,
         trigger_info_file,
+        pha_dir,
     ):
         """
         Initalize MultinestFit for Balrog
@@ -99,6 +100,7 @@ class BalrogFit(object):
         """
         # Basic input
         self._trigger_name = trigger_name
+        self._pha_dir = pha_dir
 
         # Load yaml information
         with open(trigger_info_file, "r") as f:
@@ -144,22 +146,13 @@ class BalrogFit(object):
 
             rsp = BALROG_DRM(drm_gen, 0, 0)
 
-            pha_output_dir = os.path.join(
-                base_dir,
-                self._trigger_info["date"],
-                self._trigger_info["data_type"],
-                "trigger",
-                self._trigger_name,
-                "pha",
-            )
-
             ogip_like = OGIPLike(
                 f"grb{det}",
                 observation=os.path.join(
-                    pha_output_dir, f"{self._trigger_name}_{det}.pha"
+                    self._pha_dir, f"{self._trigger_name}_{det}.pha"
                 ),
                 background=os.path.join(
-                    pha_output_dir, f"{self._trigger_name}_{det}_bak.pha"
+                    self._pha_dir, f"{self._trigger_name}_{det}_bak.pha"
                 ),
                 response=rsp,
                 spectrum_number=1,
@@ -495,22 +488,48 @@ class BalrogFit(object):
 
 
 if __name__ == "__main__":
+    import argparse
 
-    trigger_info_file = sys.argv[1]
+    ############## Argparse for parsing bash arguments ################
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    with open(trigger_info_file, "r") as f:
+    parser.add_argument(
+        "-name",
+        "--trigger_name",
+        type=str,
+        help="Name of one trigger to localize",
+        required=False,
+    )
 
-        trigger_information = yaml.safe_load(f)
+    parser.add_argument(
+        "-tinfo",
+        "--trigger_info",
+        type=str,
+        help="Path to the information file of one trigger",
+        required=False,
+    )
 
-    # Now run balrog for each trigger
-    for trigger_name in trigger_information.keys():
+    parser.add_argument(
+        "-tinfos",
+        "--multi_trigger_info",
+        type=str,
+        help="Path to the file containing multiple trigger informations",
+        required=False,
+    )
 
-        t_info_file = os.path.join(
-            os.path.dirname(trigger_info_file), trigger_name, "trigger_info.yml"
-        )
+    args = parser.parse_args()
+
+    # Run balrog for a single trigger
+    if args.trigger_name is not None:
+
+        assert args.trigger_info is not None
+
+        pha_dir = os.path.join(os.path.dirname(args.trigger_info), "pha")
 
         # get fit object
-        multinest_fit = BalrogFit(trigger_name, t_info_file)
+        multinest_fit = BalrogFit(args.trigger_name, args.trigger_info, pha_dir)
 
         multinest_fit.fit()
         multinest_fit.save_fit_result()
@@ -518,7 +537,44 @@ if __name__ == "__main__":
         multinest_fit.unlink_temp_chains_dir()
 
         success_file = os.path.join(
-            os.path.dirname(trigger_info_file), f"{trigger_name}_balrog.success"
+            os.path.dirname(args.trigger_info), f"{args.trigger_name}_balrog.success"
         )
         if rank == 0:
             os.system(f"touch {success_file}")
+
+    # Run balrog in a loop for all triggers in the trigger information file
+    else:
+
+        assert args.multi_trigger_info is not None
+
+        with open(args.multi_trigger_info, "r") as f:
+
+            trigger_information = yaml.safe_load(f)
+
+        # Now run balrog for each trigger
+        for trigger_name in trigger_information.keys():
+
+            t_info_file = os.path.join(
+                os.path.dirname(args.multi_trigger_info),
+                trigger_name,
+                "trigger_info.yml",
+            )
+
+            pha_dir = os.path.join(
+                os.path.dirname(args.multi_trigger_info), trigger_name, "pha"
+            )
+
+            # get fit object
+            multinest_fit = BalrogFit(trigger_name, t_info_file, pha_dir)
+
+            multinest_fit.fit()
+            multinest_fit.save_fit_result()
+            multinest_fit.create_spectrum_plot()
+            multinest_fit.unlink_temp_chains_dir()
+
+            success_file = os.path.join(
+                os.path.dirname(args.multi_trigger_info),
+                f"{trigger_name}_balrog.success",
+            )
+            if rank == 0:
+                os.system(f"touch {success_file}")

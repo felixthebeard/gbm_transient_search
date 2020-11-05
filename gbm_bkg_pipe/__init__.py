@@ -1,3 +1,7 @@
+import warnings
+
+warnings.simplefilter("ignore")
+
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.bkg_fit_remote_handler import GBMBackgroundModelFit
 from gbm_bkg_pipe.trigger_search import TriggerSearch

@@ -206,6 +206,9 @@ arviz_result = arviz.from_cmdstanpy(
         "time_bins": data_dict["time_bins"],
         "dets": model_generator.data.detectors,
         "echans": model_generator.data.echans,
+        "global_param_names": stan_data.global_param_names,
+        "cont_param_names": stan_data.cont_param_names,
+        "saa_param_names": stan_data.saa_param_names,
     },
     predictions=stan_model_const.generated_quantities(),
 )

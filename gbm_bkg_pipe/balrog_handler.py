@@ -223,7 +223,7 @@ class SetupTriggerLocalization(luigi.Task):
 
     def run(self):
         output_dir = os.path.join(
-            base_dir, f"{self.date:%y%m%d}", self.data_type, "trigger"
+            base_dir, f"{self.date:%y%m%d}", self.data_type, self.step, "trigger"
         )
 
         loc_handler = LocalizationHandler(

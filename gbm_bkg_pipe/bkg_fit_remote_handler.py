@@ -351,7 +351,7 @@ class RunPhysBkgModel(luigi.Task):
             )
 
         # For the simulation we are using the MCL CR approximation
-        if not simulation:
+        if not simulate:
             # Download bgo cspec data for CR approximation
             bgos = ["b0", "b1"]
             for det in bgos:

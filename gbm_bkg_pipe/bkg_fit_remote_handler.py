@@ -17,7 +17,10 @@ from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
-from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
+from gbm_bkg_pipe.utils.download_file import (
+    BackgroundDataDownload,
+    BackgroundLATDownload,
+)
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
@@ -361,6 +364,11 @@ class RunPhysBkgModel(luigi.Task):
                     detector=det,
                     remote_host=self.remote_host,
                 )
+        else:
+
+            requires["lat_files"] = DownloadLATData(
+                date=self.date, remote_host=self.remote_host
+            )
 
         return requires
 
@@ -788,12 +796,6 @@ class DownloadPoshistData(luigi.Task):
         )
 
     def run(self):
-        local_path = os.path.join(
-            get_path_of_external_data_dir(),
-            "poshist",
-            f"glg_poshist_all_{self.date:%y%m%d}_v00.fit",
-        )
-
         if not self.output()["local_file"].exists():
 
             dl = BackgroundDataDownload(
@@ -811,6 +813,62 @@ class DownloadPoshistData(luigi.Task):
         if file_readable:
 
             self.output()["remote_file"].put(self.output()["local_file"].path)
+
+
+class DownloadLATData(luigi.Task):
+    """
+    Downloads a DataFile
+    """
+
+    date = luigi.DateParameter()
+    remote_host = luigi.Parameter()
+
+    resources = {"cpu": 1}
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
+    def output(self):
+        return luigi.LocalTarget(
+            os.path.join(base_dir, f"{self.date:%y%m%d}" "download_lat_file.done")
+        )
+
+    def run(self):
+        dl = BackgroundLATDownload(
+            f"{self.date:%y%m%d}",
+            wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
+            max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+        )
+
+        files_readable, file_names = dl.run()
+
+        if files_readable:
+
+            for file_name in file_names:
+
+                local_file = luigi.LocalTarget(os.path.join(data_dir, "lat", file_name))
+                remote_file = RemoteTarget(
+                    os.path.join(
+                        remote_hosts_config["hosts"][self.remote_host]["data_dir"],
+                        "lat",
+                        file_name,
+                    ),
+                    host=self.remote_host,
+                    username=remote_hosts_config["hosts"][self.remote_host]["username"],
+                    sshpass=True,
+                )
+
+                remote_file.put(local_file.path)
+
+            os.system(f"touch {self.output().path}")
+
+        else:
+            return False
 
 
 class UpdatePointsourceDB(luigi.Task):

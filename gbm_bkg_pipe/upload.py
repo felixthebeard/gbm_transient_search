@@ -26,6 +26,7 @@ from gbm_bkg_pipe.utils.upload_utils import (
     upload_date_plot,
 )
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()

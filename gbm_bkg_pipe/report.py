@@ -14,6 +14,8 @@ import logging
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+
 remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
 
 

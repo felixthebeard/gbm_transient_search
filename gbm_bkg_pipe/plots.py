@@ -21,6 +21,7 @@ from gbm_bkg_pipe.utils.plot_utils import (
 from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
 _valid_echans = np.array(gbm_bkg_pipe_config["data"]["echans"]).flatten()

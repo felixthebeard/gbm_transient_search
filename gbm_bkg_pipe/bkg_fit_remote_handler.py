@@ -21,6 +21,7 @@ from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
 data_dir = os.environ.get("GBMDATA")
 
 run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
@@ -689,15 +690,22 @@ class DownloadData(luigi.Task):
         else:
             return 1
 
+    @property
+    def local_data_dir(self):
+        if simulate:
+            return os.path.join(
+                data_dir, "simulation", self.data_type, f"{self.date:%y%m%d}"
+            )
+        else:
+            return os.path.join(data_dir, self.data_type, f"{self.date:%y%m%d}")
+
     def output(self):
         datafile_name = (
             f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
         )
         return dict(
             local_file=luigi.LocalTarget(
-                os.path.join(
-                    data_dir, self.data_type, f"{self.date:%y%m%d}", datafile_name
-                )
+                os.path.join(self.local_data_dir, datafile_name)
             ),
             remote_file=RemoteTarget(
                 os.path.join(
@@ -715,6 +723,11 @@ class DownloadData(luigi.Task):
     def run(self):
 
         if not self.output()["local_file"].exists():
+
+            if simulate:
+                raise Exception(
+                    "Running in simulation mode, but simulation data file not existing"
+                )
 
             dl = BackgroundDataDownload(
                 f"{self.date:%y%m%d}",

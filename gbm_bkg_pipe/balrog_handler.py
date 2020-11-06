@@ -30,6 +30,8 @@ from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+
 balrog_run_destination = gbm_bkg_pipe_config["balrog"]["run_destination"]
 balrog_n_cores_multinest = gbm_bkg_pipe_config["balrog"]["multinest"]["n_cores"]
 balrog_path_to_python = gbm_bkg_pipe_config["balrog"]["multinest"]["path_to_python"]

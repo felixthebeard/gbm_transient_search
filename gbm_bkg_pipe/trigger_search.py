@@ -12,6 +12,8 @@ from gbm_bkg_pipe.utils.search import Search
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
 base_dir = os.environ.get("GBMDATA")
 
+simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+
 
 class TriggerSearch(luigi.Task):
     date = luigi.DateParameter()

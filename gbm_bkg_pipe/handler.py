@@ -2,7 +2,9 @@ import shlex
 import subprocess
 
 from gbm_bkg_pipe import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.env import get_bool_env_value
 
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 n_workers = int(gbm_bkg_pipe_config["luigi"]["n_workers"])
 
 

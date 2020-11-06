@@ -27,10 +27,11 @@ from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
 from gbm_bkg_pipe.utils.result_reader import ResultReader
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
-base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
-simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
 balrog_run_destination = gbm_bkg_pipe_config["balrog"]["run_destination"]
 balrog_n_cores_multinest = gbm_bkg_pipe_config["balrog"]["multinest"]["n_cores"]

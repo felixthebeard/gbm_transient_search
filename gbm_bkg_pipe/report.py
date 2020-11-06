@@ -1,20 +1,21 @@
 import datetime as dt
+import logging
 import os
 from datetime import datetime, timedelta
 
 import luigi
-from luigi.contrib.ssh import RemoteContext, RemoteTarget
+from luigi.contrib.ssh import RemoteContext
 
 from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
-from gbm_bkg_pipe.upload import UploadTriggers, UploadBkgResultPlots
-from gbm_bkg_pipe.plots import PlotTriggers
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-import logging
+from gbm_bkg_pipe.plots import PlotTriggers
+from gbm_bkg_pipe.upload import UploadBkgResultPlots, UploadTriggers
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
-base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
-simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
 remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
 

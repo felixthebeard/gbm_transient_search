@@ -1,33 +1,34 @@
 import os
-import numpy as np
-import luigi
-import yaml
 from datetime import datetime
 
+import luigi
+import numpy as np
+import yaml
+
 from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
+from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
+from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.plots import (
     Create3DLocationPlot,
-    CreateCornerPlot,
     CreateAllLightcurves,
+    CreateBkgModelPlot,
+    CreateCornerPlot,
     CreateLocationPlot,
     CreateMollLocationPlot,
     CreateSatellitePlot,
     CreateSpectrumPlot,
-    CreateBkgModelPlot,
 )
-from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
 from gbm_bkg_pipe.trigger_search import TriggerSearch
-from gbm_bkg_pipe.utils.env import get_env_value
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
 from gbm_bkg_pipe.utils.upload_utils import (
-    upload_transient_report,
-    upload_plot,
     upload_date_plot,
+    upload_plot,
+    upload_transient_report,
 )
 
-simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
-base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
+base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
 _valid_echans = np.array(gbm_bkg_pipe_config["data"]["echans"]).flatten()

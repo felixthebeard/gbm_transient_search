@@ -8,11 +8,12 @@ import numpy as np
 from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadData, GBMBackgroundModelFit
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.search import Search
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
-base_dir = os.environ.get("GBMDATA")
+base_dir = get_env_value("GBMDATA")
 
-simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
 
 class TriggerSearch(luigi.Task):

@@ -12,7 +12,9 @@ from gbm_bkg_pipe.exceptions.custom_exceptions import (
     UploadFailed,
 )
 from gbm_bkg_pipe.utils.env import get_env_value
+from gbm_bkg_pipe.utils.env import get_bool_env_value
 
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_url = get_env_value("GBM_BKG_PIPE_BASE_URL")
 auth_token = get_env_value("GBM_BKG_PIPE_AUTH_TOKEN")
 
@@ -30,6 +32,9 @@ def check_transient_on_website(trigger_name):
     check_existing_url = f"{base_url}/api/check_transient_name/{trigger_name}/"
 
     response = requests.get(url=check_existing_url, headers=headers, verify=True)
+
+    if simulate:
+        return False
 
     # TRANSIENT not in DB
     if response.status_code == 204:
@@ -130,6 +135,9 @@ def upload_transient_report(trigger_name, result, wait_time, max_time):
 
     report = create_report_from_result(result)
 
+    if simulate:
+        return report
+
     # set a flag to kill the job
     flag = True
 
@@ -224,6 +232,9 @@ def update_transient_report(trigger_name, result, wait_time, max_time):
 
     report = create_report_from_result(result)
 
+    if simulate:
+        return True
+
     # set a flag to kill the job
     flag = True
 
@@ -309,6 +320,9 @@ def upload_plot(
         raise TransientNotFound(
             f"Upload of plot for {trigger_name} not possible, because TRANSIENT is missing"
         )
+
+    if simulate:
+        return True
 
     # set a flag to kill the job
     flag = True
@@ -413,6 +427,9 @@ def upload_datafile(
             f"Upload of datafile for {trigger_name} not possible, because TRANSIENT is missing"
         )
 
+    if simulate:
+        return True
+
     # set a flag to kill the job
     flag = True
 
@@ -502,6 +519,9 @@ def upload_date_plot(
     }
 
     url = f"{base_url}/api/transients/date/{date:%y%m%d}/plot/"
+
+    if simulate:
+        return True
 
     # set a flag to kill the job
     flag = True

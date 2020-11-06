@@ -18,10 +18,11 @@ from luigi.contrib.ssh import RemoteContext, RemoteTarget
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import BackgroundDataDownload
+from gbm_bkg_pipe.utils.env import get_bool_env_value
 
-base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+base_dir = os.path.join(get_bool_env_value("GBMDATA"), "bkg_pipe")
 
-simulate = os.environ.get("BKG_PIPE_SIMULATE", False)
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 data_dir = os.environ.get("GBMDATA")
 
 run_detectors = gbm_bkg_pipe_config["data"]["detectors"]

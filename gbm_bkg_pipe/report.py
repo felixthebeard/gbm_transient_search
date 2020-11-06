@@ -111,6 +111,13 @@ class CreateReportDate(luigi.Task):
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=run_host,
+                step="base",
+                loc_plots=False,
+            ),
+            "plot_triggers": PlotTriggers(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
                 step="final",
             ),
             "bkg_model_plots_base": BkgModelPlots(
@@ -129,4 +136,69 @@ class CreateReportDate(luigi.Task):
 
         yield required_tasks
 
+        os.system(f"touch {self.output().path}")
+
+
+class CreateTriggerSearchReport(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    remote_host = luigi.Parameter()
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
+    def output(self):
+        filename = f"{self.date}_{self.data_type}_trigger_search_report_done.txt"
+        return luigi.LocalTarget(
+            os.path.join(base_dir, f"{self.date:%y%m%d}", self.data_type, filename)
+        )
+
+    def requires(self):
+        return {
+            "bkg_model_plots_base": BkgModelPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="base",
+            ),
+            "bkg_model_plots_final": BkgModelPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
+            ),
+            "search_triggers": TriggerSearch(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="base",
+            ),
+            "search_triggers": TriggerSearch(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
+            ),
+            "plot_triggers": PlotTriggers(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="base",
+                loc_plots=False,
+            ),
+            "plot_triggers": PlotTriggers(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
+                loc_plots=False,
+            ),
+        }
+
+    def run(self):
         os.system(f"touch {self.output().path}")

@@ -29,6 +29,7 @@ parser.add_argument(
     help="Name of the config file located in gbm_data/fits/",
 )
 parser.add_argument("-dates", "--dates", type=str, nargs="+", help="Date string")
+parser.add_argument("-outdir", "--output_dir", type=str, help="Output directory")
 
 args = parser.parse_args()
 
@@ -41,15 +42,19 @@ with open(args.config_file) as f:
 if args.dates is not None:
     config["general"]["dates"] = args.dates
 
-output_dir = os.path.join(
-    get_path_of_external_data_dir(),
-    "bkg_pipe",
-    args.dates[0],
-    config["general"]["data_type"],
-    "phys_bkg",
-    f"det_{'_'.join(config['general']['detectors'])}",
-    f"e{'_'.join(config['general']['echans'])}",
-)
+if args.output_dir is not None:
+    output_dir = args.output_dir
+
+else:
+    output_dir = os.path.join(
+        get_path_of_external_data_dir(),
+        "bkg_pipe",
+        args.dates[0],
+        config["general"]["data_type"],
+        "phys_bkg",
+        f"det_{'_'.join(config['general']['detectors'])}",
+        f"e{'_'.join(config['general']['echans'])}",
+    )
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)

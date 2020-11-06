@@ -826,14 +826,18 @@ class Search(object):
         plotter.save_plot_data(output_dir)
 
     def set_data_timestamp(self, data_file_path):
-        with fits.open(data_file_path) as f:
-            data_timestamp_goddard = f["PRIMARY"].header["DATE"] + ".000Z"
+        # Wrap in try except for the simulation to work
+        try:
+            with fits.open(data_file_path) as f:
+                data_timestamp_goddard = f["PRIMARY"].header["DATE"] + ".000Z"
 
-        datetime_ob_goddard = pytz.timezone("US/Eastern").localize(
-            datetime.strptime(data_timestamp_goddard, "%Y-%m-%dT%H:%M:%S.%fZ")
-        )
+            datetime_ob_goddard = pytz.timezone("US/Eastern").localize(
+                datetime.strptime(data_timestamp_goddard, "%Y-%m-%dT%H:%M:%S.%fZ")
+            )
 
-        data_timestamp = datetime_ob_goddard.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            data_timestamp = datetime_ob_goddard.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        except:
+            data_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         self._trigger_information["data_timestamp"] = data_timestamp
 

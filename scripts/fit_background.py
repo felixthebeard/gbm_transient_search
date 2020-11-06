@@ -203,6 +203,7 @@ arviz_result = arviz.from_cmdstanpy(
     posterior_predictive="ppc",
     observed_data={"counts": data_dict["counts"]},
     constant_data={
+        "dates": config["general"]["dates"],
         "time_bins": data_dict["time_bins"],
         "dets": model_generator.data.detectors,
         "echans": model_generator.data.echans,

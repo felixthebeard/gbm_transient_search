@@ -1,20 +1,21 @@
+import datetime as dt
 import json
 import logging
 import os
 import tempfile
 import time
 from datetime import datetime, timedelta
-import datetime as dt
 
+import h5py
 import luigi
 import numpy as np
 import yaml
 from chainconsumer import ChainConsumer
 from gbmbkgpy.io.export import PHAWriter
-from gbmbkgpy.io.package_data import get_path_of_external_data_dir
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
+
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import (
@@ -271,6 +272,9 @@ class CopyResults(luigi.Task):
             "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
             "arviz_file": luigi.LocalTarget(os.path.join(job_dir, arviz_file_name)),
             "config_file": luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml")),
+            "best_fit_file": luigi.LocalTarget(
+                os.path.join(job_dir, "best_fit_params.yml")
+            ),
         }
 
     def run(self):
@@ -282,6 +286,15 @@ class CopyResults(luigi.Task):
 
         # Copy config file to local folder
         self.input()["config_file"].get(self.output()["config_file"].path)
+
+        with h5py.File(self.output()["result_file"].path, "r") as f:
+            best_fit_values = f.attrs["best_fit_values"]
+            param_names = f.attrs["param_names"]
+
+        with self.output()["best_fit_file"].open("w") as f:
+            yaml.dump(
+                dict(zip(param_names, best_fit_values)), f, default_flow_style=False
+            )
 
 
 class RunPhysBkgModel(luigi.Task):

@@ -10,6 +10,7 @@ from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.plots import PlotTriggers
+from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.upload import UploadBkgResultPlots, UploadTriggers
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
@@ -164,38 +165,38 @@ class CreateTriggerSearchReport(luigi.Task):
             "bkg_model_plots_base": BkgModelPlots(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="base",
             ),
             "bkg_model_plots_final": BkgModelPlots(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="final",
             ),
             "search_triggers": TriggerSearch(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="base",
             ),
             "search_triggers": TriggerSearch(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="final",
             ),
             "plot_triggers": PlotTriggers(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="base",
                 loc_plots=False,
             ),
             "plot_triggers": PlotTriggers(
                 date=self.date,
                 data_type=self.data_type,
-                remote_host=run_host,
+                remote_host=self.remote_host,
                 step="final",
                 loc_plots=False,
             ),

@@ -349,15 +349,18 @@ class RunPhysBkgModel(luigi.Task):
                 detector=det,
                 remote_host=self.remote_host,
             )
-        # Download bgo cspec data for CR approximation
-        bgos = ["b0", "b1"]
-        for det in bgos:
-            requires[f"data_{det}"] = DownloadData(
-                date=self.date,
-                data_type="cspec",
-                detector=det,
-                remote_host=self.remote_host,
-            )
+
+        # For the simulation we are using the MCL CR approximation
+        if not simulation:
+            # Download bgo cspec data for CR approximation
+            bgos = ["b0", "b1"]
+            for det in bgos:
+                requires[f"data_{det}"] = DownloadData(
+                    date=self.date,
+                    data_type="cspec",
+                    detector=det,
+                    remote_host=self.remote_host,
+                )
 
         return requires
 

@@ -7,7 +7,9 @@ from datetime import timedelta
 
 from gbmbkgpy.utils.select_pointsources import SelectPointsources
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
+simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
 # bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
 
@@ -105,6 +107,9 @@ class BkgConfigWriter(object):
         self._config.update(setup_sources)
 
         if "b0" in self._detectors or "b1" in self._detectors:
+            self._config["setup"]["cr_approximation"] = "MCL"
+
+        if simulate:
             self._config["setup"]["cr_approximation"] = "MCL"
 
     def _update_ps_setup(self):

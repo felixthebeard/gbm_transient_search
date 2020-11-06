@@ -32,6 +32,7 @@ class PlotTriggers(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
+    loc_plots = luigi.Parameter(default=True)
 
     resources = {"cpu": 1}
 
@@ -64,6 +65,8 @@ class PlotTriggers(luigi.Task):
                     data_type=trigger_information["data_type"],
                     trigger_name=t_info["trigger_name"],
                     remote_host=self.remote_host,
+                    step=self.step,
+                    loc_plots=self.loc_plots,
                 )
             )
         yield plot_tasks
@@ -77,52 +80,59 @@ class CreateAllPlots(luigi.WrapperTask):
     trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
+    loc_plots = luigi.Parameter(default=True)
 
     def requires(self):
-        return {
+        requires = {
             "lightcurves": CreateAllLightcurves(
                 date=self.date,
                 data_type=self.data_type,
                 trigger_name=self.trigger_name,
                 remote_host=self.remote_host,
                 step=self.step,
-            ),
-            "location": CreateLocationPlot(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-            "corner": CreateCornerPlot(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-            "satellite": CreateSatellitePlot(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-            "molllocation": CreateMollLocationPlot(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-            "spectrum": CreateSpectrumPlot(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=self.trigger_name,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
+            )
         }
+
+        if self.loc_plots:
+            requires.update(
+                {
+                    "location": CreateLocationPlot(
+                        date=self.date,
+                        data_type=self.data_type,
+                        trigger_name=self.trigger_name,
+                        remote_host=self.remote_host,
+                        step=self.step,
+                    ),
+                    "corner": CreateCornerPlot(
+                        date=self.date,
+                        data_type=self.data_type,
+                        trigger_name=self.trigger_name,
+                        remote_host=self.remote_host,
+                        step=self.step,
+                    ),
+                    "satellite": CreateSatellitePlot(
+                        date=self.date,
+                        data_type=self.data_type,
+                        trigger_name=self.trigger_name,
+                        remote_host=self.remote_host,
+                        step=self.step,
+                    ),
+                    "molllocation": CreateMollLocationPlot(
+                        date=self.date,
+                        data_type=self.data_type,
+                        trigger_name=self.trigger_name,
+                        remote_host=self.remote_host,
+                        step=self.step,
+                    ),
+                    "spectrum": CreateSpectrumPlot(
+                        date=self.date,
+                        data_type=self.data_type,
+                        trigger_name=self.trigger_name,
+                        remote_host=self.remote_host,
+                        step=self.step,
+                    ),
+                }
+            )
 
 
 class CreateAllLightcurves(luigi.Task):

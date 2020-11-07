@@ -30,6 +30,11 @@ parser.add_argument(
 )
 parser.add_argument("-dates", "--dates", type=str, nargs="+", help="Date string")
 parser.add_argument("-outdir", "--output_dir", type=str, help="Output directory")
+parser.add_argument(
+    "--export_whole_day",
+    action="store_true",
+    help="Export the entire day including the saa regions",
+)
 
 args = parser.parse_args()
 
@@ -197,8 +202,48 @@ result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
 
 stan_data_export.save_data(file_path=os.path.join(output_dir, result_file_name))
 
-time_export = datetime.now() - start_export
+if args.export_whole_day:
+    config_export["saa"]["time_after_saa"] = 100
+    config_export["saa"]["time_before_saa"] = 30
+    config_export["saa"]["short_time_intervals"] = True
 
+    # Create a new model generator instance of the same type
+    model_generator_export = type(model_generator)()
+
+    model_generator_export.from_config_dict(
+        config=config_export,
+        response=response_precalculation,
+        geometry=geometry_precalculation,
+    )
+    # StanDataConstructor
+    stan_data_export = StanDataConstructor(
+        model_generator=model_generator_export, threads_per_chain=n_cores_stan
+    )
+
+    data_dict_export = stan_data_export.construct_data_dict()
+
+    export_quantities = model_export.generate_quantities(
+        data=data_dict_export,
+        mcmc_sample=stan_fit,
+        gq_output_dir=os.path.join(output_dir, "stan_chains"),
+    )
+
+    stan_data_export = StanDataExporter.from_generated_quantities(
+        model_generator_export,
+        export_quantities,
+        stan_fit=stan_fit,
+        param_lookup=stan_data.param_lookup,
+    )
+
+    result_file_name = "fit_result_total_{}_{}_e{}.hdf5".format(
+        config["general"]["dates"][0],
+        "-".join(config["general"]["detectors"]),
+        "-".join(config["general"]["echans"]),
+    )
+
+    stan_data_export.save_data(file_path=os.path.join(output_dir, result_file_name))
+
+time_export = datetime.now() - start_export
 
 start_arviz = datetime.now()
 

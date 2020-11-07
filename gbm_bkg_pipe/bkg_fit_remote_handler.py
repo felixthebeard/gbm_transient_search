@@ -288,8 +288,8 @@ class CopyResults(luigi.Task):
         self.input()["config_file"].get(self.output()["config_file"].path)
 
         with h5py.File(self.output()["result_file"].path, "r") as f:
-            best_fit_values = f.attrs["best_fit_values"]
-            param_names = f.attrs["param_names"]
+            best_fit_values = f.attrs["best_fit_values"].tolist()
+            param_names = f.attrs["param_names"].tolist()
 
         with self.output()["best_fit_file"].open("w") as f:
             yaml.dump(

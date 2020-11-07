@@ -180,6 +180,7 @@ export:
   save_cov_matrix: false
   save_ppc: false
   save_unbinned: true
+  save_whole_day: false
   save_result_path: true
 
 ############################### Input for plotting ##################################################

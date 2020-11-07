@@ -35,6 +35,8 @@ class BkgConfigWriter(object):
 
         self._update_priors()
 
+        self._update_export()
+
     def mask_triggers(self, trigger_result):
 
         with open(trigger_result, "r") as f:
@@ -70,6 +72,15 @@ class BkgConfigWriter(object):
 
         # Update the config parameters with fit specific values
         self._config.update(general_config)
+
+    def _update_export(self):
+
+        export_config = dict(
+            export=dict(save_unbinned=True, save_whole_day=False),
+        )
+
+        # Update the config parameters with fit specific values
+        self._config.update(export_config)
 
     def _update_saa_setup(self):
 

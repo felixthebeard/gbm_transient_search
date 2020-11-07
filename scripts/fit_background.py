@@ -30,11 +30,6 @@ parser.add_argument(
 )
 parser.add_argument("-dates", "--dates", type=str, nargs="+", help="Date string")
 parser.add_argument("-outdir", "--output_dir", type=str, help="Output directory")
-parser.add_argument(
-    "--export_whole_day",
-    action="store_true",
-    help="Export the entire day including the saa regions",
-)
 
 args = parser.parse_args()
 
@@ -131,36 +126,6 @@ time_fit = datetime.now() - start_fit
 
 start_export = datetime.now()
 
-# Export fine binned data
-config = model_generator.config
-# Create a copy of the response precalculation
-response_precalculation = model_generator._resp
-
-# Create a copy of the geomtry precalculation
-geometry_precalculation = model_generator._geom
-
-# Create copy of config dictionary
-config_export = config
-
-config_export["general"]["min_bin_width"] = 5
-config_export["mask_intervals"] = []
-
-# Create a new model generator instance of the same type
-model_generator_export = type(model_generator)()
-
-model_generator_export.from_config_dict(
-    config=config_export,
-    response=response_precalculation,
-    geometry=geometry_precalculation,
-)
-# StanDataConstructor
-stan_data_export = StanDataConstructor(
-    model_generator=model_generator_export, threads_per_chain=n_cores_stan
-)
-
-data_dict_export = stan_data_export.construct_data_dict()
-
-
 ##################################################
 # Create stan export model if not already existing
 stan_model_file_export = os.path.join(stan_model_dir, "background_model_export.stan")
@@ -172,7 +137,6 @@ if not os.path.exists(stan_model_file_export):
     stan_model_const.create_stan_file(stan_model_file_export, total_only=True)
 ##################################################
 
-
 # Create Stan Model
 model_export = CmdStanModel(
     stan_file=stan_model_file_export, cpp_options={"STAN_THREADS": "TRUE"}
@@ -180,12 +144,43 @@ model_export = CmdStanModel(
 
 model_export.compile()
 
+if config["export"]["save_unbinned"]:
+
+    # Export fine binned data
+    config = model_generator.config
+
+    # Create copy of config dictionary
+    config_export = config
+
+    config_export["general"]["min_bin_width"] = 5
+    config_export["mask_intervals"] = []
+
+    # Create a new model generator instance of the same type
+    model_generator_export = type(model_generator)()
+
+    model_generator_export.from_config_dict(
+        config=config_export,
+        response=model_generator._resp,
+        geometry=model_generator._geom,
+    )
+
+else:
+    # Use the model from the fit
+    config_export = config
+    model_generator_export = model_generator
+
+# StanDataConstructor
+stan_data_export = StanDataConstructor(
+    model_generator=model_generator_export, threads_per_chain=n_cores_stan
+)
+
+data_dict_export = stan_data_export.construct_data_dict()
+
 export_quantities = model_export.generate_quantities(
     data=data_dict_export,
     mcmc_sample=stan_fit,
     gq_output_dir=os.path.join(output_dir, "stan_chains"),
 )
-
 
 stan_data_export = StanDataExporter.from_generated_quantities(
     model_generator_export,
@@ -202,7 +197,9 @@ result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
 
 stan_data_export.save_data(file_path=os.path.join(output_dir, result_file_name))
 
-if args.export_whole_day:
+# Export the entire day including the SAA passages
+if config["export"]["save_whole_day"]:
+
     config_export["saa"]["time_after_saa"] = 100
     config_export["saa"]["time_before_saa"] = 30
     config_export["saa"]["short_time_intervals"] = True
@@ -212,9 +209,9 @@ if args.export_whole_day:
 
     model_generator_export.from_config_dict(
         config=config_export,
-        response=response_precalculation,
-        geometry=geometry_precalculation,
+        response=model_generator._resp,
     )
+
     # StanDataConstructor
     stan_data_export = StanDataConstructor(
         model_generator=model_generator_export, threads_per_chain=n_cores_stan

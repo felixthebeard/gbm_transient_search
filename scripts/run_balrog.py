@@ -90,7 +90,7 @@ class BalrogFit(object):
         self,
         trigger_name,
         trigger_info_file,
-        pha_dir,
+        trigger_dir,
     ):
         """
         Initalize MultinestFit for Balrog
@@ -100,7 +100,7 @@ class BalrogFit(object):
         """
         # Basic input
         self._trigger_name = trigger_name
-        self._pha_dir = pha_dir
+        self._trigger_dir = trigger_dir
 
         # Load yaml information
         with open(trigger_info_file, "r") as f:
@@ -149,10 +149,10 @@ class BalrogFit(object):
             ogip_like = OGIPLike(
                 f"grb{det}",
                 observation=os.path.join(
-                    self._pha_dir, f"{self._trigger_name}_{det}.pha"
+                    self._trigger_dir, "pha", f"{self._trigger_name}_{det}.pha"
                 ),
                 background=os.path.join(
-                    self._pha_dir, f"{self._trigger_name}_{det}_bak.pha"
+                    self._trigger_dir, "pha", f"{self._trigger_name}_{det}_bak.pha"
                 ),
                 response=rsp,
                 spectrum_number=1,
@@ -321,11 +321,7 @@ class BalrogFit(object):
         """
         fit_result_name = f"{self._trigger_name}_loc_results.fits"
         fit_result_path = os.path.join(
-            base_dir,
-            self._trigger_info["date"],
-            self._trigger_info["data_type"],
-            "trigger",
-            self._trigger_name,
+            self._trigger_dir,
             fit_result_name,
         )
 
@@ -344,11 +340,7 @@ class BalrogFit(object):
         :return:
         """
         chains_dir = os.path.join(
-            base_dir,
-            self._trigger_info["date"],
-            self._trigger_info["data_type"],
-            "trigger",
-            self._trigger_name,
+            self._trigger_dir,
             "chains",
         )
 
@@ -398,11 +390,7 @@ class BalrogFit(object):
             f"{self._trigger_name}_spectrum_plot_{self._trigger_info['data_type']}.png"
         )
         plot_path = os.path.join(
-            base_dir,
-            self._trigger_info["date"],
-            self._trigger_info["data_type"],
-            "trigger",
-            self._trigger_name,
+            self.trigger_dir,
             "plots",
             plot_name,
         )
@@ -526,7 +514,7 @@ if __name__ == "__main__":
 
         assert args.trigger_info is not None
 
-        pha_dir = os.path.join(os.path.dirname(args.trigger_info), "pha")
+        trigger_dir = os.path.dirname(args.trigger_info)
 
         # get fit object
         multinest_fit = BalrogFit(args.trigger_name, args.trigger_info, pha_dir)
@@ -560,12 +548,12 @@ if __name__ == "__main__":
                 "trigger_info.yml",
             )
 
-            pha_dir = os.path.join(
-                os.path.dirname(args.multi_trigger_info), trigger_name, "pha"
+            trigger_dir = os.path.join(
+                os.path.dirname(args.multi_trigger_info), trigger_name
             )
 
             # get fit object
-            multinest_fit = BalrogFit(trigger_name, t_info_file, pha_dir)
+            multinest_fit = BalrogFit(trigger_name, t_info_file, trigger_dir)
 
             multinest_fit.fit()
             multinest_fit.save_fit_result()

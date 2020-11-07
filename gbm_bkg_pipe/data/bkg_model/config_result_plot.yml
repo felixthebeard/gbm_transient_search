@@ -31,7 +31,7 @@ plot:
   residual_ylim:        null
   xlabel:               null
   ylabel:               null
-  dpi:                  600
+  dpi:                  400
   show_legend:          true
   legend_outside:       false
   show_title:           true
@@ -129,15 +129,15 @@ style:
           linewidth: 0.8
           show_label: true
 
-        use_global: false
+        use_global: True
 
     ppc:
       color: ['lightgreen', 'green', 'darkgreen']
       alpha: 0.6
 
     legend_kwargs:
-        # loc: 'center left'
-        # bbox_to_anchor: [-0.17, -0.5]
+        loc: 'center left'
+        bbox_to_anchor: [-0.17, -0.5]
         ncol: 3
 
 

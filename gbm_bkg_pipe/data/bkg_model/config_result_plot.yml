@@ -136,7 +136,7 @@ style:
       alpha: 0.6
 
     legend_kwargs:
-        bbox_to_anchor: (0, -0.18, 1, 1)
+        bbox_to_anchor: [0, -0.18, 1, 1]
         loc: "lower center"
         bbox_transform: "True"
         ncol: 3

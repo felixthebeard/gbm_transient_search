@@ -582,11 +582,16 @@ class BkgModelResultPlot(luigi.Task):
             self.data_type,
             self.step,
             "phys_bkg",
-            "plots",
         )
 
     def output(self):
-        plot_files = {}
+        plot_files = {
+            "summary": luigi.LocalTarget(
+                os.path.join(
+                    self.job_dir, "bkg_model_{self.date:%y%m%d}_fit_summary.yaml"
+                )
+            )
+        }
 
         for detector in self.detectors:
             for echan in self.echans:
@@ -596,7 +601,7 @@ class BkgModelResultPlot(luigi.Task):
                 )
 
                 plot_files[f"{detector}_{echan}"] = luigi.LocalTarget(
-                    os.path.join(self.job_dir, filename)
+                    os.path.join(self.job_dir, "plots", filename)
                 )
 
         return plot_files
@@ -608,13 +613,12 @@ class BkgModelResultPlot(luigi.Task):
 
         arviz_reader = BkgArvizReader(self.input()["arviz_file"].path)
 
-        arviz_reader.hide_point_sources(norm_threshold=1.0)
-
         plot_generator = ResultPlotGenerator(
             config_file=config_plot_path,
             result_dict=arviz_reader.result_dict,
         )
 
+        arviz_reader.hide_point_sources(norm_threshold=1.0)
         plot_generator._hide_sources = arviz_reader.source_to_hide
 
         plot_generator.create_plots(
@@ -622,6 +626,8 @@ class BkgModelResultPlot(luigi.Task):
             plot_name="bkg_model_",
             time_stamp="",
         )
+
+        arviz_reader.save_summary(self.output()["summary"].path)
 
 
 class BkgModelCornerPlot(luigi.Task):

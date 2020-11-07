@@ -4,6 +4,7 @@ from datetime import datetime
 import arviz
 import arviz as az
 import numpy as np
+import yaml
 
 
 class BkgArvizReader(object):
@@ -118,6 +119,8 @@ class BkgArvizReader(object):
         self._global_summary = fixed_summary
         self._cont_summary = cont_summary
 
+        self._summary = np.concat([fixed_summary, cont_summary])
+
     def hide_point_sources(self, norm_threshold=1.0):
         hide_sources = []
 
@@ -129,6 +132,12 @@ class BkgArvizReader(object):
                     hide_sources.append(param_name.replace("norm_", ""))
 
         self._sources_to_hide = hide_sources
+
+    def save_summary(self, outpath):
+        with open(outpath, "w") as f:
+            yaml.dump(
+                self._summary.to_dict(orient="index"), f, default_flow_style=False
+            )
 
     @property
     def arviz_result(self):

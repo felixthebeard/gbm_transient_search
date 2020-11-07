@@ -16,6 +16,7 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
+from gbm_bkg_pipe.utils.bkg_result_reader import BkgArvizReader
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
 from gbm_bkg_pipe.utils.download_file import (
@@ -605,10 +606,16 @@ class BkgModelResultPlot(luigi.Task):
 
         config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/data/bkg_model/config_result_plot.yml"
 
-        plot_generator = ResultPlotGenerator.from_result_file(
+        arviz_reader = BkgArvizReader(self.input()["arviz_file"].path)
+
+        arviz_reader.hide_point_sources(norm_threshold=1.0)
+
+        plot_generator = ResultPlotGenerator(
             config_file=config_plot_path,
-            result_data_file=self.input()["result_file"].path,
+            result_dict=arviz_reader.result_dict,
         )
+
+        plot_generator._hide_sources = arviz_reader.source_to_hide
 
         plot_generator.create_plots(
             output_dir=self.job_dir,

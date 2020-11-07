@@ -70,7 +70,7 @@ class BkgArvizReader(object):
                 for k in range(len(model_group)):
                     if key == "f_fixed_global":
                         source_name = (
-                            self._arviz_result.constant_data["global_param_names"]
+                            arviz_result.constant_data["global_param_names"]
                             .values[k]
                             .replace("norm_", "")
                         )

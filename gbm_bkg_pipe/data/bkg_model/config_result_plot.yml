@@ -136,10 +136,11 @@ style:
       alpha: 0.6
 
     legend_kwargs:
-        loc: 'center left'
-        bbox_to_anchor: [-0.17, -0.5]
+        bbox_to_anchor: (0, -0.18, 1, 1)
+        loc: "lower center"
+        bbox_transform: "True"
         ncol: 3
-
+        mode: "expand"
 
 highlight:
     # grb_trigger:

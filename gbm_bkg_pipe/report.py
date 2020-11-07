@@ -145,6 +145,7 @@ class CreateTriggerSearchReport(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
+    step = luigi.Parameter(default="all")
 
     @property
     def priority(self):
@@ -161,46 +162,70 @@ class CreateTriggerSearchReport(luigi.Task):
         )
 
     def requires(self):
-        return {
-            "bkg_model_plots_base": BkgModelPlots(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="base",
-            ),
-            "bkg_model_plots_final": BkgModelPlots(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="final",
-            ),
-            "search_triggers": TriggerSearch(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="base",
-            ),
-            "search_triggers": TriggerSearch(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="final",
-            ),
-            "plot_triggers": PlotTriggers(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="base",
-                loc_plots=False,
-            ),
-            "plot_triggers": PlotTriggers(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="final",
-                loc_plots=False,
-            ),
-        }
+        if self.step != "all":
+            requires = {
+                "bkg_model_plots": BkgModelPlots(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step=self.step,
+                ),
+                "search_triggers": TriggerSearch(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step=self.step,
+                ),
+                "plot_triggers": PlotTriggers(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step=self.step,
+                    loc_plots=False,
+                ),
+            }
+        else:
+            requires = {
+                "bkg_model_plots_base": BkgModelPlots(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="base",
+                ),
+                "bkg_model_plots_final": BkgModelPlots(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="final",
+                ),
+                "search_triggers_base": TriggerSearch(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="base",
+                ),
+                "search_triggers_final": TriggerSearch(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="final",
+                ),
+                "plot_triggers_base": PlotTriggers(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="base",
+                    loc_plots=False,
+                ),
+                "plot_triggers_final": PlotTriggers(
+                    date=self.date,
+                    data_type=self.data_type,
+                    remote_host=self.remote_host,
+                    step="final",
+                    loc_plots=False,
+                ),
+            }
+        return requires
 
     def run(self):
         os.system(f"touch {self.output().path}")

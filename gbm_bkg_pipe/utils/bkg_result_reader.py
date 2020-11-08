@@ -11,34 +11,34 @@ import yaml
 class BkgArvizReader(object):
     def __init__(self, path_to_netcdf):
 
-        self._create_result_dict(path_to_netcdf)
+        self._arviz_result = az.InferenceData.from_netcdf(path_to_netcdf)
+
+        self._result_dict = self._create_result_dict()
+
         self._create_summaries()
 
-    def _create_result_dict(self, path_to_netcdf):
+    def _create_result_dict(self):
+        time_bins = self._arviz_result.constant_data["time_bins"].values
 
-        arviz_result = az.InferenceData.from_netcdf(path_to_netcdf)
-
-        time_bins = arviz_result.constant_data["time_bins"].values
-
-        ndets = len(arviz_result.constant_data["dets"].values)
-        nechans = len(arviz_result.constant_data["echans"].values)
-        ntime_bins = len(arviz_result.constant_data["time_bins"].values)
-        nsamples = len(arviz_result.predictions["chain"]) * len(
-            arviz_result.predictions["draw"]
+        ndets = len(self._arviz_result.constant_data["dets"].values)
+        nechans = len(self._arviz_result.constant_data["echans"].values)
+        ntime_bins = len(self._arviz_result.constant_data["time_bins"].values)
+        nsamples = len(self._arviz_result.predictions["chain"]) * len(
+            self._arviz_result.predictions["draw"]
         )
 
-        ppc_counts = arviz_result.posterior_predictive.stack(sample=("chain", "draw"))[
-            "ppc"
-        ].values.T.reshape((nsamples, ntime_bins, ndets, nechans))
+        ppc_counts = self._arviz_result.posterior_predictive.stack(
+            sample=("chain", "draw")
+        )["ppc"].values.T.reshape((nsamples, ntime_bins, ndets, nechans))
 
-        total_counts = arviz_result.predictions.stack(sample=("chain", "draw"))[
+        total_counts = self._arviz_result.predictions.stack(sample=("chain", "draw"))[
             "tot"
         ].values.T.reshape((nsamples, ntime_bins, ndets, nechans))
 
         result_dict = dict()
-        result_dict["dates"] = arviz_result.constant_data["dates"].values
-        result_dict["detectors"] = arviz_result.constant_data["dets"].values
-        result_dict["echans"] = arviz_result.constant_data["echans"].values
+        result_dict["dates"] = self._arviz_result.constant_data["dates"].values
+        result_dict["detectors"] = self._arviz_result.constant_data["dets"].values
+        result_dict["echans"] = self._arviz_result.constant_data["echans"].values
 
         result_dict["day_start_times"] = [time_bins[0, 0]]
         result_dict["day_stop_times"] = [time_bins[-1, 1]]
@@ -53,15 +53,15 @@ class BkgArvizReader(object):
         result_dict["saa_mask"][idx] = False
 
         result_dict["model_counts"] = np.mean(total_counts, axis=0)
-        result_dict["observed_counts"] = arviz_result.observed_data[
+        result_dict["observed_counts"] = self._arviz_result.observed_data[
             "counts"
         ].values.reshape((ntime_bins, ndets, nechans))
 
         result_dict["sources"] = {}
 
         # Get the individual sources
-        model_parts = arviz_result.predictions.keys()
-        predictions = arviz_result.predictions.stack(sample=("chain", "draw"))
+        model_parts = self._arviz_result.predictions.keys()
+        predictions = self._arviz_result.predictions.stack(sample=("chain", "draw"))
         for key in model_parts:
             if key == "tot":
                 continue
@@ -72,7 +72,7 @@ class BkgArvizReader(object):
                 for k in range(len(model_group)):
                     if key == "f_fixed_global":
                         source_name = (
-                            arviz_result.constant_data["global_param_names"]
+                            self._arviz_result.constant_data["global_param_names"]
                             .values[k]
                             .replace("norm_", "")
                         )
@@ -95,12 +95,13 @@ class BkgArvizReader(object):
         # Set ppcs in SAA region to zero
         ppc_counts[:, ~result_dict["saa_mask"], :, :] = 0.0
         result_dict["ppc_counts"] = ppc_counts
-        result_dict["ppc_time_bins"] = arviz_result.constant_data["time_bins"].values
+        result_dict["ppc_time_bins"] = self._arviz_result.constant_data[
+            "time_bins"
+        ].values
 
         result_dict["time_stamp"] = datetime.now().strftime("%y%m%d_%H%M")
 
-        self._arviz_result = arviz_result
-        self._result_dict = result_dict
+        return result_dict
 
     def _create_summaries(self):
         fixed_summary = az.summary(self._arviz_result, var_names=["norm_fixed"])

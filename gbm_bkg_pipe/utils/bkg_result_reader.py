@@ -119,7 +119,7 @@ class BkgArvizReader(object):
         self._global_summary = fixed_summary
         self._cont_summary = cont_summary
 
-        self._summary = np.concat([fixed_summary, cont_summary])
+        self._summary = pd.concat([fixed_summary, cont_summary])
 
     def hide_point_sources(self, norm_threshold=1.0):
         hide_sources = []

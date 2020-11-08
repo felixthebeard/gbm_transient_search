@@ -83,9 +83,12 @@ with h5py.File(args.bkg_fit_result, "r") as f:
     echans = f.attrs["echans"]
     detectors = f.attrs["detectors"]
 
-    time_bins = f["time_bins"][()]
-    model_counts = f["model_counts"][()]
+    time_bins_start = f["time_bins_start"][()]
+    time_bins_stop = f["time_bins_stop"][()]
 
+    time_bins = np.vstack((time_bins_start, time_bins_stop)).T
+
+    model_counts = f["model_counts"][()]
     stat_err = f["stat_err"][()]
 
 

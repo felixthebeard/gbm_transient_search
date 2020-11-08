@@ -534,9 +534,12 @@ class Search(object):
 
             trigger_significance.append(sig_dict)
 
-        trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-            trigger_intervals[:, 0], 0
-        ]
+        if len(trigger_intervals) > 0:
+            trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+                trigger_intervals[:, 0], 0
+            ]
+        else:
+            trigger_intervals = np.array([])
 
         most_significant_detectors = []
         for sig in trigger_significance:

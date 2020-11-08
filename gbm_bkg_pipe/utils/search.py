@@ -538,66 +538,77 @@ class Search(object):
             trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
                 trigger_intervals[:, 0], 0
             ]
-        else:
-            trigger_intervals = np.array([])
 
-        most_significant_detectors = []
-        for sig in trigger_significance:
-            most_significant_detectors.append(max(sig, key=sig.get))
+            most_significant_detectors = []
+            for sig in trigger_significance:
+                most_significant_detectors.append(max(sig, key=sig.get))
 
-        trigger_peak_times = []
+            trigger_peak_times = []
 
-        for i, inter in enumerate(trigger_intervals):
-            det = most_significant_detectors[i]
-            counts = (
-                self._observed_counts_total[det][inter[0] : inter[1]]
-                - self._bkg_counts_total[det][inter[0] : inter[1]]
-            )
-
-            max_index = np.argmax(counts) + inter[0]
-
-            trigger_peak_times.append(
-                self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
-            )
-
-        # Calculate the significance of each detector for the active interval
-        # that was selected based on the most significant detector
-        trigger_significance = []
-        for i, interval in enumerate(trigger_intervals):
-
-            sig_dict = {}
-
-            for det in self._detectors:
-
-                start_time = trigger_peak_times[i] - 10
-                stop_time = trigger_peak_times[i] + 10
-
-                idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
-                idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
-
-                sig_dict[det] = float(
-                    calc_significance(
-                        data=self._observed_counts_total[det][idx_low:idx_high],
-                        background=self._bkg_counts_total[det][idx_low:idx_high],
-                        bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
-                    )
+            for i, inter in enumerate(trigger_intervals):
+                det = most_significant_detectors[i]
+                counts = (
+                    self._observed_counts_total[det][inter[0] : inter[1]]
+                    - self._bkg_counts_total[det][inter[0] : inter[1]]
                 )
 
-            trigger_significance.append(sig_dict)
+                max_index = np.argmax(counts) + inter[0]
 
-        # Filter out duplicate peak times and keep the shorter intervals
-        unique_peak_ids = self._filter_duplicate_peaks(
-            trigger_peak_times, trigger_intervals
-        )
+                trigger_peak_times.append(
+                    self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
+                )
 
-        significant_ids = self._filter_active_time_significance(
-            valid_ids=unique_peak_ids,
-            most_significant_detectors=np.array(most_significant_detectors)[
-                unique_peak_ids
-            ],
-            peak_times=np.array(trigger_peak_times)[unique_peak_ids],
-            required_significance=5,
-        )
+            # Calculate the significance of each detector for the active interval
+            # that was selected based on the most significant detector
+            trigger_significance = []
+            for i, interval in enumerate(trigger_intervals):
+
+                sig_dict = {}
+
+                for det in self._detectors:
+
+                    start_time = trigger_peak_times[i] - 10
+                    stop_time = trigger_peak_times[i] + 10
+
+                    idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][
+                        0
+                    ]
+                    idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][
+                        -1
+                    ]
+
+                    sig_dict[det] = float(
+                        calc_significance(
+                            data=self._observed_counts_total[det][idx_low:idx_high],
+                            background=self._bkg_counts_total[det][idx_low:idx_high],
+                            bkg_stat_err=self._bkg_stat_err_total[det][
+                                idx_low:idx_high
+                            ],
+                        )
+                    )
+
+                trigger_significance.append(sig_dict)
+
+            # Filter out duplicate peak times and keep the shorter intervals
+            unique_peak_ids = self._filter_duplicate_peaks(
+                trigger_peak_times, trigger_intervals
+            )
+
+            significant_ids = self._filter_active_time_significance(
+                valid_ids=unique_peak_ids,
+                most_significant_detectors=np.array(most_significant_detectors)[
+                    unique_peak_ids
+                ],
+                peak_times=np.array(trigger_peak_times)[unique_peak_ids],
+                required_significance=5,
+            )
+        else:
+            trigger_intervals = []
+            trigger_significance = []
+            most_significant_detectors = []
+            trigger_times = []
+            trigger_peak_times = []
+            significant_ids = []
 
         self._trigger_intervals = np.array(trigger_intervals)[significant_ids]
         self._trigger_significance = np.array(trigger_significance)[significant_ids]

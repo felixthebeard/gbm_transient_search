@@ -517,7 +517,7 @@ if __name__ == "__main__":
         trigger_dir = os.path.dirname(args.trigger_info)
 
         # get fit object
-        multinest_fit = BalrogFit(args.trigger_name, args.trigger_info, pha_dir)
+        multinest_fit = BalrogFit(args.trigger_name, args.trigger_info, trigger_dir)
 
         multinest_fit.fit()
         multinest_fit.save_fit_result()

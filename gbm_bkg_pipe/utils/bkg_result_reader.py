@@ -1,9 +1,10 @@
-import os
 import re
 from datetime import datetime
+
 import arviz
 import arviz as az
 import numpy as np
+import pandas as pd
 import yaml
 
 
@@ -146,6 +147,10 @@ class BkgArvizReader(object):
     @property
     def result_dict(self):
         return self._result_dict
+
+    @property
+    def summary(self):
+        return self._summary
 
     @property
     def cont_summary(self):

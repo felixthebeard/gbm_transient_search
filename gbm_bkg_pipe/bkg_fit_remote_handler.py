@@ -16,6 +16,7 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
+from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
 from gbm_bkg_pipe.utils.bkg_result_reader import BkgArvizReader
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
@@ -121,14 +122,24 @@ class BkgModelPlots(luigi.WrapperTask):
 
     def requires(self):
 
-        bkg_fit_tasks = {}
+        bkg_plot_tasks = {}
 
         for dets in run_detectors:
 
             for echans in run_echans:
-                bkg_fit_tasks[
+                bkg_plot_tasks[
                     f"result_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
                 ] = BkgModelResultPlot(
+                    date=self.date,
+                    echans=echans,
+                    detectors=dets,
+                    remote_host=self.remote_host,
+                    step=self.step,
+                )
+
+                bkg_plot_tasks[
+                    f"performance_plots_d{'_'.join(dets)}_e{'_'.join(echans)}"
+                ] = BkgModelPerformancePlot(
                     date=self.date,
                     echans=echans,
                     detectors=dets,
@@ -140,7 +151,7 @@ class BkgModelPlots(luigi.WrapperTask):
                 #     f"corner_plot_d{'_'.join(dets)}_e{'_'.join(echans)}"
                 # ] = BkgModelCornerPlot(date=self.date, echans=echans, detectors=dets)
 
-        return bkg_fit_tasks
+        return bkg_plot_tasks
 
 
 class CreateBkgConfig(luigi.Task):
@@ -545,6 +556,71 @@ class RunPhysBkgModel(luigi.Task):
                     time.sleep(wait_time)
 
                     time_spent += wait_time
+
+
+class BkgModelPerformancePlot(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
+    remote_host = luigi.Parameter()
+    step = luigi.Parameter()
+
+    resources = {"cpu": 1}
+
+    def requires(self):
+        return CopyResults(
+            date=self.date,
+            echans=self.echans,
+            detectors=self.detectors,
+            remote_host=self.remote_host,
+            step=self.step,
+        )
+
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 1
+
+    @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "phys_bkg",
+            f"det_{'_'.join(self.detectors)}",
+            f"e{'_'.join(self.echans)}",
+            "plots",
+        )
+
+    def output(self):
+        plot_files = {
+            "done": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"performance_plots.done")
+            )
+        }
+
+        return plot_files
+
+    def run(self):
+        self.output()["done"].makedirs()
+
+        arviz_plotter = ArvizPlotter(
+            date=self.date, path_to_netcdf=self.input()["arviz_file"].path
+        )
+
+        arviz_plotter.plot_posterior(self.job_dir)
+
+        arviz_plotter.plot_pairs(self.job_dir)
+
+        arviz_plotter.plot_traces(self.job_dir)
+
+        os.system(f"touch {self.output()['done']}")
 
 
 class BkgModelResultPlot(luigi.Task):

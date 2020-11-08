@@ -588,7 +588,7 @@ class BkgModelResultPlot(luigi.Task):
         plot_files = {
             "summary": luigi.LocalTarget(
                 os.path.join(
-                    self.job_dir, "bkg_model_{self.date:%y%m%d}_fit_summary.yaml"
+                    self.job_dir, f"bkg_model_{self.date:%y%m%d}_fit_summary.yaml"
                 )
             )
         }
@@ -622,7 +622,7 @@ class BkgModelResultPlot(luigi.Task):
         plot_generator._hide_sources = arviz_reader.source_to_hide
 
         plot_generator.create_plots(
-            output_dir=self.job_dir,
+            output_dir=os.path.join(self.job_dir, "plots"),
             plot_name="bkg_model_",
             time_stamp="",
         )

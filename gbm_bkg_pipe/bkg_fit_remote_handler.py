@@ -600,25 +600,22 @@ class BkgModelPerformancePlot(luigi.Task):
 
     def output(self):
         plot_files = {
-            "done": luigi.LocalTarget(
-                os.path.join(self.job_dir, f"performance_plots.done")
-            ),
-            "global_posterior": luigi.LocalTarget(
+            "posterior_global": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_posterior.png")
             ),
-            "cont_posterior": luigi.LocalTarget(
+            "posterior_cont": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_posterior.png")
             ),
-            "global_pairs": luigi.LocalTarget(
+            "pairs_global": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_pairs.png")
             ),
-            "cont_pairs": luigi.LocalTarget(
+            "pairs_cont": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_pairs.png")
             ),
-            "global_traces": luigi.LocalTarget(
+            "traces_global": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_traces.png")
             ),
-            "cont_traces": luigi.LocalTarget(
+            "traces_cont": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_traces.png")
             ),
         }
@@ -637,8 +634,6 @@ class BkgModelPerformancePlot(luigi.Task):
         arviz_plotter.plot_pairs(self.job_dir)
 
         arviz_plotter.plot_traces(self.job_dir)
-
-        os.system(f"touch {self.output()['done']}")
 
 
 class BkgModelResultPlot(luigi.Task):

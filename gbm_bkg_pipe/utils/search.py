@@ -474,11 +474,15 @@ class Search(object):
 
         # Filter out overlapping intervals and select the one with highest significance
         # This is done twice to get rid of some leftovers
-        intervals_selected, significances_selected = self._filter_overlap(
-            self._intervals_all, self._intervals_significance_all
-        )
-        intervals_selected, significances_selected = self._filter_overlap(
-            intervals_selected, significances_selected
+        # intervals_selected, significances_selected = self._filter_overlap(
+        #     self._intervals_all, self._intervals_significance_all
+        # )
+        # intervals_selected, significances_selected = self._filter_overlap(
+        #     intervals_selected, significances_selected
+        # )
+        intervals_selected, significances_selected = (
+            self._intervals_all,
+            self._intervals_significance_all,
         )
 
         # intervals_selected, significances_selected = self._filter_overlap_dets(

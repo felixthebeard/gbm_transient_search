@@ -26,7 +26,11 @@ class ArvizPlotter(object):
             self._arviz_result,
             var_names=["norm_fixed"],
         )
-        titles = [x.set_title(self._global_names[i]) for i, x in enumerate(ax)]
+        for i in range(len(ax)):
+            title = ax[i].title.get_text()
+            idx = title.split("\n")[1].replace(" ", "")
+            new_title = self._global_names[int(idx)]
+            ax[i].set_title(new_title)
 
         plt.savefig(
             os.path.join(outdir, f"{self._date}_global_posterior.png"),
@@ -38,7 +42,11 @@ class ArvizPlotter(object):
             self._arviz_result,
             var_names=["norm_cont"],
         )
-        titles = [x.set_title(self._cont_names[i]) for i, x in enumerate(ax)]
+        for i in range(len(ax)):
+            title = ax[i].title.get_text()
+            idx = title.split("\n")[1].replace(" ", "")
+            new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])]
+            ax[i].set_title(new_title)
 
         plt.savefig(
             os.path.join(outdir, f"{self._date}_cont_posterior.png"),
@@ -50,7 +58,6 @@ class ArvizPlotter(object):
 
         ax = az.plot_trace(
             self._arviz_result,
-            data,
             var_names=["norm_fixed"],
         )
 
@@ -74,10 +81,11 @@ class ArvizPlotter(object):
 
         for i in range(len(ax)):
             for j in range(len(ax[i])):
-                title = ax[i, j].title.get_text()
-                idx = int(title.split("\n")[1].replace(" ", ""))
 
-                ax[i, j].set_title(self._cont_names[idx])
+                title = ax[i, j].title.get_text()
+                idx = title.split("\n")[1].replace(" ", "")
+                new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])]
+                ax[i, j].set_title(new_title)
 
         plt.savefig(
             os.path.join(outdir, f"{self._date}_cont_traces.png"),
@@ -138,9 +146,11 @@ class ArvizPlotter(object):
 
                         ylabel = ax[i, j].get_ylabel()
                         if ylabel != "":
-                            idx = int(ylabel.split("\n")[1].replace(" ", ""))
-
-                            label = "\n".join(self._cont_names[idx].split("_"))
+                            idx = ylabel.split("\n")[1].replace(" ", "")
+                            new_label = self._cont_names[
+                                int(idx[0]), int(idx[2]), int(idx[4])
+                            ]
+                            label = "\n".join(new_label.split("_"))
 
                             ax[i, j].set_ylabel(label)
                     except Exception as e:

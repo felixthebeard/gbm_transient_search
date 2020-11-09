@@ -222,16 +222,6 @@ class SetupTriggerLocalization(luigi.Task):
                     "trigger_information.yml",
                 )
             ),
-            pha_dir=luigi.LocalTarget(
-                os.path.join(
-                    base_dir,
-                    f"{self.date:%y%m%d}",
-                    self.data_type,
-                    self.step,
-                    "trigger",
-                    "pha",
-                )
-            ),
         )
 
     def run(self):

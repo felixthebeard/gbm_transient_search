@@ -67,8 +67,8 @@ class ArvizPlotter(object):
             for j in range(len(ax[i])):
                 title = ax[i, j].title.get_text()
                 idx = int(title.split("\n")[1].replace(" ", ""))
-
-                ax[i, j].set_title(self._global_names[idx]).replace("_", " ")
+                new_title = self._global_names[idx].replace("_", " ")
+                ax[i, j].set_title(new_title)
 
         plt.savefig(
             os.path.join(outdir, f"{self._date}_global_traces.png"),

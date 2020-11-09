@@ -222,6 +222,16 @@ class SetupTriggerLocalization(luigi.Task):
                     "trigger_information.yml",
                 )
             ),
+            pha_dir=luigi.LocalTarget(
+                os.path.join(
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    self.step,
+                    "trigger",
+                    "pha",
+                )
+            ),
         )
 
     def run(self):
@@ -477,13 +487,11 @@ class CopyTriggerFilesToRemote(luigi.Task):
         )
 
     def requires(self):
-        return dict(
-            setup_loc=SetupTriggerLocalization(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
+        return SetupTriggerLocalization(
+            date=self.date,
+            data_type=self.data_type,
+            remote_host=self.remote_host,
+            step=self.step,
         )
 
     def output(self):
@@ -509,13 +517,13 @@ class CopyTriggerFilesToRemote(luigi.Task):
         )
 
     def run(self):
-        local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
+        self.output()["pha_dir"].put(self.input()["pha_dir"].path)
 
-        self.output()["trigger_info"].put(
-            self.input()["trigger_files"]["trigger_info"].path
+        local_trigger_info = luigi.LocalTarget(
+            os.path.join(self.job_dir, "trigger_info.yml")
         )
 
-        self.output()["pha_dir"].put(local_pha_dir.path)
+        self.output()["trigger_info"].put(local_trigger_info.path)
 
 
 class CopyRemoteBalrogResult(luigi.Task):

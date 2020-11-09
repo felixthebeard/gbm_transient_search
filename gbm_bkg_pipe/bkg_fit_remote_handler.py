@@ -16,6 +16,7 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
+from gbm_bkg_pipe.utils.file_utils import if_directory_not_existing_then_make
 from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
 from gbm_bkg_pipe.utils.bkg_result_reader import BkgArvizReader
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
@@ -623,7 +624,7 @@ class BkgModelPerformancePlot(luigi.Task):
         return plot_files
 
     def run(self):
-        self.output()[self.output().keys()[0]].makedirs()
+        if_directory_not_existing_then_make(self.job_dir)
 
         arviz_plotter = ArvizPlotter(
             date=f"{self.date:%y%m%d}", path_to_netcdf=self.input()["arviz_file"].path

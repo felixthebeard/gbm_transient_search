@@ -29,7 +29,7 @@ class ArvizPlotter(object):
         for i in range(len(ax)):
             title = ax[i].title.get_text()
             idx = title.split("\n")[1].replace(" ", "")
-            new_title = self._global_names[int(idx)]
+            new_title = self._global_names[int(idx)].replace("_", " ")
             ax[i].set_title(new_title)
 
         plt.savefig(
@@ -45,7 +45,9 @@ class ArvizPlotter(object):
         for i in range(len(ax)):
             title = ax[i].title.get_text()
             idx = title.split("\n")[1].replace(" ", "")
-            new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])]
+            new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])].replace(
+                "_", " "
+            )
             ax[i].set_title(new_title)
 
         plt.savefig(
@@ -66,7 +68,7 @@ class ArvizPlotter(object):
                 title = ax[i, j].title.get_text()
                 idx = int(title.split("\n")[1].replace(" ", ""))
 
-                ax[i, j].set_title(self._global_names[idx])
+                ax[i, j].set_title(self._global_names[idx]).replace("_", " ")
 
         plt.savefig(
             os.path.join(outdir, f"{self._date}_global_traces.png"),
@@ -84,7 +86,9 @@ class ArvizPlotter(object):
 
                 title = ax[i, j].title.get_text()
                 idx = title.split("\n")[1].replace(" ", "")
-                new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])]
+                new_title = self._cont_names[
+                    int(idx[0]), int(idx[2]), int(idx[4])
+                ].replace("_", " ")
                 ax[i, j].set_title(new_title)
 
         plt.savefig(
@@ -107,17 +111,17 @@ class ArvizPlotter(object):
                         if xlabel != "":
                             idx = int(xlabel.split("\n")[1].replace(" ", ""))
 
-                            label = "\n".join(self._global_names[idx].split("_"))
+                            new_label = self._global_names[idx].replace("_", "\n")
 
-                            ax[i, j].set_xlabel(label)
+                            ax[i, j].set_xlabel(new_label)
 
                         ylabel = ax[i, j].get_ylabel()
                         if ylabel != "":
                             idx = int(ylabel.split("\n")[1].replace(" ", ""))
 
-                            label = "\n".join(self._global_names[idx].split("_"))
+                            new_label = self._global_names[idx].replace("_", "\n")
 
-                            ax[i, j].set_ylabel(label)
+                            ax[i, j].set_ylabel(new_label)
                     except Exception as e:
                         pass
 
@@ -141,17 +145,15 @@ class ArvizPlotter(object):
                             idx = xlabel.split("\n")[1].replace(" ", "")
                             new_label = self._cont_names[
                                 int(idx[0]), int(idx[2]), int(idx[4])
-                            ]
-                            new_label = "\n".join(new_label.split("_"))
-                            ax[i, j].set_xlabel(label)
+                            ].replace("_", "\n")
+                            ax[i, j].set_xlabel(new_label)
 
                         ylabel = ax[i, j].get_ylabel()
                         if ylabel != "":
                             idx = ylabel.split("\n")[1].replace(" ", "")
                             new_label = self._cont_names[
                                 int(idx[0]), int(idx[2]), int(idx[4])
-                            ]
-                            new_label = "\n".join(new_label.split("_"))
+                            ].replace("_", "\n")
                             ax[i, j].set_ylabel(new_label)
                     except Exception as e:
                         pass

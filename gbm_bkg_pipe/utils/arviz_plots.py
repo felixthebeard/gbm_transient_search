@@ -138,10 +138,11 @@ class ArvizPlotter(object):
                     try:
                         xlabel = ax[i, j].get_xlabel()
                         if xlabel != "":
-                            idx = int(xlabel.split("\n")[1].replace(" ", ""))
-
-                            label = "\n".join(self._cont_names[idx].split("_"))
-
+                            idx = xlabel.split("\n")[1].replace(" ", "")
+                            new_label = self._cont_names[
+                                int(idx[0]), int(idx[2]), int(idx[4])
+                            ]
+                            new_label = "\n".join(new_label.split("_"))
                             ax[i, j].set_xlabel(label)
 
                         ylabel = ax[i, j].get_ylabel()
@@ -150,9 +151,8 @@ class ArvizPlotter(object):
                             new_label = self._cont_names[
                                 int(idx[0]), int(idx[2]), int(idx[4])
                             ]
-                            label = "\n".join(new_label.split("_"))
-
-                            ax[i, j].set_ylabel(label)
+                            new_label = "\n".join(new_label.split("_"))
+                            ax[i, j].set_ylabel(new_label)
                     except Exception as e:
                         pass
 

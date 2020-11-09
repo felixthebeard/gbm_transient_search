@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime
 
@@ -138,7 +139,9 @@ class BkgArvizReader(object):
     def save_summary(self, outpath):
         with open(outpath, "w") as f:
             yaml.dump(
-                self._summary.to_dict(orient="index"), f, default_flow_style=False
+                json.loads(self._summary.to_json(orient="index")),
+                f,
+                default_flow_style=False,
             )
 
     @property

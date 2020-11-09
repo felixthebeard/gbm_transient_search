@@ -9,7 +9,7 @@ import json
 import numpy as np
 import yaml
 import arviz
-
+from mpi4py import MPI
 from gbmbkgpy.io.export import PHAWriter, StanDataExporter
 from gbmbkgpy.utils.model_generator import BackgroundModelGenerator
 from gbmbkgpy.utils.stan import StanDataConstructor, StanModelConstructor

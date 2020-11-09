@@ -623,7 +623,7 @@ class BkgModelPerformancePlot(luigi.Task):
         return plot_files
 
     def run(self):
-        self.output()["done"].makedirs()
+        self.output()[self.output().keys()[0]].makedirs()
 
         arviz_plotter = ArvizPlotter(
             date=f"{self.date:%y%m%d}", path_to_netcdf=self.input()["arviz_file"].path

@@ -505,13 +505,22 @@ def upload_datafile(
 
 
 def upload_date_plot(
-    date, data_type, plot_file, plot_type, wait_time, max_time, det_name="", echan=""
+    date,
+    data_type,
+    plot_file,
+    plot_type,
+    wait_time,
+    max_time,
+    det_name="",
+    echan="",
+    plot_name="",
 ):
     headers = {
         "Authorization": "Token {}".format(auth_token),
     }
 
     payload = {
+        "plot_name": plot_name,
         "plot_type": plot_type,
         "data_type": data_type,
         "det_name": det_name,

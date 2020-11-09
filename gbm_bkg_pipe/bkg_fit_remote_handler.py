@@ -602,7 +602,25 @@ class BkgModelPerformancePlot(luigi.Task):
         plot_files = {
             "done": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"performance_plots.done")
-            )
+            ),
+            "global_posterior": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_posterior.png")
+            ),
+            "cont_posterior": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_posterior.png")
+            ),
+            "global_pairs": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_pairs.png")
+            ),
+            "cont_pairs": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_pairs.png")
+            ),
+            "global_traces": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_global_traces.png")
+            ),
+            "cont_traces": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_traces.png")
+            ),
         }
 
         return plot_files
@@ -611,7 +629,7 @@ class BkgModelPerformancePlot(luigi.Task):
         self.output()["done"].makedirs()
 
         arviz_plotter = ArvizPlotter(
-            date=self.date, path_to_netcdf=self.input()["arviz_file"].path
+            date=f"{self.date:%y%m%d}", path_to_netcdf=self.input()["arviz_file"].path
         )
 
         arviz_plotter.plot_posterior(self.job_dir)

@@ -745,6 +745,7 @@ class UploadBkgResultPlots(luigi.Task):
 
                 upload_date_plot(
                     date=self.date,
+                    plot_name="",
                     data_type=self.data_type,
                     plot_file=self.input().input()[task_name][f"{det}_{echan}"].path,
                     plot_type="bkg_result",
@@ -759,25 +760,19 @@ class UploadBkgResultPlots(luigi.Task):
         os.system(f"touch {self.output().path}")
 
 
-class UploadBkgResultPlot(luigi.Task):
+class UploadBkgPerformancePlots(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter()
-    detector = luigi.Parameter()
-    echan = luigi.Parameter()
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
     def requires(self):
-        return {
-            "plot_file": CreateBkgModelPlot(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                detector=self.detector,
-                echan=self.echan,
-                step=self.step,
-            ),
-        }
+        return BkgModelPlots(
+            date=self.date,
+            data_type=self.data_type,
+            remote_host=self.remote_host,
+            step=self.step,
+        )
 
     def output(self):
         return luigi.LocalTarget(
@@ -787,22 +782,33 @@ class UploadBkgResultPlot(luigi.Task):
                 self.data_type,
                 self.step,
                 "upload",
-                f"{self.detector}_{self.echan}_upload_plot_lightcurve.done",
+                "upload_plot_all_performance_plots.done",
             )
         )
 
     def run(self):
 
-        upload_date_plot(
-            date=self.date,
-            data_type=self.data_type,
-            plot_file=self.input()["plot_file"].path,
-            plot_type="bkg_result",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
-            det_name=self.detector,
-            echan=self.echan,
-        )
+        for task_name, task in self.input().input().items():
+
+            if "performance_plots" in task_name:
+
+                for plot_type, plot_file in task.output().items():
+
+                    upload_date_plot(
+                        date=self.date,
+                        plot_name=f"{plot_type}_{task_name.replace('performance_plot', '')}",
+                        data_type=self.data_type,
+                        plot_file=plot_file.path,
+                        plot_type=f"{plot_type.split('_')[0]}",
+                        wait_time=float(
+                            gbm_bkg_pipe_config["upload"]["plot"]["interval"]
+                        ),
+                        max_time=float(
+                            gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
+                        ),
+                        det_name=f"{', '.join(task.detectors)}",
+                        echan=f"{', '.join(task.echans)}",
+                    )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
 

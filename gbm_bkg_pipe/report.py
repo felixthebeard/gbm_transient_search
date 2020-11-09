@@ -11,7 +11,11 @@ from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.plots import PlotTriggers
 from gbm_bkg_pipe.trigger_search import TriggerSearch
-from gbm_bkg_pipe.upload import UploadBkgResultPlots, UploadTriggers
+from gbm_bkg_pipe.upload import (
+    UploadBkgResultPlots,
+    UploadTriggers,
+    UploadBkgPerformancePlots,
+)
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
@@ -92,6 +96,12 @@ class CreateReportDate(luigi.Task):
 
         required_tasks = {
             "upload_bkg_plots": UploadBkgResultPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="final",
+            ),
+            "upload_bkg_performance_plots": UploadBkgPerformancePlots(
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=run_host,

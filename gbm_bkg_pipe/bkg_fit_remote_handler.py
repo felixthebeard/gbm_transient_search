@@ -707,8 +707,7 @@ class BkgModelResultPlot(luigi.Task):
             config_file=config_plot_path,
             result_dict=arviz_reader.result_dict,
         )
-
-        arviz_reader.hide_point_sources(norm_threshold=1.0)
+        arviz_reader.hide_point_sources(norm_threshold=0.001, max_ps=6)
         plot_generator._hide_sources = arviz_reader.source_to_hide
 
         plot_generator.create_plots(

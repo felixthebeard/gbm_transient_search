@@ -124,15 +124,17 @@ class BkgArvizReader(object):
 
         self._summary = pd.concat([fixed_summary, cont_summary])
 
-    def hide_point_sources(self, norm_threshold=1.0):
+    def hide_point_sources(self, norm_threshold=1.0, max_ps=1e9):
         hide_sources = []
 
-        for param_name, summary in self._global_summary.iterrows():
+        if (len(self._global_summary) - 2) > max_ps:
 
-            if re.search("norm_(.*?)_pl", param_name):
+            for param_name, summary in self._global_summary.iterrows():
 
-                if summary["mean"] <= norm_threshold:
-                    hide_sources.append(param_name.replace("norm_", ""))
+                if re.search("norm_(.*?)_pl", param_name):
+
+                    if summary["mean"] <= norm_threshold:
+                        hide_sources.append(param_name.replace("norm_", ""))
 
         self._sources_to_hide = hide_sources
 

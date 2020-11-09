@@ -840,6 +840,7 @@ class RunBalrogTasksRemote(luigi.Task):
                 data_type=self.data_type,
                 trigger_name=t_info["trigger_name"],
                 remote_host=self.remote_host,
+                step=self.step,
             )
 
         yield trigger_files

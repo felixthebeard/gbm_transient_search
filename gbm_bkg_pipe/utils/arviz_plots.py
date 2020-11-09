@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from matplotlib import pyplot as plt
+import logging
 
 
 class ArvizPlotter(object):
@@ -123,6 +124,7 @@ class ArvizPlotter(object):
 
                             ax[i, j].set_ylabel(new_label)
                     except Exception as e:
+                        logging.error(e)
                         pass
 
             plt.tight_layout()
@@ -156,6 +158,7 @@ class ArvizPlotter(object):
                             ].replace("_", "\n")
                             ax[i, j].set_ylabel(new_label)
                     except Exception as e:
+                        logging.error(e)
                         pass
 
             plt.tight_layout()

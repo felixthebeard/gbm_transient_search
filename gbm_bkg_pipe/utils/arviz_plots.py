@@ -163,7 +163,7 @@ class ArvizPlotter(object):
 
             plt.tight_layout()
             plt.savefig(
-                os.path.join(outdir, f"{self._date}_global_pairs.png"),
+                os.path.join(outdir, f"{self._date}_cont_pairs.png"),
                 transparent=True,
                 dpi=100,
             )

@@ -1046,8 +1046,12 @@ class UpdatePointsourceDB(luigi.Task):
         wait_time = 20
         max_time = 1 * 60 * 60
 
+        if local_db_creation > self.date:
+            # DB is newer than the date to be processed (backprocessing)
+            pass
+
         # Check if local db is older than one day
-        if (datetime.now() - local_db_creation) > timedelta(days=1):
+        elif (datetime.now() - local_db_creation) > timedelta(days=1):
 
             # Check if there is already an update running
             # this could be from running the pipeline on a different day of data
@@ -1087,10 +1091,16 @@ class UpdatePointsourceDB(luigi.Task):
 
                 os.system(f"touch {update_running}")
 
-                with tempfile.TemporaryDirectory() as tmpdirname:
-                    build_swift_pointsource_database(
-                        tmpdirname, multiprocessing=True, force=True
-                    )
+                try:
+                    with tempfile.TemporaryDirectory() as tmpdirname:
+                        build_swift_pointsource_database(
+                            tmpdirname, multiprocessing=True, force=True
+                        )
+                except Exception as e:
+                    # In case this throws an exception remote the update running file
+                    # to permit the task to be re-run
+                    os.remove(update_running)
+                    raise e
 
                 # delete the update running file once we are done
                 os.remove(update_running)

@@ -545,8 +545,8 @@ class RunPhysBkgModel(luigi.Task):
                         and not self.output()["success"].exists()
                     ):
 
-                        print(f"The job {job_id} did fail, kill task.")
-                        return False
+                        self.output()["job_id"].remove()
+                        raise Exception(f"The job {job_id} did fail, kill task.")
 
                     for line in status.split("\n"):
 

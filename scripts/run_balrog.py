@@ -390,7 +390,7 @@ class BalrogFit(object):
             f"{self._trigger_name}_spectrum_plot_{self._trigger_info['data_type']}.png"
         )
         plot_path = os.path.join(
-            self.trigger_dir,
+            self._trigger_dir,
             "plots",
             plot_name,
         )

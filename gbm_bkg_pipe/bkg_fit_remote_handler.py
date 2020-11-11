@@ -1045,7 +1045,7 @@ class UpdatePointsourceDB(luigi.Task):
         wait_time = 20
         max_time = 1 * 60 * 60
 
-        if local_db_creation > self.date:
+        if local_db_creation.date() > self.date:
             # DB is newer than the date to be processed (backprocessing)
             pass
 

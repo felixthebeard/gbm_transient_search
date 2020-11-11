@@ -788,7 +788,7 @@ class UploadBkgPerformancePlots(luigi.Task):
 
     def run(self):
 
-        for task_name, task in self.input().input().items():
+        for task_name, task in self.requires().input().items():
 
             if "performance_plots" in task_name:
 

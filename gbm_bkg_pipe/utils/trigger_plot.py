@@ -267,7 +267,7 @@ class TriggerPlot(object):
                     )
 
                     if show_masked_regions:
-                        ax[i].axvspan(
+                        ax[i * nechans + e].axvspan(
                             trigger["interval"]["start"],
                             trigger["interval"]["stop"],
                             alpha=0.1,

@@ -730,30 +730,31 @@ class UploadBkgResultPlots(luigi.Task):
 
     def run(self):
 
-        for det in _valid_gbm_detectors:
-            for echan in _valid_echans:
+        for task_name, task_outputs in self.requires().input().items():
 
-                for run_dets in gbm_bkg_pipe_config["data"]["detectors"]:
-                    if det in run_dets:
-                        break
+            if "result_plot" in task_name:
 
-                for run_echans in gbm_bkg_pipe_config["data"]["echans"]:
-                    if det in run_dets:
-                        break
+                for det_echan, plot_file in task_outputs.items():
+                    if "summary" in det_echan:
+                        continue
 
-                task_name = f"result_plot_d{'_'.join(run_dets)}_e{'_'.join(run_echans)}"
+                    det, echan = det_echan.split("_")
 
-                upload_date_plot(
-                    date=self.date,
-                    plot_name="",
-                    data_type=self.data_type,
-                    plot_file=self.input()[task_name][f"{det}_{echan}"].path,
-                    plot_type="bkg_result",
-                    wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-                    max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
-                    det_name=det,
-                    echan=echan,
-                )
+                    upload_date_plot(
+                        date=self.date,
+                        plot_name="",
+                        data_type=self.data_type,
+                        plot_file=plot_file.path,
+                        plot_type="bkg_result",
+                        wait_time=float(
+                            gbm_bkg_pipe_config["upload"]["plot"]["interval"]
+                        ),
+                        max_time=float(
+                            gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
+                        ),
+                        det_name=det,
+                        echan=echan,
+                    )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
 

@@ -654,7 +654,7 @@ class BkgModelPerformancePlot(luigi.Task):
 
         # Plot contiuum sources
         arviz_plotter.plot_posterior(
-            var_names=["norm_cont"], plot_path=self.output()["posterior_conr"].path
+            var_names=["norm_cont"], plot_path=self.output()["posterior_cont"].path
         )
         arviz_plotter.plot_traces(
             var_names=["norm_cont"], plot_path=self.output()["traces_cont"].path

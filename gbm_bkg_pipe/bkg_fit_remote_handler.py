@@ -643,11 +643,15 @@ class BkgModelPerformancePlot(luigi.Task):
         arviz_plotter.plot_posterior(
             var_names=["norm_fixed"], plot_path=self.output()["posterior_global"].path
         )
-        arviz_plotter.plot_pairs(
-            var_names=["norm_fixed"], plot_path=self.output()["pairs_global"].path
-        )
         arviz_plotter.plot_traces(
-            var_names=["norm_fixed"], plot_path=self.output()["traces_global"].path
+            var_names=["norm_fixed"],
+            plot_path=self.output()["traces_global"].path,
+            dpi=80,
+        )
+        arviz_plotter.plot_pairs(
+            var_names=["norm_fixed"],
+            plot_path=self.output()["pairs_global"].path,
+            dpi=30,
         )
 
         # Plot contiuum sources
@@ -655,10 +659,10 @@ class BkgModelPerformancePlot(luigi.Task):
             var_names=["norm_cont"], plot_path=self.output()["posterior_cont"].path
         )
         arviz_plotter.plot_traces(
-            var_names=["norm_cont"], plot_path=self.output()["traces_cont"].path
+            var_names=["norm_cont"], plot_path=self.output()["traces_cont"].path, dpi=80
         )
         arviz_plotter.plot_pairs(
-            var_names=["norm_cont"], plot_path=self.output()["pairs_cont"].path
+            var_names=["norm_cont"], plot_path=self.output()["pairs_cont"].path, dpi=30
         )
 
         # Joint plots
@@ -666,13 +670,15 @@ class BkgModelPerformancePlot(luigi.Task):
             var_names=["norm_fixed", "norm_cont"],
             plot_path=self.output()["posterior_all"].path,
         )
-        arviz_plotter.plot_pairs(
-            var_names=["norm_fixed", "norm_cont"],
-            plot_path=self.output()["pairs_all"].path,
-        )
         arviz_plotter.plot_traces(
             var_names=["norm_fixed", "norm_cont"],
             plot_path=self.output()["traces_all"].path,
+            dpi=80,
+        )
+        arviz_plotter.plot_pairs(
+            var_names=["norm_fixed", "norm_cont"],
+            plot_path=self.output()["pairs_all"].path,
+            dpi=30,
         )
 
 

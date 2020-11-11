@@ -268,8 +268,8 @@ class TriggerPlot(object):
 
                     if show_masked_regions:
                         ax[i * nechans + e].axvspan(
-                            trigger["interval"]["start"],
-                            trigger["interval"]["stop"],
+                            (trigger["interval"]["start"] - day_start_met) / (60 * 60),
+                            (trigger["interval"]["stop"] - day_start_met) / (60 * 60),
                             alpha=0.1,
                             color="blue",
                         )

@@ -509,7 +509,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
     def run(self):
         local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
         if local_pha_dir.exists():
-            self.output()["pha_dir"].put(lcoal_pha_dir.path)
+            self.output()["pha_dir"].put(local_pha_dir.path)
         else:
             raise Exception(f"Local pha dir {local_pha_dir.path} is missing.")
 

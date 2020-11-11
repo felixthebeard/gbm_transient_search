@@ -745,7 +745,7 @@ class RunBalrogRemote(luigi.Task):
                     ):
 
                         print(f"The job {job_id} did fail, kill task.")
-                        return False
+                        raise Exception(f"The job {job_id} did fail, kill task.")
 
                     for line in status.split("\n"):
 

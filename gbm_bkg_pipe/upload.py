@@ -788,11 +788,11 @@ class UploadBkgPerformancePlots(luigi.Task):
 
     def run(self):
 
-        for task_name, task in self.requires().input().items():
+        for task_name, task_outputs in self.requires().input().items():
 
             if "performance_plots" in task_name:
 
-                for plot_type, plot_file in task.output().items():
+                for plot_type, plot_file in task_outputs.items():
 
                     upload_date_plot(
                         date=self.date,

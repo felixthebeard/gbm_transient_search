@@ -620,12 +620,10 @@ class BkgModelPerformancePlot(luigi.Task):
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_traces.png")
             ),
             "posterior_all": luigi.LocalTarget(
-                os.path.join(
-                    self.job_dir, f"{self.date:%y%m%d}_all_global_posterior.png"
-                )
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_posterior.png")
             ),
             "pairs_all": luigi.LocalTarget(
-                os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_global_pairs.png")
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_pairs.png")
             ),
             "traces_all": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_traces.png")
@@ -719,7 +717,10 @@ class BkgModelResultPlot(luigi.Task):
         plot_files = {
             "summary": luigi.LocalTarget(
                 os.path.join(
-                    self.job_dir, f"bkg_model_{self.date:%y%m%d}_fit_summary.yaml"
+                    self.job_dir,
+                    f"det_{'_'.join(self.detectors)}",
+                    f"e{'_'.join(self.echans)}",
+                    f"bkg_model_{self.date:%y%m%d}_fit_summary.yaml",
                 )
             )
         }

@@ -747,7 +747,7 @@ class UploadBkgResultPlots(luigi.Task):
                     date=self.date,
                     plot_name="",
                     data_type=self.data_type,
-                    plot_file=self.input().input()[task_name][f"{det}_{echan}"].path,
+                    plot_file=self.input()[task_name][f"{det}_{echan}"].path,
                     plot_type="bkg_result",
                     wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
                     max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
@@ -788,11 +788,11 @@ class UploadBkgPerformancePlots(luigi.Task):
 
     def run(self):
 
-        for task_name, task_outputs in self.requires().input().items():
+        for task_name, task in self.requires().requires().items():
 
             if "performance_plots" in task_name:
 
-                for plot_type, plot_file in task_outputs.items():
+                for plot_type, plot_file in task.output().items():
 
                     upload_date_plot(
                         date=self.date,

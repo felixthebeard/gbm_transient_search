@@ -213,7 +213,9 @@ if config["export"]["save_unbinned"]:
 else:
     # Use the model from the fit
     config_export = config
+    config_export["mask_intervals"] = []
     model_generator_export = model_generator
+    model_generator_export._config = config_export
 
 # StanDataConstructor
 stan_data_export = StanDataConstructor(

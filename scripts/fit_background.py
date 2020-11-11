@@ -167,7 +167,9 @@ if config["export"]["save_unbinned"]:
 else:
     # Use the model from the fit
     config_export = config
+    config_export["mask_intervals"] = []
     model_generator_export = model_generator
+    model_generator_export._config = config_export
 
 # StanDataConstructor
 stan_data_export = StanDataConstructor(
@@ -203,6 +205,7 @@ if config["export"]["save_whole_day"]:
     config_export["saa"]["time_after_saa"] = 100
     config_export["saa"]["time_before_saa"] = 30
     config_export["saa"]["short_time_intervals"] = True
+    config_export["mask_intervals"] = []
 
     # Create a new model generator instance of the same type
     model_generator_export = type(model_generator)()

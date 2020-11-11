@@ -507,13 +507,20 @@ class CopyTriggerFilesToRemote(luigi.Task):
         )
 
     def run(self):
-        self.output()["pha_dir"].put(self.input()["pha_dir"].path)
+        local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
+        if local_pha_dir.exists():
+            self.output()["pha_dir"].put(lcoal_pha_dir.path)
+        else:
+            raise Exception(f"Local pha dir {local_pha_dir.path} is missing.")
 
         local_trigger_info = luigi.LocalTarget(
             os.path.join(self.job_dir, "trigger_info.yml")
         )
 
-        self.output()["trigger_info"].put(local_trigger_info.path)
+        if local_trigger_info.exists():
+            self.output()["trigger_info"].put(local_trigger_info.path)
+        else:
+            raise Exception(f"Local pha dir {local_trigger_info.path} is missing.")
 
 
 class CopyRemoteBalrogResult(luigi.Task):

@@ -743,8 +743,8 @@ class RunBalrogRemote(luigi.Task):
                         not str(job_id) in status
                         and not self.output()["success"].exists()
                     ):
-
-                        print(f"The job {job_id} did fail, kill task.")
+                        # Remove the job_id file to allow for rerun.
+                        self.input()["balrog_remote_tasks"]["job_id"].remove()
                         raise Exception(f"The job {job_id} did fail, kill task.")
 
                     for line in status.split("\n"):
@@ -777,6 +777,16 @@ class RunBalrogTasksRemote(luigi.Task):
             return 10
         else:
             return 1
+
+    @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "trigger",
+        )
 
     @property
     def job_dir_remote(self):
@@ -812,14 +822,11 @@ class RunBalrogTasksRemote(luigi.Task):
 
     def output(self):
         return dict(
-            job_id=RemoteTarget(
+            job_id=luigi.LocalTarget(
                 os.path.join(
-                    self.job_dir_remote,
-                    "balrog.success",
+                    self.job_dir,
+                    "job_id.txt",
                 ),
-                host=self.remote_host,
-                username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
             ),
         )
 

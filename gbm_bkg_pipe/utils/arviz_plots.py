@@ -141,7 +141,7 @@ class ArvizPlotter(object):
                 self._arviz_result, var_names=var_names, textsize=25, kind="hexbin"
             )
 
-            if not type(ax, np.ndarray):
+            if type(ax) != np.ndarray:
                 xlabel = ax.get_xlabel()
                 if xlabel != "":
                     new_label = self.get_param_name(xlabel).replace("_", " \n")
@@ -151,20 +151,20 @@ class ArvizPlotter(object):
                 if ylabel != "":
                     new_label = self.get_param_name(ylabel).replace("_", " \n")
                     ax.set_ylabel(new_label)
+            else:
+                for i in range(len(ax)):
 
-            for i in range(len(ax)):
+                    for j in range(len(ax[i])):
 
-                for j in range(len(ax[i])):
+                        xlabel = ax[i, j].get_xlabel()
+                        if xlabel != "":
+                            new_label = self.get_param_name(xlabel).replace("_", " \n")
+                            ax[i, j].set_xlabel(new_label)
 
-                    xlabel = ax[i, j].get_xlabel()
-                    if xlabel != "":
-                        new_label = self.get_param_name(xlabel).replace("_", " \n")
-                        ax[i, j].set_xlabel(new_label)
-
-                    ylabel = ax[i, j].get_ylabel()
-                    if ylabel != "":
-                        new_label = self.get_param_name(ylabel).replace("_", " \n")
-                        ax[i, j].set_ylabel(new_label)
+                        ylabel = ax[i, j].get_ylabel()
+                        if ylabel != "":
+                            new_label = self.get_param_name(ylabel).replace("_", " \n")
+                            ax[i, j].set_ylabel(new_label)
 
             if plot_path is not None:
                 plt.savefig(

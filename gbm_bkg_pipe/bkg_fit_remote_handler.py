@@ -619,6 +619,17 @@ class BkgModelPerformancePlot(luigi.Task):
             "traces_cont": luigi.LocalTarget(
                 os.path.join(self.job_dir, f"{self.date:%y%m%d}_cont_traces.png")
             ),
+            "posterior_all": luigi.LocalTarget(
+                os.path.join(
+                    self.job_dir, f"{self.date:%y%m%d}_all_global_posterior.png"
+                )
+            ),
+            "pairs_all": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_global_pairs.png")
+            ),
+            "traces_all": luigi.LocalTarget(
+                os.path.join(self.job_dir, f"{self.date:%y%m%d}_all_traces.png")
+            ),
         }
 
         return plot_files
@@ -630,11 +641,41 @@ class BkgModelPerformancePlot(luigi.Task):
             date=f"{self.date:%y%m%d}", path_to_netcdf=self.input()["arviz_file"].path
         )
 
-        arviz_plotter.plot_posterior(self.job_dir)
+        # Plot global sources
+        arviz_plotter.plot_posterior(
+            var_names=["norm_fixed"], plot_path=self.output()["posterior_global"].path
+        )
+        arviz_plotter.plot_pairs(
+            var_names=["norm_fixed"], plot_path=self.output()["pairs_global"].path
+        )
+        arviz_plotter.plot_traces(
+            var_names=["norm_fixed"], plot_path=self.output()["traces_global"].path
+        )
 
-        arviz_plotter.plot_pairs(self.job_dir)
+        # Plot contiuum sources
+        arviz_plotter.plot_posterior(
+            var_names=["norm_cont"], plot_path=self.output()["posterior_conr"].path
+        )
+        arviz_plotter.plot_traces(
+            var_names=["norm_cont"], plot_path=self.output()["traces_cont"].path
+        )
+        arviz_plotter.plot_pairs(
+            var_names=["norm_cont"], plot_path=self.output()["pairs_cont"].path
+        )
 
-        arviz_plotter.plot_traces(self.job_dir)
+        # Joint plots
+        arviz_plotter.plot_posterior(
+            var_names=["norm_fixed", "norm_cont"],
+            plot_path=self.output()["posterior_global"].path,
+        )
+        arviz_plotter.plot_pairs(
+            var_names=["norm_fixed", "norm_cont"],
+            plot_path=self.output()["pairs_global"].path,
+        )
+        arviz_plotter.plot_traces(
+            var_names=["norm_fixed", "norm_cont"],
+            plot_path=self.output()["traces_global"].path,
+        )
 
 
 class BkgModelResultPlot(luigi.Task):

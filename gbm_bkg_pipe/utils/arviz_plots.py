@@ -22,148 +22,153 @@ class ArvizPlotter(object):
         ].values
         self._cont_names = self._arviz_result.constant_data["cont_param_names"].values
 
-    def plot_posterior(self, outdir):
-        ax = az.plot_posterior(
-            self._arviz_result,
-            var_names=["norm_fixed"],
-        )
-        for i in range(len(ax)):
-            title = ax[i].title.get_text()
-            idx = title.split("\n")[1].replace(" ", "")
-            new_title = self._global_names[int(idx)].replace("_", " ")
-            ax[i].set_title(new_title)
+        self._saa_decay_names = np.array([])
+        self._saa_norm_names = np.array([])
 
-        plt.savefig(
-            os.path.join(outdir, f"{self._date}_global_posterior.png"),
-            transparent=True,
-            dpi=100,
-        )
+    def get_param_name(self, stan_name):
+        source_name = stan_name.split("\n")[0].replace(" ", "")
+        idx = stan_name.split("\n")[1].replace(" ", "")
 
-        ax = az.plot_posterior(
-            self._arviz_result,
-            var_names=["norm_cont"],
-        )
-        for i in range(len(ax)):
-            title = ax[i].title.get_text()
-            idx = title.split("\n")[1].replace(" ", "")
-            new_title = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])].replace(
-                "_", " "
+        if source_name == "norm_fixed":
+            param_name = self._global_names[int(idx)]
+
+        elif source_name == "norm_cont":
+            param_name = self._cont_names[int(idx[0]), int(idx[2]), int(idx[4])]
+
+        elif source_name == "norm_saa":
+            param_name = self._saa_norm_names[int(idx[0]), int(idx[2]), int(idx[4])]
+
+        elif source_name == "decay_saa":
+            param_name = self._saa_decay_names[int(idx[0]), int(idx[2]), int(idx[4])]
+
+        else:
+            raise Exception(f"Unkown source {source_name} in {stan_name}")
+
+        return param_name
+
+    def plot_posterior(self, var_names, plot_path=None, dpi=100):
+
+        nr_subplots = 10
+
+        if "norm_fixed" in var_names:
+            nr_subplots += len(self._global_names.flatten())
+        if "norm_cont" in var_names:
+            nr_subplots += len(self._cont_names.flatten())
+        if "norm_saa" in var_names:
+            nr_subplots += len(self._saa_norm_names.flatten())
+        if "decay_saa" in var_names:
+            nr_subplots += len(self._saa_decay_names.flatten())
+
+        with az.rc_context({"plot.max_subplots": nr_subplots}):
+
+            ax = az.plot_posterior(
+                self._arviz_result,
+                var_names=var_names,
             )
-            ax[i].set_title(new_title)
-
-        plt.savefig(
-            os.path.join(outdir, f"{self._date}_cont_posterior.png"),
-            transparent=True,
-            dpi=100,
-        )
-
-    def plot_traces(self, outdir):
-
-        ax = az.plot_trace(
-            self._arviz_result,
-            var_names=["norm_fixed"],
-        )
-
-        for i in range(len(ax)):
-            for j in range(len(ax[i])):
-                title = ax[i, j].title.get_text()
-                idx = int(title.split("\n")[1].replace(" ", ""))
-                new_title = self._global_names[idx].replace("_", " ")
-                ax[i, j].set_title(new_title)
-
-        plt.savefig(
-            os.path.join(outdir, f"{self._date}_global_traces.png"),
-            transparent=True,
-            dpi=100,
-        )
-
-        ax = az.plot_trace(
-            self._arviz_result,
-            var_names=["norm_cont"],
-        )
-
-        for i in range(len(ax)):
-            for j in range(len(ax[i])):
-
-                title = ax[i, j].title.get_text()
-                idx = title.split("\n")[1].replace(" ", "")
-                new_title = self._cont_names[
-                    int(idx[0]), int(idx[2]), int(idx[4])
-                ].replace("_", " ")
-                ax[i, j].set_title(new_title)
-
-        plt.savefig(
-            os.path.join(outdir, f"{self._date}_cont_traces.png"),
-            transparent=True,
-            dpi=100,
-        )
-
-    def plot_pairs(self, outdir):
-
-        with az.rc_context({"plot.max_subplots": 100}):
-            ax = az.plot_pair(
-                self._arviz_result, var_names=["norm_fixed"], textsize=25, kind="hexbin"
-            )
+            ax = np.array(ax)
 
             for i in range(len(ax)):
-                for j in range(len(ax[i])):
-                    try:
-                        xlabel = ax[i, j].get_xlabel()
-                        if xlabel != "":
-                            idx = int(xlabel.split("\n")[1].replace(" ", ""))
+                title = ax[i].title.get_text()
 
-                            new_label = self._global_names[idx].replace("_", "\n")
+                new_title = self.get_param_name(title).replace("_", "")
 
-                            ax[i, j].set_xlabel(new_label)
+                ax[i].set_title(new_title)
 
-                        ylabel = ax[i, j].get_ylabel()
-                        if ylabel != "":
-                            idx = int(ylabel.split("\n")[1].replace(" ", ""))
+            if plot_path is not None:
+                plt.savefig(
+                    plot_path,
+                    transparent=True,
+                    dpi=dpi,
+                )
 
-                            new_label = self._global_names[idx].replace("_", "\n")
+    def plot_traces(self, var_names, plot_path=None, dpi=100):
+        nr_subplots = 0
 
-                            ax[i, j].set_ylabel(new_label)
-                    except Exception as e:
-                        logging.error(e)
-                        pass
+        if "norm_fixed" in var_names:
+            nr_subplots += len(self._global_names.flatten())
+        if "norm_cont" in var_names:
+            nr_subplots += len(self._cont_names.flatten())
+        if "norm_saa" in var_names:
+            nr_subplots += len(self._saa_norm_names.flatten())
+        if "decay_saa" in var_names:
+            nr_subplots += len(self._saa_decay_names.flatten())
 
-            plt.tight_layout()
-            plt.savefig(
-                os.path.join(outdir, f"{self._date}_global_pairs.png"),
-                transparent=True,
-                dpi=100,
+        nr_subplots = 2 * nr_subplots + 10
+
+        with az.rc_context({"plot.max_subplots": nr_subplots}):
+
+            ax = az.plot_trace(
+                self._arviz_result,
+                var_names=var_names,
             )
 
-        with az.rc_context({"plot.max_subplots": 100}):
-            ax = az.plot_pair(
-                self._arviz_result, var_names=["norm_cont"], textsize=25, kind="hexbin"
-            )
+            ax = np.array(ax)
 
             for i in range(len(ax)):
+
                 for j in range(len(ax[i])):
-                    try:
-                        xlabel = ax[i, j].get_xlabel()
-                        if xlabel != "":
-                            idx = xlabel.split("\n")[1].replace(" ", "")
-                            new_label = self._cont_names[
-                                int(idx[0]), int(idx[2]), int(idx[4])
-                            ].replace("_", "\n")
-                            ax[i, j].set_xlabel(new_label)
 
-                        ylabel = ax[i, j].get_ylabel()
-                        if ylabel != "":
-                            idx = ylabel.split("\n")[1].replace(" ", "")
-                            new_label = self._cont_names[
-                                int(idx[0]), int(idx[2]), int(idx[4])
-                            ].replace("_", "\n")
-                            ax[i, j].set_ylabel(new_label)
-                    except Exception as e:
-                        logging.error(e)
-                        pass
+                    title = ax[i, j].title.get_text()
 
-            plt.tight_layout()
-            plt.savefig(
-                os.path.join(outdir, f"{self._date}_cont_pairs.png"),
-                transparent=True,
-                dpi=100,
+                    new_title = self.get_param_name(title).replace("_", "")
+
+                    ax[i, j].set_title(new_title)
+
+            if plot_path is not None:
+                plt.savefig(
+                    plot_path,
+                    transparent=True,
+                    dpi=dpi,
+                )
+
+    def plot_pairs(self, var_names, plot_path, dpi=100):
+        nr_subplots = 0
+
+        if "norm_fixed" in var_names:
+            nr_subplots += len(self._global_names.flatten())
+        if "norm_cont" in var_names:
+            nr_subplots += len(self._cont_names.flatten())
+        if "norm_saa" in var_names:
+            nr_subplots += len(self._saa_norm_names.flatten())
+        if "decay_saa" in var_names:
+            nr_subplots += len(self._saa_decay_names.flatten())
+
+        nr_subplots = nr_subplots ** 2 + 10
+
+        with az.rc_context({"plot.max_subplots": nr_subplots}):
+
+            ax = az.plot_pair(
+                self._arviz_result, var_names=var_names, textsize=25, kind="hexbin"
             )
+
+            if not type(ax, np.ndarray):
+                xlabel = ax.get_xlabel()
+                if xlabel != "":
+                    new_label = self.get_param_name(xlabel).replace("_", " \n")
+                    ax.set_xlabel(new_label)
+
+                ylabel = ax.get_ylabel()
+                if ylabel != "":
+                    new_label = self.get_param_name(ylabel).replace("_", " \n")
+                    ax.set_ylabel(new_label)
+
+            for i in range(len(ax)):
+
+                for j in range(len(ax[i])):
+
+                    xlabel = ax[i, j].get_xlabel()
+                    if xlabel != "":
+                        new_label = self.get_param_name(xlabel).replace("_", " \n")
+                        ax[i, j].set_xlabel(new_label)
+
+                    ylabel = ax[i, j].get_ylabel()
+                    if ylabel != "":
+                        new_label = self.get_param_name(ylabel).replace("_", " \n")
+                        ax[i, j].set_ylabel(new_label)
+
+            if plot_path is not None:
+                plt.savefig(
+                    plot_path,
+                    transparent=True,
+                    dpi=dpi,
+                )

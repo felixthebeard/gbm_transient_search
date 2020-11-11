@@ -562,6 +562,7 @@ if __name__ == "__main__":
 
             success_file = os.path.join(
                 os.path.dirname(args.multi_trigger_info),
+                trigger_name,
                 f"{trigger_name}_balrog.success",
             )
             if rank == 0:

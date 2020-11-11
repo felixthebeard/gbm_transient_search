@@ -666,15 +666,15 @@ class BkgModelPerformancePlot(luigi.Task):
         # Joint plots
         arviz_plotter.plot_posterior(
             var_names=["norm_fixed", "norm_cont"],
-            plot_path=self.output()["posterior_global"].path,
+            plot_path=self.output()["posterior_all"].path,
         )
         arviz_plotter.plot_pairs(
             var_names=["norm_fixed", "norm_cont"],
-            plot_path=self.output()["pairs_global"].path,
+            plot_path=self.output()["pairs_all"].path,
         )
         arviz_plotter.plot_traces(
             var_names=["norm_fixed", "norm_cont"],
-            plot_path=self.output()["traces_global"].path,
+            plot_path=self.output()["traces_all"].path,
         )
 
 

@@ -70,7 +70,7 @@ class ArvizPlotter(object):
             for i in range(len(ax)):
                 title = ax[i].title.get_text()
 
-                new_title = self.get_param_name(title).replace("_", "")
+                new_title = self.get_param_name(title).replace("_", " ")
 
                 ax[i].set_title(new_title)
 
@@ -110,7 +110,7 @@ class ArvizPlotter(object):
 
                     title = ax[i, j].title.get_text()
 
-                    new_title = self.get_param_name(title).replace("_", "")
+                    new_title = self.get_param_name(title).replace("_", " ")
 
                     ax[i, j].set_title(new_title)
 

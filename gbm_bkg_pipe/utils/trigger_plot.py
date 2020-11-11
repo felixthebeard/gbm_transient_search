@@ -183,7 +183,7 @@ class TriggerPlot(object):
 
         self.create_lightcurves(trigger, outdir)
 
-    def create_day_overview(self, outdir=None):
+    def create_day_overview(self, outdir=None, show_masked_regions=False):
         echans = [0, 1, 2]
         ndets = 12
 
@@ -265,6 +265,14 @@ class TriggerPlot(object):
                         zorder=0,
                         clip_on=False,
                     )
+
+                    if show_masked_regions:
+                        ax[i].axvspan(
+                            trigger["interval"]["start"],
+                            trigger["interval"]["stop"],
+                            alpha=0.1,
+                            color="blue",
+                        )
 
         # ax[0].legend()
         lgd = ax[0].legend(bbox_to_anchor=(1.04, 1), loc="upper left")

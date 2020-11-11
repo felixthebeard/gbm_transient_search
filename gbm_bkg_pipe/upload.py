@@ -797,7 +797,7 @@ class UploadBkgPerformancePlots(luigi.Task):
 
                     upload_date_plot(
                         date=self.date,
-                        plot_name=f"{plot_type}_{task_name.replace('performance_plot', '')}",
+                        plot_name=f"{plot_type}_{task_name.replace('performance_plots_', '')}",
                         data_type=self.data_type,
                         plot_file=plot_file.path,
                         plot_type=f"{plot_type.split('_')[0]}",

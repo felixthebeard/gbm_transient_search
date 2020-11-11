@@ -33,7 +33,7 @@ class BkgConfigWriter(object):
 
         self._update_ps_setup()
 
-        self._update_priors()
+        # self._update_priors()
 
         self._update_export()
 
@@ -127,10 +127,10 @@ class BkgConfigWriter(object):
         # Only inlcude point sources for echans 0-3
         if int(max(self._echans)) < 3:
             ps_select = SelectPointsources(
-                limit1550Crab=0.15,
+                limit1550Crab=0.12,
                 time_string=f"{self._date:%y%m%d}",
                 update=False,
-                min_separation_angle=10.0,
+                min_separation_angle=8.0,
             )
             ps_setup = {}
 

@@ -224,7 +224,7 @@ class Search(object):
 
         self._good_bkg_fit_mask = good_bkg_fit_mask
 
-    def _combine_energy_bins(self, echans=[0, 1, 2, 3]):
+    def _combine_energy_bins(self, echans=[0, 1, 2, 3, 4]):
         """
         Combine the energy bins that are used for the calculation of the significance
         """

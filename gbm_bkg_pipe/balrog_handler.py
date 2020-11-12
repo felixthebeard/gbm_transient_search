@@ -587,7 +587,7 @@ class CopyRemoteBalrogResult(luigi.Task):
                 os.path.join(
                     self.job_dir,
                     "plots",
-                    f"{self.trigger_name}_spectrum_plot.png",
+                    f"{self.trigger_name}_spectrum_plot_{self.data_type}.png",
                 )
             ),
         }
@@ -686,7 +686,7 @@ class RunBalrogRemote(luigi.Task):
                 os.path.join(
                     self.job_dir_remote,
                     "plots",
-                    f"{self.trigger_name}_spectrum_plot.png",
+                    f"{self.trigger_name}_spectrum_plot_{self.data_type}.png",
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],

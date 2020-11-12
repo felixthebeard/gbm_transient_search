@@ -68,9 +68,9 @@ style:
 
     data:
       color: 'k'
-      alpha: .6
-      linewidth: 0.18
-      marker_size: 1
+      alpha: .8
+      linewidth: 0.2
+      marker_size: 1.2
       elinewidth: 0.2
       show_label: true
       rasterized': false
@@ -133,7 +133,7 @@ style:
 
     ppc:
       color: ['lightgreen', 'green', 'darkgreen']
-      alpha: 0.6
+      alpha: 0.5
 
     legend_kwargs:
         bbox_to_anchor: [0, -0.18, 1, 1]

@@ -682,7 +682,7 @@ class RunBalrogRemote(luigi.Task):
         # Optional outputs that should be accessible for upstream tasks but should not
         # fail a task if not existing.
         return {
-            "spectral_plot": RemoteTarget(
+            "spectrum_plot": RemoteTarget(
                 os.path.join(
                     self.job_dir_remote,
                     "plots",

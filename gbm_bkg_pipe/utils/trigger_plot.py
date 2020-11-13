@@ -897,30 +897,30 @@ class TriggerPlot(object):
                 ax[i].tick_params(axis="both", which="major", labelsize=fontsize)
                 ax[i].tick_params(axis="both", which="minor", labelsize=fontsize)
 
-                ymin = np.percentile(
-                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 0, axis=0
-                )
-                ymax = np.percentile(
-                    self._counts[:, det_idx, e][self._saa_mask][time_mask], 99.9, axis=0
-                )
-                ymin_bkg = np.percentile(
-                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
-                    0,
-                    axis=0,
-                )
-                ymax_bkg = np.percentile(
-                    self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
-                    99.9,
-                    axis=0,
-                )
+                # ymin = np.percentile(
+                #     self._counts[:, det_idx, e][self._saa_mask][time_mask], 0, axis=0
+                # )
+                # ymax = np.percentile(
+                #     self._counts[:, det_idx, e][self._saa_mask][time_mask], 99.9, axis=0
+                # )
+                # ymin_bkg = np.percentile(
+                #     self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                #     0,
+                #     axis=0,
+                # )
+                # ymax_bkg = np.percentile(
+                #     self._bkg_counts[:, det_idx, e][self._saa_mask][time_mask],
+                #     99.9,
+                #     axis=0,
+                # )
 
-                ymin = min(ymin, ymin_bkg)
-                ymax = max(ymax, ymax_bkg)
+                # ymin = min(ymin, ymin_bkg)
+                # ymax = max(ymax, ymax_bkg)
 
-                ymin *= 0.9
-                ymax *= 1.1
+                # ymin *= 0.9
+                # ymax *= 1.1
 
-                ax[i].set_ylim(ymin, ymax)
+                # ax[i].set_ylim(ymin, ymax)
 
                 ax[i].margins(x=0)
 

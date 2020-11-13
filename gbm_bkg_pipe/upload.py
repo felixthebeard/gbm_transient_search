@@ -794,22 +794,25 @@ class UploadBkgPerformancePlots(luigi.Task):
             if "performance_plots" in task_name:
 
                 for plot_type, plot_file in task.output().items():
+                    if "all" in plot_type:
 
-                    upload_date_plot(
-                        date=self.date,
-                        plot_name=f"{plot_type}_{task_name.replace('performance_plots_', '')}",
-                        data_type=self.data_type,
-                        plot_file=plot_file.path,
-                        plot_type=f"{plot_type.split('_')[0]}",
-                        wait_time=float(
-                            gbm_bkg_pipe_config["upload"]["plot"]["interval"]
-                        ),
-                        max_time=float(
-                            gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
-                        ),
-                        det_name=f"{', '.join(task.detectors)}",
-                        echan=f"{', '.join(task.echans)}",
-                    )
+                        plot_name = f"dets: {', '.join(task.detectors)} echans: {', '.join(task.echans)}"
+
+                        upload_date_plot(
+                            date=self.date,
+                            plot_name=plot_name,
+                            data_type=self.data_type,
+                            plot_file=plot_file.path,
+                            plot_type=f"{plot_type.split('_')[0]}",
+                            wait_time=float(
+                                gbm_bkg_pipe_config["upload"]["plot"]["interval"]
+                            ),
+                            max_time=float(
+                                gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
+                            ),
+                            det_name=f"{', '.join(task.detectors)}",
+                            echan=f"{', '.join(task.echans)}",
+                        )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
 

@@ -75,11 +75,7 @@ class ArvizPlotter(object):
                 ax[i].set_title(new_title)
 
             if plot_path is not None:
-                plt.savefig(
-                    plot_path,
-                    transparent=True,
-                    dpi=dpi,
-                )
+                plt.savefig(plot_path, transparent=True, dpi=dpi, bbox_inches="tight")
 
     def plot_traces(self, var_names, plot_path=None, dpi=100):
         nr_subplots = 0
@@ -115,11 +111,7 @@ class ArvizPlotter(object):
                     ax[i, j].set_title(new_title)
 
             if plot_path is not None:
-                plt.savefig(
-                    plot_path,
-                    transparent=True,
-                    dpi=dpi,
-                )
+                plt.savefig(plot_path, transparent=True, dpi=dpi, bbox_inches="tight")
 
     def plot_pairs(self, var_names, plot_path, dpi=100):
         nr_subplots = 0
@@ -167,8 +159,4 @@ class ArvizPlotter(object):
                             ax[i, j].set_ylabel(new_label)
 
             if plot_path is not None:
-                plt.savefig(
-                    plot_path,
-                    transparent=True,
-                    dpi=dpi,
-                )
+                plt.savefig(plot_path, transparent=True, dpi=dpi, bbox_inches="tight")

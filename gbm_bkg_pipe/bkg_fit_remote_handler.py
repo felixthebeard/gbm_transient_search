@@ -920,6 +920,12 @@ class DownloadData(luigi.Task):
 
             self.output()["remote_file"].put(self.output()["local_file"].path)
 
+        else:
+
+            raise Exception(
+                f"Download of data for {self.detector} on {self.date:%y%m%d} failed"
+            )
+
 
 class DownloadPoshistData(luigi.Task):
     """
@@ -977,6 +983,10 @@ class DownloadPoshistData(luigi.Task):
 
             self.output()["remote_file"].put(self.output()["local_file"].path)
 
+        else:
+
+            raise Exception(f"Download of poshist data for {self.date:%y%m%d} failed")
+
 
 class DownloadLATData(luigi.Task):
     """
@@ -1031,7 +1041,8 @@ class DownloadLATData(luigi.Task):
             os.system(f"touch {self.output().path}")
 
         else:
-            return False
+
+            raise Exception(f"Download of LAT data for {self.date:%y%m%d} failed")
 
 
 class UpdatePointsourceDB(luigi.Task):

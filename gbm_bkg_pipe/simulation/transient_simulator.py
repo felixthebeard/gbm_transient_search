@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import h5py
 import numpy as np
 from gbmbkgpy.simulation.simulator import BackgroundSimulator
 from gbmbkgpy.utils.progress_bar import progress_bar
@@ -9,6 +10,13 @@ class TransientSimulator(BackgroundSimulator):
     """
     A Transient Simulator that simulates the background of GBM and adds transient sources.
     """
+
+    def __init__(self, *args, **kwargs):
+        self._observed_counts = None
+        self._observed_counts_raw = None
+        self._bkg_counts = None
+
+        super(TransientSimulator, self).__init__(*args, **kwargs)
 
     def run(self):
 
@@ -120,3 +128,87 @@ class TransientSimulator(BackgroundSimulator):
         out[idx_source, 0] = 1
 
         return out
+
+    @property
+    def observed_counts(self):
+        if self._observed_counts is None:
+
+            self._observed_counts = np.zeros((len(self._time_bins), 14, 8))
+
+            for det_idx, det in enumerate(self._valid_det_names):
+
+                self._observed_counts[:, det_idx, :] = np.random.poisson(
+                    self._counts_detectors[det]
+                )
+
+        return self._observed_counts
+
+    @property
+    def observed_counts_raw(self):
+        if self._observed_counts_raw is None:
+
+            self._observed_counts_raw = np.zeros((len(self._time_bins), 14, 8))
+
+            for det_idx, det in enumerate(self._valid_det_names):
+
+                self._observed_counts_raw[:, det_idx, :] = self._counts_detectors[det]
+
+        return self._observed_counts_raw
+
+    @property
+    def bkg_counts(self):
+        if self._bkg_counts is None:
+
+            self._bkg_counts = np.zeros((len(self._time_bins), 14, 8))
+
+            for det_idx, det in enumerate(self._valid_det_names):
+
+                self._bkg_counts[:, det_idx, :] = self._counts_background[det]
+
+        return self._bkg_counts
+
+    @property
+    def stat_err(self):
+        return self._stat_err
+
+    def save_combined_hdf5(self, output_path):
+
+        with h5py.File(output_path, "w") as f:
+
+            f.attrs["dates"] = [self._day]
+
+            f.attrs["trigger"] = "None"
+
+            f.attrs["trigger_time"] = 0.0
+
+            f.attrs["data_type"] = self._data_type
+
+            f.attrs["echans"] = list(range(8))
+
+            f.attrs["detectors"] = self._valid_det_names
+
+            f.create_dataset(
+                "time_bins",
+                data=self._time_bins,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "saa_mask",
+                data=np.ones(len(self._time_bins)),
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "observed_counts",
+                data=self.observed_counts,
+                compression="lzf",
+            )
+
+            f.create_dataset(
+                "model_counts",
+                data=self.bkg_counts,
+                compression="lzf",
+            )
+
+            f.create_dataset("stat_err", data=self.stat_err, compression="lzf")

@@ -205,7 +205,7 @@ class CreateBkgConfig(luigi.Task):
             os.path.join(job_dir_remote, "config_fit.yml"),
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            # sshpass=True,
         )
 
     def run(self):
@@ -415,25 +415,25 @@ class RunPhysBkgModel(luigi.Task):
                 os.path.join(self.job_dir_remote, "stan_chains"),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             "result_file": RemoteTarget(
                 os.path.join(self.job_dir_remote, result_file_name),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             "arviz_file": RemoteTarget(
                 os.path.join(self.job_dir_remote, arviz_file_name),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             "success": RemoteTarget(
                 os.path.join(self.job_dir_remote, "success.txt"),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         }
 
@@ -447,7 +447,7 @@ class RunPhysBkgModel(luigi.Task):
         remote = RemoteContext(
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            # sshpass=True,
         )
 
         if gbm_bkg_pipe_config["balrog"]["run_destination"] == "local":
@@ -891,7 +891,7 @@ class DownloadData(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         )
 
@@ -960,7 +960,7 @@ class DownloadPoshistData(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         )
 
@@ -1033,7 +1033,7 @@ class DownloadLATData(luigi.Task):
                     ),
                     host=self.remote_host,
                     username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                    sshpass=True,
+                    # sshpass=True,
                 )
 
                 remote_file.put(local_file.path)

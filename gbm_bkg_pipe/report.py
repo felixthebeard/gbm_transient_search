@@ -56,7 +56,7 @@ class CreateReportDate(luigi.Task):
                     remote = RemoteContext(
                         host=remote_config["hostname"],
                         username=remote_config["username"],
-                        sshpass=True,
+                        # sshpass=True,
                     )
 
                     check_status_cmd = ["squeue", "-u", remote_config["username"]]

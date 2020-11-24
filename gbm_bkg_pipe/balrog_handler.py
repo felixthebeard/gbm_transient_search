@@ -493,7 +493,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             trigger_info=RemoteTarget(
                 os.path.join(
@@ -502,7 +502,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         )
 
@@ -655,7 +655,7 @@ class RunBalrogRemote(luigi.Task):
                 os.path.join(self.job_dir_remote, fit_result_name),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             "post_equal_weights": RemoteTarget(
                 os.path.join(
@@ -665,7 +665,7 @@ class RunBalrogRemote(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
             "success": RemoteTarget(
                 os.path.join(
@@ -674,7 +674,7 @@ class RunBalrogRemote(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         }
 
@@ -690,7 +690,7 @@ class RunBalrogRemote(luigi.Task):
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                sshpass=True,
+                # sshpass=True,
             ),
         }
 
@@ -698,7 +698,7 @@ class RunBalrogRemote(luigi.Task):
         remote = RemoteContext(
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            # sshpass=True,
         )
 
         check_status_cmd = [
@@ -856,7 +856,7 @@ class RunBalrogTasksRemote(luigi.Task):
             ),
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            # sshpass=True,
         )
 
         remote_trigger_information.put(
@@ -871,7 +871,7 @@ class RunBalrogTasksRemote(luigi.Task):
         remote = RemoteContext(
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            sshpass=True,
+            # sshpass=True,
         )
 
         if self.priority > 1:

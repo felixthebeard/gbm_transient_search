@@ -72,7 +72,7 @@ def angle_mapping(x, ref_vector=None):
 
     x_ang = np.apply_along_axis(angle, axis=1, arr=x, ref_vector=ref_vector)
 
-    return x_ang
+    return (x_ang / np.pi) * 360
 
 
 def calc_snr(data, background):
@@ -106,14 +106,21 @@ class Search(object):
     """
 
     def __init__(
-        self, result_file, min_bin_width, mad=False, sub_min=False, bad_fit_threshold=60
+        self, result_file=None, min_bin_width=1e-99, mad=False, bad_fit_threshold=60
     ):
         """
         Instantiate the search class and prepare the data for processing.
         """
 
-        self._load_result_file(result_file)
+        self._min_bin_width = min_bin_width
+        self._mad = mad
+        self._bad_fit_threshold = bad_fit_threshold
 
+        if result_file is not None:
+            self._load_result_file(result_file)
+            self._setup()
+
+    def _setup(self):
         self._dets_idx = []
 
         for det in self._detectors:
@@ -123,9 +130,9 @@ class Search(object):
         saa_calc = SaaCalc(self._time_bins)
         self._saa_mask = saa_calc.saa_mask
 
-        self._rebinn_data(min_bin_width)
+        self._rebinn_data(self._min_bin_width)
 
-        self._mask_bad_bkg_fits(bad_fit_threshold)
+        self._mask_bad_bkg_fits(self._bad_fit_threshold)
 
         # Combine all energy bins for significance calculation
         self._combine_energy_bins()
@@ -141,7 +148,7 @@ class Search(object):
             / self._rebinned_time_bin_width[self._rebinned_saa_mask]
         ).T
 
-        self._transform_data(mad, sub_min)
+        self._transform_data(self._mad)
 
     def _rebinn_data(self, min_bin_width):
         """
@@ -224,7 +231,7 @@ class Search(object):
 
         self._good_bkg_fit_mask = good_bkg_fit_mask
 
-    def _combine_energy_bins(self, echans=[0, 1, 2, 3, 4]):
+    def _combine_energy_bins(self, echans=[0, 1, 2, 3, 4, 5, 6, 7]):
         """
         Combine the energy bins that are used for the calculation of the significance
         """
@@ -271,35 +278,37 @@ class Search(object):
         self._bkg_counts_total = background
         self._bkg_stat_err_total = bkg_stat_err
 
-    def _transform_data(self, mad, sub_min):
+    def _transform_data(self, mad):
         """
         Transform the data to and apply mapping
         """
-        self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask].reshape(
-            (self._data_cleaned.shape[0], -1)
-        )
+        # self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask].reshape(
+        #     (self._data_cleaned.shape[0], -1)
+        # )
+
+        self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask]
 
         if mad:
 
-            med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=1)
-            median = np.median(self._data_cleaned[:, :, 0], axis=1)
+            med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=0)
+            median = np.median(self._data_flattened, axis=0)
 
-            med_abs_div = med_abs_div.reshape(
-                (-1,) + (1,) * (self._data_flattened.ndim - 1)
-            )
-            median = median.reshape((-1,) + (1,) * (self._data_flattened.ndim - 1))
+            # med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=1)
+            # median = np.median(self._data_cleaned[:, :, 0], axis=1)
+
+            # med_abs_div = med_abs_div.reshape(
+            #     (-1,) + (1,) * (self._data_flattened.ndim - 1)
+            # )
+            # median = median.reshape((-1,) + (1,) * (self._data_flattened.ndim - 1))
 
             self._data_trans = (self._data_flattened - median) / med_abs_div
 
         else:
             self._data_trans = self._data_flattened
 
-        if sub_min:
-            min_x = np.min(self._data_trans, axis=1).reshape(
-                (-1,) + (1,) * (self._data_trans.ndim - 1)
-            )
-
-            self._data_trans = self._data_trans - min_x
+        self._data_trans = (
+            self._data_trans - np.min(self._data_trans, axis=0).reshape((1, -1)) + 1
+        )
 
         self._distances = distance_mapping(self._data_trans)
         self._angles = angle_mapping(self._data_trans)
@@ -357,9 +366,18 @@ class Search(object):
                 cpts_seg = []
 
                 for echan in self._echans:
+                    # data_flattend = self._data_cleaned[:, self._dets_idx][
+                    #     :, :, echan
+                    # ].reshape((self._data_cleaned.shape[0], -1))
+
                     data_flattend = self._data_cleaned[:, self._dets_idx][
                         :, :, echan
                     ].reshape((self._data_cleaned.shape[0], -1))
+                    data_flattend = (
+                        data_flattend
+                        - np.min(data_flattend, axis=0).reshape((1, -1))
+                        + 1
+                    )
 
                     angles = angle_mapping(data_flattend)
 
@@ -393,6 +411,65 @@ class Search(object):
         change_points = np.array(change_points)
 
         self._cpts_sections_all = change_points_sections
+        self._change_points_all = change_points
+
+    def find_changepoints_angles_distances(self, min_separation=0, **kwargs):
+        """
+        Find changepoints applying the ruptures PELT method
+        in the angles time series
+        """
+        from pathos.multiprocessing import cpu_count
+        from pathos.pools import ProcessPool as Pool
+        from copy import deepcopy
+
+        def detect_cpts(arg):
+
+            array, mapping, slice_idx, valid_slice, kwargs = arg
+
+            array_slice = array[valid_slice[0] : valid_slice[1]]
+
+            penalty = 2 * np.log(len(array_slice))
+
+            algo_dist = rpt.Pelt(**kwargs).fit(array_slice)
+
+            cpts_seg = algo_dist.predict(pen=penalty)
+
+            return (mapping, slice_idx, cpts_seg + valid_slice[0])
+
+        def find_min_distance(array, value):
+            array = np.asarray(array)
+            return (np.abs(array - value)).min()
+
+        jobs = []
+        pool = Pool(cpu_count())
+
+        for i, valid_slice in enumerate(self._valid_slices):
+            jobs.append((self._angles, "angle", i, valid_slice, kwargs))
+
+        for i, valid_slice in enumerate(self._valid_slices):
+            jobs.append((self._distances, "distance", i, valid_slice, kwargs))
+
+        cpts_output = pool.map(detect_cpts, jobs)
+
+        change_points_angles = [None] * len(self._valid_slices)
+
+        for mapping, slice_idx, cpts in cpts_output:
+            if mapping == "angle":
+                change_points_angles[slice_idx] = cpts
+
+        change_points = deepcopy(change_points_angles)
+
+        for mapping, slice_idx, cpts in cpts_output:
+            if mapping == "distances":
+
+                for cpt in cpts:
+
+                    if (
+                        find_min_distance(change_points_angles[slice_idx], cpt)
+                        > min_separation
+                    ):
+                        change_points[slice_idx].append(cpt)
+
         self._change_points_all = change_points
 
     def calc_significances(self, required_significance=5, max_interval_time=1000):
@@ -465,7 +542,7 @@ class Search(object):
         self._intervals_all = intervals
         self._intervals_significance_all = significances
 
-    def build_trigger_information(self):
+    def build_trigger_information(self, active_time_significance=5):
         """
         Build the trigger information by filtering the found source intervals
         for overlap and same trigger times.
@@ -474,16 +551,16 @@ class Search(object):
 
         # Filter out overlapping intervals and select the one with highest significance
         # This is done twice to get rid of some leftovers
-        # intervals_selected, significances_selected = self._filter_overlap(
-        #     self._intervals_all, self._intervals_significance_all
-        # )
-        # intervals_selected, significances_selected = self._filter_overlap(
-        #     intervals_selected, significances_selected
-        # )
-        intervals_selected, significances_selected = (
-            self._intervals_all,
-            self._intervals_significance_all,
+        intervals_selected, significances_selected = self._filter_overlap(
+            self._intervals_all, self._intervals_significance_all
         )
+        intervals_selected, significances_selected = self._filter_overlap(
+            intervals_selected, significances_selected
+        )
+        # intervals_selected, significances_selected = (
+        #     self._intervals_all,
+        #     self._intervals_significance_all,
+        # )
 
         # intervals_selected, significances_selected = self._filter_overlap_dets(
         #     intervals_selected, significances_selected
@@ -604,7 +681,7 @@ class Search(object):
                     unique_peak_ids
                 ],
                 peak_times=np.array(trigger_peak_times)[unique_peak_ids],
-                required_significance=5,
+                required_significance=active_time_significance,
             )
         else:
             trigger_intervals = []
@@ -981,3 +1058,123 @@ class Search(object):
 
         self._cpts_sections = change_points_sections
         self._change_points = change_points
+
+    def load_simulation(self, simulation):
+        """
+        Load simulation
+        """
+        self._dates = simulation.dates
+        self._detectors = simulation.detectors
+        self._echans = np.array([int(echan) for echan in simulation.echans])
+        self._data_type = simulation.data_type
+        self._time_bins = simulation.time_bins
+        self._saa_mask = simulation.saa_mask
+        self._observed_counts = simulation.observed_counts
+        self._bkg_counts = simulation.bkg_counts
+        self._bkg_stat_err = simulation.bkg_stat_err
+
+        self._setup()
+
+    def simulate_search(self):
+        """
+        Build the trigger information by filtering the found source intervals
+        for overlap and same trigger times.
+        At the end check if the selected active time is significant.
+        """
+
+        # Filter out overlapping intervals and select the one with highest significance
+        # This is done twice to get rid of some leftovers
+        intervals_selected, significances_selected = self._filter_overlap(
+            self._intervals_all, self._intervals_significance_all
+        )
+        intervals_selected, significances_selected = self._filter_overlap(
+            intervals_selected, significances_selected
+        )
+
+        intervals_selected, significances_selected = self._filter_overlap_dets(
+            intervals_selected, significances_selected
+        )
+
+        # Get all intervals that are significant in at least one detector
+        trigger_intervals = []
+        for i, det in enumerate(self._detectors):
+            trigger_intervals.extend(intervals_selected[det])
+
+        trigger_intervals = np.unique(trigger_intervals, axis=0)
+
+        if len(trigger_intervals) > 0:
+            # Calculate the significance of each detector for the active interval
+            # that was selected based on the most significant detector
+            trigger_significance = []
+            for i, interval in enumerate(trigger_intervals):
+                idx_low, idx_high = interval
+
+                sig_dict = {}
+
+                for det in self._detectors:
+                    sig_dict[det] = float(
+                        calc_significance(
+                            data=self._observed_counts_total[det][idx_low:idx_high],
+                            background=self._bkg_counts_total[det][idx_low:idx_high],
+                            bkg_stat_err=self._bkg_stat_err_total[det][
+                                idx_low:idx_high
+                            ],
+                        )
+                    )
+
+                trigger_significance.append(sig_dict)
+
+            trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+                trigger_intervals[:, 0], 0
+            ]
+
+            most_significant_detectors = []
+            for sig in trigger_significance:
+                most_significant_detectors.append(max(sig, key=sig.get))
+
+            trigger_peak_times = []
+
+            for i, inter in enumerate(trigger_intervals):
+                det = most_significant_detectors[i]
+                counts = (
+                    self._observed_counts_total[det][inter[0] : inter[1]]
+                    - self._bkg_counts_total[det][inter[0] : inter[1]]
+                )
+
+                max_index = np.argmax(counts) + inter[0]
+
+                trigger_peak_times.append(
+                    self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
+                )
+
+        else:
+            trigger_intervals = []
+            trigger_significance = []
+            most_significant_detectors = []
+            trigger_times = []
+            trigger_peak_times = []
+
+        trigger_information = {}
+        trigger_information["triggers"] = []
+
+        for i, t0 in enumerate(trigger_times):
+            start = self._rebinned_mean_time[trigger_intervals][i][0].tolist()
+            stop = self._rebinned_mean_time[trigger_intervals][i][1].tolist()
+
+            t_info = {
+                "trigger_time": t0.tolist(),
+                "trigger_time_corr": t0.tolist() - self._time_bins[0, 0].tolist(),
+                "peak_time": trigger_peak_times[i].tolist(),
+                "significances": trigger_significance[i],
+                "interval": {
+                    "start": start,
+                    "stop": stop,
+                },
+                "most_significant_detector": most_significant_detectors[i],
+                "duration": stop - start,
+                "max_sig": trigger_significance[i][most_significant_detectors[i]],
+            }
+
+            trigger_information["triggers"].append(t_info)
+
+        return trigger_information

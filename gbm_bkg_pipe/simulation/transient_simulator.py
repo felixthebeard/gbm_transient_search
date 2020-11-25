@@ -19,6 +19,7 @@ class TransientSimulator(BackgroundSimulator):
         super(TransientSimulator, self).__init__(*args, **kwargs)
 
     def run(self):
+        self._setup_simulation()
 
         self._simulate_background()
 
@@ -26,6 +27,21 @@ class TransientSimulator(BackgroundSimulator):
 
         counts_detectors = {}
 
+        for det_idx, det in enumerate(self._valid_det_names):
+
+            counts_detectors[det] = (
+                self._counts_background[det] + self._counts_transients[det]
+            )
+
+        self._counts_detectors = counts_detectors
+
+    def simulate_transients(self):
+        self._observed_counts = None
+        self._observed_counts_raw = None
+
+        self._simulate_transients()
+
+        counts_detectors = {}
         for det_idx, det in enumerate(self._valid_det_names):
 
             counts_detectors[det] = (
@@ -168,34 +184,58 @@ class TransientSimulator(BackgroundSimulator):
         return self._bkg_counts
 
     @property
-    def stat_err(self):
+    def bkg_stat_err(self):
         return self._stat_err
+
+    @property
+    def dates(self):
+        return [self._day]
+
+    @property
+    def detectors(self):
+        return self._valid_det_names
+
+    @property
+    def echans(self):
+        return list(range(8))
+
+    @property
+    def data_type(self):
+        return self._data_type
+
+    @property
+    def time_bins(self):
+        return self._time_bins
+
+    @property
+    def saa_mask(self):
+        return np.ones(len(self._time_bins))
 
     def save_combined_hdf5(self, output_path):
 
         with h5py.File(output_path, "w") as f:
 
-            f.attrs["dates"] = [self._day]
+            f.attrs["dates"] = self.date
 
             f.attrs["trigger"] = "None"
 
             f.attrs["trigger_time"] = 0.0
 
-            f.attrs["data_type"] = self._data_type
+            f.attrs["data_type"] = self.data_type
 
-            f.attrs["echans"] = list(range(8))
+            f.attrs["echans"] = self.echans
 
-            f.attrs["detectors"] = self._valid_det_names
+            f.attrs["detectors"] = self.detectors
 
             f.create_dataset(
                 "time_bins",
-                data=self._time_bins,
+                data=self.time_bins,
                 compression="lzf",
             )
 
             f.create_dataset(
                 "saa_mask",
-                data=np.ones(len(self._time_bins)),
+                data=self.saa_mask,
                 compression="lzf",
             )
 
@@ -211,4 +251,41 @@ class TransientSimulator(BackgroundSimulator):
                 compression="lzf",
             )
 
-            f.create_dataset("stat_err", data=self.stat_err, compression="lzf")
+            f.create_dataset("stat_err", data=self.bkg_stat_err, compression="lzf")
+
+    def load_combined_hdf5(self, filepath):
+
+        with h5py.File(filepath, "r") as f:
+
+            dates = f.attrs["dates"]
+
+            trigger = f.attrs["trigger"]
+
+            trigger_time = f.attrs["trigger_time"]
+
+            data_type = f.attrs["data_type"]
+
+            echans = f.attrs["echans"]
+
+            detectors = f.attrs["detectors"]
+
+            time_bins = f["time_bins"][()]
+
+            saa_mask = f["saa_mask"][()]
+
+            observed_counts = f["observed_counts"][()]
+
+            model_counts = f["model_counts"][()]
+
+            stat_err = f["stat_err"][()]
+
+        self._time_bins = time_bins
+        self._saa_mask = saa_mask
+        self._bkg_counts = model_counts
+        self._stat_err = stat_err
+
+        self._counts_background = {}
+
+        for det_idx, det in enumerate(self._valid_det_names):
+
+            self._counts_background[det] = self._bkg_counts[:, det_idx, :]

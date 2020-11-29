@@ -444,7 +444,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -530,7 +530,7 @@ class CopyRemoteBalrogResult(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -616,7 +616,7 @@ class RunBalrogRemote(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -765,6 +765,8 @@ class RunBalrogTasksRemote(luigi.Task):
     step = luigi.Parameter()
 
     result_timeout = 2 * 60 * 60
+
+    resources = {"ssh_connections": 1}
 
     @property
     def retry_count(self):

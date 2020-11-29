@@ -232,7 +232,7 @@ class CopyResults(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -319,6 +319,8 @@ class RunPhysBkgModel(luigi.Task):
     step = luigi.Parameter()
 
     result_timeout = 2 * 60 * 60
+
+    resources = {"ssh_connections": 1}
 
     @property
     def retry_count(self):
@@ -855,7 +857,7 @@ class DownloadData(luigi.Task):
     detector = luigi.ListParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -935,7 +937,7 @@ class DownloadPoshistData(luigi.Task):
     date = luigi.DateParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):
@@ -996,7 +998,7 @@ class DownloadLATData(luigi.Task):
     date = luigi.DateParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh_connections": 1}
 
     @property
     def priority(self):

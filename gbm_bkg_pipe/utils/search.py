@@ -675,14 +675,33 @@ class Search(object):
                 trigger_peak_times, trigger_intervals
             )
 
-            significant_ids = self._filter_active_time_significance(
-                valid_ids=unique_peak_ids,
-                most_significant_detectors=np.array(most_significant_detectors)[
-                    unique_peak_ids
-                ],
-                peak_times=np.array(trigger_peak_times)[unique_peak_ids],
-                required_significance=active_time_significance,
-            )
+            trigger_significance = np.array(trigger_significance)[unique_peak_ids]
+            peak_times = np.array(trigger_peak_times)[unique_peak_ids]
+            most_significant_detectors = np.array(most_significant_detectors)[
+                unique_peak_ids
+            ]
+
+            # In addition to the threshold on the brightest detector require at least one
+            # additional detector to be above 2 sigma
+            significance_threshold_others = 2
+            number_significant_dets = 2
+
+            significant_ids = []
+
+            for i, trigger_sig in enumerate(trigger_significance):
+
+                max_det_significant = (
+                    max(list(trigger_sig.values())) > active_time_significance
+                )
+
+                other_dets_significant = (
+                    len(np.where(np.array(list(sig.values())) > significance_threshold_others)[0])
+                    > number_significant_dets
+                )
+
+                if max_det_significant and other_dets_significant:
+                    significant_ids.append(i)
+
         else:
             trigger_intervals = []
             trigger_significance = []

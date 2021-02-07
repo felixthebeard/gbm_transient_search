@@ -24,7 +24,7 @@ saa:
 
 ###### Input for geometry calculation [n time bins per day to calculate the geometry ################
 geometry:
-  n_bins_to_calculate: 800
+  n_bins_to_calculate: 86400
 
 ##### Input for source Setup [use CR, use Earth, use CGB, point source list, fix earth, fix cgb #####
 setup:

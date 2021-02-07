@@ -486,6 +486,13 @@ class CopyTriggerFilesToRemote(luigi.Task):
 
     def output(self):
         return dict(
+            success=luigi.LocalTarget(
+                os.path.join(self.job_dir, "copied_trigger_files.done")
+            ),
+        )
+
+    def remote_output(self):
+        return dict(
             pha_dir=RemoteTarget(
                 os.path.join(
                     self.remote_job_dir,
@@ -509,7 +516,7 @@ class CopyTriggerFilesToRemote(luigi.Task):
     def run(self):
         local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
         if local_pha_dir.exists():
-            self.output()["pha_dir"].put(local_pha_dir.path)
+            self.remote_output()["pha_dir"].put(local_pha_dir.path)
         else:
             raise Exception(f"Local pha dir {local_pha_dir.path} is missing.")
 
@@ -518,9 +525,11 @@ class CopyTriggerFilesToRemote(luigi.Task):
         )
 
         if local_trigger_info.exists():
-            self.output()["trigger_info"].put(local_trigger_info.path)
+            self.remote_output()["trigger_info"].put(local_trigger_info.path)
         else:
             raise Exception(f"Local pha dir {local_trigger_info.path} is missing.")
+
+        os.system(f"touch {self.output()['success'].path}")
 
 
 class CopyRemoteBalrogResult(luigi.Task):
@@ -594,12 +603,12 @@ class CopyRemoteBalrogResult(luigi.Task):
 
     def run(self):
         # Copy result file to local folder
-        self.input()["balrog_remote"]["fit_result"].get(
+        self.requires()["balrog_remote"].remote_output()["fit_result"].get(
             self.output()["fit_result"].path
         )
 
         # Copy arviz file to local folder
-        self.input()["balrog_remote"]["post_equal_weights"].get(
+        self.requires()["balrog_remote"].remote_output()["post_equal_weights"].get(
             self.output()["post_equal_weights"].path
         )
 
@@ -627,6 +636,17 @@ class RunBalrogRemote(luigi.Task):
             return 1
 
     @property
+    def job_dir(self):
+        return os.path.join(
+            base_dir,
+            f"{self.date:%y%m%d}",
+            self.data_type,
+            self.step,
+            "trigger",
+            self.trigger_name,
+        )
+
+    @property
     def job_dir_remote(self):
         return os.path.join(
             remote_hosts_config["hosts"][self.remote_host]["base_dir"],
@@ -648,6 +668,13 @@ class RunBalrogRemote(luigi.Task):
         )
 
     def output(self):
+        return dict(
+            success=luigi.LocalTarget(
+                os.path.join(self.job_dir, "run_balrog_remote.done")
+            )
+        )
+
+    def remote_output(self):
         fit_result_name = f"{self.trigger_name}_loc_results.fits"
 
         return {
@@ -715,7 +742,7 @@ class RunBalrogRemote(luigi.Task):
 
         # the time spent waiting so far
         time_spent = 0  # seconds
-        wait_time = 20
+        wait_time = 5 * 60
         max_time = 2 * 60 * 60
 
         # Sleep for 10s initially
@@ -723,7 +750,9 @@ class RunBalrogRemote(luigi.Task):
 
         while True:
 
-            if self.output()["success"].exists():
+            if self.remote_output()["success"].exists():
+
+                os.system("touch {self.output()['success'].path}")
 
                 return True
 

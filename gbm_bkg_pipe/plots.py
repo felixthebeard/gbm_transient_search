@@ -8,7 +8,7 @@ from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadPoshistData, BkgModelPlo
 from gbm_bkg_pipe.balrog_handler import ProcessLocalizationResult
 from gbm_bkg_pipe.trigger_search import TriggerSearch
 from gbm_bkg_pipe.utils.env import get_env_value
-from gbm_bkg_pipe.utils.trigger_plot import TriggerPlot
+from gbm_bkg_pipe.utils.plotting import TriggerPlot
 
 from gbm_bkg_pipe.utils.plot_utils import (
     azimuthal_plot_sat_frame,

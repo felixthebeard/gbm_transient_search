@@ -922,7 +922,7 @@ class Search(object):
 
         plotter = TriggerPlot(
             triggers=self._trigger_information["triggers"],
-            time=self._rebinned_mean_time,
+            time_bins=self._rebinned_time_bins,
             counts=self._rebinned_observed_counts,
             detectors=self._detectors,
             echans=self._echans,

@@ -39,7 +39,7 @@ class TriggerPlot(object):
     def __init__(
         self,
         triggers,
-        time,
+        time_bins,
         counts,
         bkg_counts,
         counts_cleaned,
@@ -54,7 +54,11 @@ class TriggerPlot(object):
         show_angles=True,
     ):
         self._triggers = triggers
-        self._time = time
+
+        self._time_bins = time_bins
+        self._time = np.mean(time_bins, axis=1)
+        self._time_bin_widths = np.diff(time_bins, axis=1)[:, 0]
+
         self._saa_mask = saa_mask
         self._counts = counts
         self._echans = echans
@@ -97,7 +101,7 @@ class TriggerPlot(object):
 
             detectors = f.attrs["detectors"]
 
-            time = f["time"][()]
+            time_bins = f["time_bins"][()]
 
             saa_mask = f["saa_mask"][()]
 
@@ -113,7 +117,7 @@ class TriggerPlot(object):
 
         return cls(
             triggers,
-            time,
+            time_bins,
             counts,
             bkg_counts,
             counts_cleaned,
@@ -132,8 +136,8 @@ class TriggerPlot(object):
             f.attrs["detectors"] = self._detectors
 
             f.create_dataset(
-                "time",
-                data=self._time,
+                "time_bins",
+                data=self._time_bins,
                 compression="lzf",
             )
 

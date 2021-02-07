@@ -69,9 +69,11 @@ class TriggerSearch(luigi.Task):
             bad_fit_threshold=100,
         )
 
-        search.find_changepoints_angles(min_size=3, jump=5, model="l2")
+        search.find_changepoints_angles_distances(
+            min_separation=5, min_size=1, jump=1, model="l1"
+        )
 
-        search.calc_significances(required_significance=3, max_interval_time=2000)
+        search.calc_significances(required_significance=5, max_interval_time=2000)
 
         search.build_trigger_information()
 

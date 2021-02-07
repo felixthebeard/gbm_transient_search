@@ -826,7 +826,7 @@ class TriggerPlot(object):
 
             fig.savefig(savepath, dpi=300, bbox_inches="tight")
 
-    def create_lightcurves(self, trigger, outdir=None):
+    def create_lightcurves(self, trigger, outdir=None, fileformat="png"):
         fontsize = 8
 
         for det_idx, det in enumerate(valid_det_names):
@@ -854,10 +854,11 @@ class TriggerPlot(object):
                     self._time[self._saa_mask][time_mask] - trigger["trigger_time"],
                     self._counts[:, det_idx, e][self._saa_mask][time_mask],
                     alpha=0.9,
-                    linewidth=0.5,
-                    s=2,
+                    linewidth=0.8,
+                    s=3,
                     facecolors="none",
                     edgecolors=data_color,
+                    rasterized=True
                 )
 
                 ax[i].plot(
@@ -893,7 +894,7 @@ class TriggerPlot(object):
                     clip_on=False,
                     label="T0",
                 )
-                ax[i].set_ylabel(f"Counts \n{echan_dict[str(e)]}", fontsize=fontsize)
+                ax[i].set_ylabel(f"Count rate \n{echan_dict[str(e)]}", fontsize=fontsize)
                 ax[i].tick_params(axis="both", which="major", labelsize=fontsize)
                 ax[i].tick_params(axis="both", which="minor", labelsize=fontsize)
 
@@ -949,7 +950,7 @@ class TriggerPlot(object):
 
                 savepath = os.path.join(
                     plot_dir,
-                    f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.png",
+                    f"{trigger['trigger_name']}_lightcurve_detector_{det}_plot.{fileformat}",
                 )
 
                 fig.savefig(savepath, dpi=300, bbox_inches="tight", transparent=True)

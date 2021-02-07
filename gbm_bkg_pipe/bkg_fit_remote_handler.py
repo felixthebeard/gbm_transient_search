@@ -16,16 +16,19 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
 from luigi.contrib.ssh import RemoteContext, RemoteTarget
 
-from gbm_bkg_pipe.utils.file_utils import if_directory_not_existing_then_make
-from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
-from gbm_bkg_pipe.utils.bkg_result_reader import BkgArvizReader
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
 from gbm_bkg_pipe.utils.bkg_helper import BkgConfigWriter
+from gbm_bkg_pipe.utils.bkg_result_reader import BkgArvizReader
 from gbm_bkg_pipe.utils.download_file import (
     BackgroundDataDownload,
     BackgroundLATDownload,
 )
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_bkg_pipe.utils.file_utils import (
+    if_dir_containing_file_not_existing_then_make,
+    if_directory_not_existing_then_make,
+)
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
@@ -155,174 +158,13 @@ class BkgModelPlots(luigi.WrapperTask):
         return bkg_plot_tasks
 
 
-class CreateBkgConfig(luigi.Task):
+class BkgModelTask(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
-
-    resources = {"cpu": 1}
-
-    @property
-    def priority(self):
-        yesterday = dt.date.today() - timedelta(days=1)
-        if self.date >= yesterday:
-            return 10
-        else:
-            return 1
-
-    def requires(self):
-        requires = {
-            "pointsource_db": UpdatePointsourceDB(
-                date=self.date, remote_host=self.remote_host
-            )
-        }
-        if self.step == "final":
-            from gbm_bkg_pipe.trigger_search import TriggerSearch
-
-            requires["trigger_search"] = TriggerSearch(
-                date=self.date,
-                data_type=self.data_type,
-                remote_host=self.remote_host,
-                step="base",
-            )
-
-        return requires
-
-    def output(self):
-        job_dir_remote = os.path.join(
-            remote_hosts_config["hosts"][self.remote_host]["base_dir"],
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
-        return RemoteTarget(
-            os.path.join(job_dir_remote, "config_fit.yml"),
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            # sshpass=True,
-        )
-
-    def run(self):
-
-        config_writer = BkgConfigWriter(
-            self.date, self.data_type, self.echans, self.detectors, step=self.step
-        )
-
-        config_writer.build_config()
-
-        if self.step == "final":
-            config_writer.mask_triggers(self.input()["trigger_search"].path)
-
-        with self.output().open("w") as outfile:
-
-            yaml.dump(config_writer._config, outfile, default_flow_style=False)
-
-
-class CopyResults(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
-
-    resources = {"cpu": 1}
-
-    @property
-    def priority(self):
-        yesterday = dt.date.today() - timedelta(days=1)
-        if self.date >= yesterday:
-            return 10
-        else:
-            return 1
-
-    def requires(self):
-        return dict(
-            bkg_fit=RunPhysBkgModel(
-                date=self.date,
-                echans=self.echans,
-                detectors=self.detectors,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-            config_file=CreateBkgConfig(
-                date=self.date,
-                data_type=self.data_type,
-                echans=self.echans,
-                detectors=self.detectors,
-                remote_host=self.remote_host,
-                step=self.step,
-            ),
-        )
-
-    def output(self):
-        job_dir = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
-        result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
-            f"{self.date:%y%m%d}",
-            "-".join(self.detectors),
-            "-".join(self.echans),
-        )
-        arviz_file_name = "fit_result_{}_{}_e{}.nc".format(
-            f"{self.date:%y%m%d}",
-            "-".join(self.detectors),
-            "-".join(self.echans),
-        )
-        return {
-            "result_file": luigi.LocalTarget(os.path.join(job_dir, result_file_name)),
-            "arviz_file": luigi.LocalTarget(os.path.join(job_dir, arviz_file_name)),
-            "config_file": luigi.LocalTarget(os.path.join(job_dir, "config_fit.yml")),
-            "best_fit_file": luigi.LocalTarget(
-                os.path.join(job_dir, "best_fit_params.yml")
-            ),
-        }
-
-    def run(self):
-        # Copy result file to local folder
-        self.input()["bkg_fit"]["result_file"].get(self.output()["result_file"].path)
-
-        # Copy arviz file to local folder
-        self.input()["bkg_fit"]["arviz_file"].get(self.output()["arviz_file"].path)
-
-        # Copy config file to local folder
-        self.input()["config_file"].get(self.output()["config_file"].path)
-
-        with h5py.File(self.output()["result_file"].path, "r") as f:
-            best_fit_values = f.attrs["best_fit_values"].tolist()
-            param_names = f.attrs["param_names"].tolist()
-
-        with self.output()["best_fit_file"].open("w") as f:
-            yaml.dump(
-                dict(zip(param_names, best_fit_values)), f, default_flow_style=False
-            )
-
-
-class RunPhysBkgModel(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
-
-    result_timeout = 2 * 60 * 60
-
-    @property
-    def retry_count(self):
-        return 4
 
     @property
     def priority(self):
@@ -355,6 +197,134 @@ class RunPhysBkgModel(luigi.Task):
             f"det_{'_'.join(self.detectors)}",
             f"e{'_'.join(self.echans)}",
         )
+
+
+class CreateBkgConfig(BkgModelTask):
+
+    resources = {"cpu": 1, "ssh": 1}
+
+    def requires(self):
+        requires = {
+            "pointsource_db": UpdatePointsourceDB(
+                date=self.date, remote_host=self.remote_host
+            )
+        }
+        if self.step == "final":
+            from gbm_bkg_pipe.trigger_search import TriggerSearch
+
+            requires["trigger_search"] = TriggerSearch(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step="base",
+            )
+        return requires
+
+    def output(self):
+        return luigi.LocalTarget(os.path.join(self.job_dir, "config_fit.yml"))
+
+    def remote_output(self):
+        return RemoteTarget(
+            os.path.join(self.job_dir_remote, "config_fit.yml"),
+            host=self.remote_host,
+            username=remote_hosts_config["hosts"][self.remote_host]["username"],
+            # sshpass=True,
+        )
+
+    def run(self):
+
+        config_writer = BkgConfigWriter(
+            self.date, self.data_type, self.echans, self.detectors, step=self.step
+        )
+
+        config_writer.build_config()
+
+        if self.step == "final":
+            config_writer.mask_triggers(self.input()["trigger_search"].path)
+
+        with self.remote_output().open("w") as outfile:
+
+            yaml.dump(config_writer._config, outfile, default_flow_style=False)
+
+        # Copy config file to local folder
+        self.remote_output().get(self.output().path)
+
+
+class CopyResults(BkgModelTask):
+    resources = {"cpu": 1, "ssh": 1}
+
+    def requires(self):
+        return dict(
+            bkg_fit=RunPhysBkgModel(
+                date=self.date,
+                echans=self.echans,
+                detectors=self.detectors,
+                remote_host=self.remote_host,
+                step=self.step,
+            ),
+            config_file=CreateBkgConfig(
+                date=self.date,
+                data_type=self.data_type,
+                echans=self.echans,
+                detectors=self.detectors,
+                remote_host=self.remote_host,
+                step=self.step,
+            ),
+        )
+
+    def output(self):
+        result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
+        arviz_file_name = "fit_result_{}_{}_e{}.nc".format(
+            f"{self.date:%y%m%d}",
+            "-".join(self.detectors),
+            "-".join(self.echans),
+        )
+        return {
+            "result_file": luigi.LocalTarget(
+                os.path.join(self.job_dir, result_file_name)
+            ),
+            "arviz_file": luigi.LocalTarget(
+                os.path.join(self.job_dir, arviz_file_name)
+            ),
+            "best_fit_file": luigi.LocalTarget(
+                os.path.join(self.job_dir, "best_fit_params.yml")
+            ),
+        }
+
+    def run(self):
+        # Copy result file to local folder
+        if not self.output()["result_file"].exists():
+            self.requires()["bkg_fit"].remote_output()["result_file"].get(
+                self.output()["result_file"].path
+            )
+
+        # Copy arviz file to local folder
+        if not self.output()["arviz_file"].exists():
+            self.requires()["bkg_fit"].remote_output()["arviz_file"].get(
+                self.output()["arviz_file"].path
+            )
+
+        with h5py.File(self.output()["result_file"].path, "r") as f:
+            best_fit_values = f.attrs["best_fit_values"].tolist()
+            param_names = f.attrs["param_names"].tolist()
+
+        with self.output()["best_fit_file"].open("w") as f:
+            yaml.dump(
+                dict(zip(param_names, best_fit_values)), f, default_flow_style=False
+            )
+
+
+class RunPhysBkgModel(BkgModelTask):
+    result_timeout = 2 * 60 * 60
+    resources = {"ssh": 1}
+
+    @property
+    def retry_count(self):
+        return 4
 
     def requires(self):
         requires = {
@@ -399,6 +369,12 @@ class RunPhysBkgModel(luigi.Task):
         return requires
 
     def output(self):
+        return {
+            "job_id": luigi.LocalTarget(os.path.join(self.job_dir, "job_id.txt")),
+            "success": luigi.LocalTarget(os.path.join(self.job_dir, "success.txt")),
+        }
+
+    def remote_output(self):
         result_file_name = "fit_result_{}_{}_e{}.hdf5".format(
             f"{self.date:%y%m%d}",
             "-".join(self.detectors),
@@ -410,7 +386,6 @@ class RunPhysBkgModel(luigi.Task):
             "-".join(self.echans),
         )
         return {
-            "job_id": luigi.LocalTarget(os.path.join(self.job_dir, "job_id.txt")),
             "chains_dir": RemoteTarget(
                 os.path.join(self.job_dir_remote, "stan_chains"),
                 host=self.remote_host,
@@ -480,12 +455,13 @@ class RunPhysBkgModel(luigi.Task):
 
         logging.info(" ".join(run_cmd))
 
-        if self.output()["success"].exists():
+        if self.remote_output()["success"].exists():
             # Job has already successfully completed, if job_id file is missing
             # just create a dummy version
             if not self.output()["job_id"].exists():
-                with self.output()["job_id"].open("w") as outfile:
-                    outfile.write("dummy")
+                os.system(f"touch {self.output()['job_id'].path}")
+            if not self.output()["success"].exists():
+                os.system(f"touch {self.output()['success'].path}")
 
             return True
 
@@ -516,7 +492,7 @@ class RunPhysBkgModel(luigi.Task):
 
         # the time spent waiting so far
         time_spent = 0  # seconds
-        wait_time = 20
+        wait_time = 5 * 60
         max_time = 2 * 60 * 60
 
         # Sleep for 10s initially
@@ -524,7 +500,9 @@ class RunPhysBkgModel(luigi.Task):
 
         while True:
 
-            if self.output()["success"].exists():
+            if self.remote_output()["success"].exists():
+
+                os.system(f"touch {self.output()['success'].path}")
 
                 return True
 
@@ -542,7 +520,7 @@ class RunPhysBkgModel(luigi.Task):
 
                     if (
                         not str(job_id) in status
-                        and not self.output()["success"].exists()
+                        and not self.remote_output()["success"].exists()
                     ):
 
                         self.output()["job_id"].remove()
@@ -559,13 +537,7 @@ class RunPhysBkgModel(luigi.Task):
                     time_spent += wait_time
 
 
-class BkgModelPerformancePlot(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
+class BkgModelPerformancePlot(BkgModelTask):
 
     resources = {"cpu": 1}
 
@@ -576,27 +548,6 @@ class BkgModelPerformancePlot(luigi.Task):
             detectors=self.detectors,
             remote_host=self.remote_host,
             step=self.step,
-        )
-
-    @property
-    def priority(self):
-        yesterday = dt.date.today() - timedelta(days=1)
-        if self.date >= yesterday:
-            return 10
-        else:
-            return 1
-
-    @property
-    def job_dir(self):
-        return os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-            "plots",
         )
 
     def output(self):
@@ -683,13 +634,6 @@ class BkgModelPerformancePlot(luigi.Task):
 
 
 class BkgModelResultPlot(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
-
     resources = {"cpu": 1}
 
     def requires(self):
@@ -699,24 +643,6 @@ class BkgModelResultPlot(luigi.Task):
             detectors=self.detectors,
             remote_host=self.remote_host,
             step=self.step,
-        )
-
-    @property
-    def priority(self):
-        yesterday = dt.date.today() - timedelta(days=1)
-        if self.date >= yesterday:
-            return 10
-        else:
-            return 1
-
-    @property
-    def job_dir(self):
-        return os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
         )
 
     def output(self):
@@ -768,13 +694,6 @@ class BkgModelResultPlot(luigi.Task):
 
 
 class BkgModelCornerPlot(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
-
     resources = {"cpu": 1}
 
     @property
@@ -855,7 +774,7 @@ class DownloadData(luigi.Task):
     detector = luigi.ListParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh": 1}
 
     @property
     def priority(self):
@@ -875,6 +794,7 @@ class DownloadData(luigi.Task):
             return os.path.join(data_dir, self.data_type, f"{self.date:%y%m%d}")
 
     def output(self):
+
         datafile_name = (
             f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
         )
@@ -882,6 +802,21 @@ class DownloadData(luigi.Task):
             local_file=luigi.LocalTarget(
                 os.path.join(self.local_data_dir, datafile_name)
             ),
+            remote_success=luigi.LocalTarget(
+                os.path.join(
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    "data_remote",
+                    f"copied_{self.data_type}_{self.detector}_{self.date:%y%m%d}",
+                )
+            ),
+        )
+
+    def remote_output(self):
+        datafile_name = (
+            f"glg_{self.data_type}_{self.detector}_{self.date:%y%m%d}_v00.pha"
+        )
+        return dict(
             remote_file=RemoteTarget(
                 os.path.join(
                     remote_hosts_config["hosts"][self.remote_host]["data_dir"],
@@ -918,7 +853,10 @@ class DownloadData(luigi.Task):
 
         if file_readable:
 
-            self.output()["remote_file"].put(self.output()["local_file"].path)
+            self.remote_output()["remote_file"].put(self.output()["local_file"].path)
+
+            self.output()["remote_success"].makedirs()
+            os.system(f"touch {self.output()['remote_success'].path}")
 
         else:
 
@@ -935,7 +873,7 @@ class DownloadPoshistData(luigi.Task):
     date = luigi.DateParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh": 1}
 
     @property
     def priority(self):
@@ -952,6 +890,20 @@ class DownloadPoshistData(luigi.Task):
             local_file=luigi.LocalTarget(
                 os.path.join(data_dir, "poshist", datafile_name)
             ),
+            remote_success=luigi.LocalTarget(
+                os.path.join(
+                    base_dir,
+                    f"{self.date:%y%m%d}",
+                    "data_remote",
+                    f"copied_poshist_{self.date:%y%m%d}",
+                )
+            ),
+        )
+
+    def remote_output(self):
+        datafile_name = f"glg_poshist_all_{self.date:%y%m%d}_v00.fit"
+
+        return dict(
             remote_file=RemoteTarget(
                 os.path.join(
                     remote_hosts_config["hosts"][self.remote_host]["data_dir"],
@@ -981,7 +933,10 @@ class DownloadPoshistData(luigi.Task):
 
         if file_readable:
 
-            self.output()["remote_file"].put(self.output()["local_file"].path)
+            self.remote_output()["remote_file"].put(self.output()["local_file"].path)
+
+            self.output()["remote_success"].makedirs()
+            os.system(f"touch {self.output()['remote_success'].path}")
 
         else:
 
@@ -996,7 +951,7 @@ class DownloadLATData(luigi.Task):
     date = luigi.DateParameter()
     remote_host = luigi.Parameter()
 
-    resources = {"cpu": 1}
+    resources = {"cpu": 1, "ssh": 1}
 
     @property
     def priority(self):

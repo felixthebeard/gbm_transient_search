@@ -30,6 +30,8 @@ class CreateReportDate(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter(default="default")
 
+    resources = {"ssh_connections": 1}
+
     @property
     def priority(self):
         yesterday = dt.date.today() - timedelta(days=1)
@@ -143,6 +145,8 @@ class CreateTriggerSearchReport(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
     step = luigi.Parameter(default="all")
+
+    resources = {"ssh_connections": 1}
 
     @property
     def priority(self):

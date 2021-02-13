@@ -309,7 +309,7 @@ class BalrogFit(object):
 
         chains_path = os.path.join(self._temp_chains_dir, f"{self._trigger_name}_")
 
-        self._bayes.set_sampler("multinest")
+        self._bayes.set_sampler("multinest", share_spectrum=True)
 
         self._bayes.sampler.setup(n_live_points=800, chain_name=chains_path)
 

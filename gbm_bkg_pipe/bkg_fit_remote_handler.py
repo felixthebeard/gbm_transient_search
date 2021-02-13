@@ -635,6 +635,10 @@ class BkgModelPerformancePlot(BkgModelTask):
 
 
 class BkgModelResultPlot(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
     resources = {"cpu": 1}
 
     def requires(self):
@@ -695,6 +699,10 @@ class BkgModelResultPlot(luigi.Task):
 
 
 class BkgModelCornerPlot(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter(default="ctime")
+    echans = luigi.ListParameter()
+    detectors = luigi.ListParameter()
     resources = {"cpu": 1}
 
     @property

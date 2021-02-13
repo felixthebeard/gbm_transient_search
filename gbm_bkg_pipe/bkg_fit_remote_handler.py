@@ -634,13 +634,7 @@ class BkgModelPerformancePlot(BkgModelTask):
         )
 
 
-class BkgModelResultPlot(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
+class BkgModelResultPlot(BkgModelTask):
     resources = {"cpu": 1}
 
     def requires(self):
@@ -700,13 +694,7 @@ class BkgModelResultPlot(luigi.Task):
         arviz_reader.save_summary(self.output()["summary"].path)
 
 
-class BkgModelCornerPlot(luigi.Task):
-    date = luigi.DateParameter()
-    data_type = luigi.Parameter(default="ctime")
-    echans = luigi.ListParameter()
-    detectors = luigi.ListParameter()
-    remote_host = luigi.Parameter()
-    step = luigi.Parameter()
+class BkgModelCornerPlot(BkgModelTask):
     resources = {"cpu": 1}
 
     @property

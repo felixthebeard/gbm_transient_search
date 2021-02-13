@@ -639,6 +639,8 @@ class BkgModelResultPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
+    remote_host = luigi.Parameter()
+    step = luigi.Parameter()
     resources = {"cpu": 1}
 
     def requires(self):
@@ -703,6 +705,8 @@ class BkgModelCornerPlot(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     echans = luigi.ListParameter()
     detectors = luigi.ListParameter()
+    remote_host = luigi.Parameter()
+    step = luigi.Parameter()
     resources = {"cpu": 1}
 
     @property

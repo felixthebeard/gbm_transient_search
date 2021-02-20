@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 import luigi
-from luigi.contrib.ssh import RemoteContext
+from gbm_bkg_pipe.utils.luigi_ssh import RemoteContext
 
 from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
 from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots

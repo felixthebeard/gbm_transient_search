@@ -721,12 +721,28 @@ class RunBalrogRemote(luigi.Task):
             ),
         }
 
-    def run(self):
+    def run_remote_command(self, cmd):
         remote = RemoteContext(
             host=self.remote_host,
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
             # sshpass=True,
         )
+
+        p = remote.Popen(cmd, stdout=subprocess.PIPE)
+        output, _ = p.communicate()
+        if p.returncode != 0:
+            raise RemoteCalledProcessError(
+                p.returncode, cmd, self.remote_host, output=output
+            )
+        try:
+            p.terminate()
+        except Exception as e:
+            print(e)
+        del remote
+
+        return output
+
+    def run(self):
 
         check_status_cmd = [
             "squeue",
@@ -764,7 +780,7 @@ class RunBalrogRemote(luigi.Task):
 
                 else:
 
-                    status = remote.check_output(check_status_cmd)
+                    status = self.run_remote_command(check_status_cmd)
 
                     status = status.decode()
 
@@ -861,6 +877,27 @@ class RunBalrogTasksRemote(luigi.Task):
             ),
         )
 
+    def run_remote_command(self, cmd):
+        remote = RemoteContext(
+            host=self.remote_host,
+            username=remote_hosts_config["hosts"][self.remote_host]["username"],
+            # sshpass=True,
+        )
+
+        p = remote.Popen(cmd, stdout=subprocess.PIPE)
+        output, _ = p.communicate()
+        if p.returncode != 0:
+            raise RemoteCalledProcessError(
+                p.returncode, cmd, self.remote_host, output=output
+            )
+        try:
+            p.terminate()
+        except Exception as e:
+            print(e)
+        del remote
+
+        return output
+
     def run(self):
 
         with self.input()["setup_loc"]["trigger_information"].open("r") as f:
@@ -899,12 +936,6 @@ class RunBalrogTasksRemote(luigi.Task):
             "balrog_tasks.job",
         )
 
-        remote = RemoteContext(
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            # sshpass=True,
-        )
-
         if self.priority > 1:
             nice = 0
         else:
@@ -922,7 +953,7 @@ class RunBalrogTasksRemote(luigi.Task):
 
         logging.info(" ".join(run_cmd))
 
-        job_output = remote.check_output(run_cmd)
+        job_output = self.run_remote_command(run_cmd)
 
         job_id = job_output.decode().strip().replace("\n", "")
 

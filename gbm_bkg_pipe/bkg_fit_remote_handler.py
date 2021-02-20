@@ -14,7 +14,8 @@ from chainconsumer import ChainConsumer
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
-from luigi.contrib.ssh import RemoteContext, RemoteTarget
+from luigi.contrib.ssh import RemoteContext, RemoteTarget, RemoteCalledProcessError
+import subprocess
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
@@ -413,17 +414,32 @@ class RunPhysBkgModel(BkgModelTask):
             ),
         }
 
+    def run_remote_command(self, cmd):
+        remote = RemoteContext(
+            host=self.remote_host,
+            username=remote_hosts_config["hosts"][self.remote_host]["username"],
+            # sshpass=True,
+        )
+
+        p = remote.Popen(cmd, stdout=subprocess.PIPE)
+        output, _ = p.communicate()
+        if p.returncode != 0:
+            raise RemoteCalledProcessError(
+                p.returncode, cmd, self.remote_host, output=output
+            )
+        try:
+            p.terminate()
+        except Exception as e:
+            print(e)
+        del remote
+
+        return output
+
     def run(self):
 
         script_path = os.path.join(
             remote_hosts_config["hosts"][self.remote_host]["script_dir"],
             "stan_fit_pipe.job",
-        )
-
-        remote = RemoteContext(
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            # sshpass=True,
         )
 
         if gbm_bkg_pipe_config["balrog"]["run_destination"] == "local":
@@ -477,14 +493,14 @@ class RunPhysBkgModel(BkgModelTask):
                 if isinstance(job_id, bytes):
                     job_id = job_id.decode()
 
-                status = remote.check_output(check_status_cmd).decode()
+                status = self.run_remote_command(check_status_cmd).decode()
 
                 if str(job_id) in status:
 
                     run_fit = False
 
             if run_fit:
-                job_output = remote.check_output(run_cmd)
+                job_output = self.run_remote_command(run_cmd)
 
                 job_id = job_output.decode().strip().replace("\n", "")
 
@@ -515,7 +531,7 @@ class RunPhysBkgModel(BkgModelTask):
 
                 else:
 
-                    status = remote.check_output(check_status_cmd)
+                    status = self.run_remote_command(check_status_cmd)
 
                     status = status.decode()
 

@@ -517,7 +517,7 @@ class RunPhysBkgModel(BkgModelTask):
 
         # Sleep for 20 mins initially and add random sleep to avoid multiple bkg fits
         # querying at the same time
-        time.sleep(20 * 60 + random.randint(0, 100))
+        time.sleep(20 * 60 + random.randint(30, 100))
 
         while True:
 

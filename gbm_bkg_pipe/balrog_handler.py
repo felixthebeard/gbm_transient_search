@@ -758,7 +758,7 @@ class RunBalrogRemote(luigi.Task):
         max_time = 2 * 60 * 60
 
         # Sleep for 5m initially and add reandom sleep to avoid querying at the same time
-        time.sleep(5 * 60 + random.randint(0, 100))
+        time.sleep(5 * 60 + random.randint(30, 100))
 
         while True:
 

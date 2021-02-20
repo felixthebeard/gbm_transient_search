@@ -732,6 +732,8 @@ class RunBalrogRemote(luigi.Task):
             p.terminate()
         except Exception as e:
             print(e)
+
+        remote.check_output(["exit"])
         del remote
 
         return output
@@ -778,10 +780,7 @@ class RunBalrogRemote(luigi.Task):
 
                     status = status.decode()
 
-                    if (
-                        not str(job_id) in status
-                        and not self.output()["success"].exists()
-                    ):
+                    if not str(job_id) in status:
                         # Remove the job_id file to allow for rerun.
                         self.input()["balrog_remote_tasks"]["job_id"].remove()
                         raise Exception(f"The job {job_id} did fail, kill task.")

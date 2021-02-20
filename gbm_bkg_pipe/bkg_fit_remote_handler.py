@@ -432,6 +432,8 @@ class RunPhysBkgModel(BkgModelTask):
             p.terminate()
         except Exception as e:
             print(e)
+
+        remote.check_output(["exit"])
         del remote
 
         return output
@@ -537,10 +539,7 @@ class RunPhysBkgModel(BkgModelTask):
 
                     status = status.decode()
 
-                    if (
-                        not str(job_id) in status
-                        and not self.remote_output()["success"].exists()
-                    ):
+                    if not str(job_id) in status:
 
                         self.output()["job_id"].remove()
                         raise Exception(f"The job {job_id} did fail, kill task.")

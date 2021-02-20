@@ -10,8 +10,12 @@ import luigi
 import numpy as np
 import yaml
 from luigi.contrib.external_program import ExternalProgramTask
-from luigi.contrib.ssh import RemoteCalledProcessError, RemoteContext, RemoteTarget
 
+from gbm_bkg_pipe.utils.luigi_ssh import (
+    RemoteCalledProcessError,
+    RemoteContext,
+    RemoteTarget,
+)
 from gbm_bkg_pipe.bkg_fit_remote_handler import (
     DownloadData,
     DownloadPoshistData,
@@ -721,21 +725,8 @@ class RunBalrogRemote(luigi.Task):
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
             # sshpass=True,
         )
-
-        p = remote.Popen(cmd, stdout=subprocess.PIPE)
-        output, _ = p.communicate()
-        if p.returncode != 0:
-            raise RemoteCalledProcessError(
-                p.returncode, cmd, self.remote_host, output=output
-            )
-        try:
-            p.terminate()
-        except Exception as e:
-            print(e)
-
-        remote.check_output(["exit"])
+        output = remote.check_output(cmd)
         del remote
-
         return output
 
     def run(self):

@@ -16,7 +16,11 @@ from chainconsumer import ChainConsumer
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
-from luigi.contrib.ssh import RemoteCalledProcessError, RemoteContext, RemoteTarget
+from gbm_bkg_pipe.utils.luigi_ssh import (
+    RemoteCalledProcessError,
+    RemoteContext,
+    RemoteTarget,
+)
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
@@ -421,21 +425,8 @@ class RunPhysBkgModel(BkgModelTask):
             username=remote_hosts_config["hosts"][self.remote_host]["username"],
             # sshpass=True,
         )
-
-        p = remote.Popen(cmd, stdout=subprocess.PIPE)
-        output, _ = p.communicate()
-        if p.returncode != 0:
-            raise RemoteCalledProcessError(
-                p.returncode, cmd, self.remote_host, output=output
-            )
-        try:
-            p.terminate()
-        except Exception as e:
-            print(e)
-
-        remote.check_output(["exit"])
+        output = remote.check_output(cmd)
         del remote
-
         return output
 
     def run(self):

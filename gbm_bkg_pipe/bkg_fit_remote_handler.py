@@ -2,6 +2,8 @@ import datetime as dt
 import json
 import logging
 import os
+import random
+import subprocess
 import tempfile
 import time
 from datetime import datetime, timedelta
@@ -14,8 +16,7 @@ from chainconsumer import ChainConsumer
 from gbmbkgpy.io.export import PHAWriter
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 from gbmbkgpy.utils.select_pointsources import build_swift_pointsource_database
-from luigi.contrib.ssh import RemoteContext, RemoteTarget, RemoteCalledProcessError
-import subprocess
+from luigi.contrib.ssh import RemoteCalledProcessError, RemoteContext, RemoteTarget
 
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.arviz_plots import ArvizPlotter
@@ -512,8 +513,9 @@ class RunPhysBkgModel(BkgModelTask):
         wait_time = 5 * 60
         max_time = 2 * 60 * 60
 
-        # Sleep for 10s initially
-        time.sleep(10)
+        # Sleep for 20 mins initially and add random sleep to avoid multiple bkg fits
+        # querying at the same time
+        time.sleep(20 * 60 + random.randint(0, 100))
 
         while True:
 

@@ -1,33 +1,27 @@
 import datetime as dt
-import os
-from datetime import datetime, timedelta
-import numpy as np
-import luigi
-import yaml
-from luigi.contrib.external_program import ExternalProgramTask
-
-import json
 import logging
 import os
-import tempfile
+import random
+import subprocess
 import time
 from datetime import datetime, timedelta
-import datetime as dt
 
 import luigi
 import numpy as np
 import yaml
+from luigi.contrib.external_program import ExternalProgramTask
+from luigi.contrib.ssh import RemoteCalledProcessError, RemoteContext, RemoteTarget
+
 from gbm_bkg_pipe.bkg_fit_remote_handler import (
-    GBMBackgroundModelFit,
-    DownloadPoshistData,
     DownloadData,
+    DownloadPoshistData,
+    GBMBackgroundModelFit,
 )
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.trigger_search import TriggerSearch
+from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
 from gbm_bkg_pipe.utils.result_reader import ResultReader
-from luigi.contrib.ssh import RemoteContext, RemoteTarget
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
@@ -761,8 +755,8 @@ class RunBalrogRemote(luigi.Task):
         wait_time = 5 * 60
         max_time = 2 * 60 * 60
 
-        # Sleep for 10s initially
-        time.sleep(10)
+        # Sleep for 5m initially and add reandom sleep to avoid querying at the same time
+        time.sleep(5 * 60 + random.randint(0, 100))
 
         while True:
 

@@ -659,8 +659,6 @@ class BkgModelResultPlot(BkgModelTask):
             "summary": luigi.LocalTarget(
                 os.path.join(
                     self.job_dir,
-                    f"det_{'_'.join(self.detectors)}",
-                    f"e{'_'.join(self.echans)}",
                     f"bkg_model_{self.date:%y%m%d}_fit_summary.yaml",
                 )
             )
@@ -723,19 +721,9 @@ class BkgModelCornerPlot(BkgModelTask):
         )
 
     def output(self):
-        job_dir = os.path.join(
-            base_dir,
-            f"{self.date:%y%m%d}",
-            self.data_type,
-            self.step,
-            "phys_bkg",
-            f"det_{'_'.join(self.detectors)}",
-            f"e{'_'.join(self.echans)}",
-        )
-
         return luigi.LocalTarget(
             os.path.join(
-                job_dir,
+                self.job_dir,
                 "corner_plot.pdf",
             )
         )

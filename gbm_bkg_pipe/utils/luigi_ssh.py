@@ -20,7 +20,7 @@ class RemoteContext(LuigiRemoteContext):
         sockets = []
 
         for i in range(nr_sockets):
-            socket_path = os.path.join(socket_base_path, f"{self._host_ref()}_{i}:22")
+            socket_path = os.path.join(socket_base_path, f"{self._host_ref()}_{i+1}:22")
 
             if os.path.exists(socket_path):
                 sockets.append(socket_path)

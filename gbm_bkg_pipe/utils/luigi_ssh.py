@@ -11,7 +11,7 @@ from luigi.target import FileSystemTarget
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 
 socket_base_path = gbm_bkg_pipe_config["ssh"].get("master_socket_base_path", None)
-nr_sockets = gbm_bkg_pipe_config["ssh"].get("echans", 1)
+nr_sockets = gbm_bkg_pipe_config["ssh"].get("nr_sockets", 1)
 
 
 class RemoteContext(LuigiRemoteContext):
@@ -20,7 +20,7 @@ class RemoteContext(LuigiRemoteContext):
         sockets = []
 
         for i in range(nr_sockets):
-            socket_path = f"{socket_base_path}/{self._host_ref()}_{i}:22"
+            socket_path = os.path.join(socket_base_path, "{self._host_ref()}_{i}:22")
 
             if os.path.exists(socket_path):
                 sockets.append(socket_path)

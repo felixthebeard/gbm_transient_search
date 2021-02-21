@@ -60,6 +60,10 @@ structure["upload"] = dict(
     plot=dict(interval=30, max_time=2 * 60 * 60),
 )
 
+structure["ssh"] = dict(
+    master_socket_base_path="/home/fkunzwei/.ssh/master-socket/", nr_sockets=3
+)
+
 
 class GBMBkgPipeConfig(YAMLConfig):
     def __init__(self):

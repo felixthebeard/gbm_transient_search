@@ -53,14 +53,14 @@ class RemoteContext(LuigiRemoteContext):
                 "The master socket with the least number of connections has more than 8!"
             )
 
-        return ["-S", most_free_socket[0]]
+        return most_free_socket[0]
 
     def _prepare_cmd(self, cmd):
         connection_cmd = ["ssh", self._host_ref()]
 
         # Add custom master connection socket
         if socket_base_path is not None:
-            connection_cmd += self.get_free_socket()
+            connection_cmd += ["-S", self.get_free_socket()]
         else:
             connection_cmd += ["-o", "ControlMaster=no"]
 
@@ -116,7 +116,7 @@ class RemoteFileSystem(LuigiRemoteFileSystem):
 
         # Add custom master connection socket
         if socket_base_path is not None:
-            cmd += self.remote_context.get_free_socket()
+            cmd += ["-o", f"ControlPath={self.remote_context.get_free_socket()}"]
         else:
             cmd += ["-o", "ControlMaster=no"]
 

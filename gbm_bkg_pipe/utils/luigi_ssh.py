@@ -46,9 +46,14 @@ class RemoteContext(LuigiRemoteContext):
             sockets.append((socket, self.check_nr_of_channels(socket)))
 
         sockets.sort(key=lambda tup: tup[1])
-        most_free_socket = sockets[0][0]
+        most_free_socket = sockets[0]
 
-        return ["-S", most_free_socket]
+        if most_free_socket[1] > 8:
+            raise Exception(
+                "The master socket with the least number of connections has more than 8!"
+            )
+
+        return ["-S", most_free_socket[0]]
 
     def _prepare_cmd(self, cmd):
         connection_cmd = ["ssh", self._host_ref()]

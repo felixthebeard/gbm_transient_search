@@ -58,10 +58,11 @@ class RemoteContext(LuigiRemoteContext):
     def _prepare_cmd(self, cmd):
         connection_cmd = ["ssh", self._host_ref()]
 
-        if socket_base_path is None:
-            connection_cmd += ["-o", "ControlMaster=no"]
-        else:
+        # Add custom master connection socket
+        if socket_base_path is not None:
             connection_cmd += self.get_free_socket()
+        else:
+            connection_cmd += ["-o", "ControlMaster=no"]
 
         if self.sshpass:
             connection_cmd = ["sshpass", "-e"] + connection_cmd
@@ -109,6 +110,35 @@ class RemoteContext(LuigiRemoteContext):
 class RemoteFileSystem(LuigiRemoteFileSystem):
     def __init__(self, host, **kwargs):
         self.remote_context = RemoteContext(host, **kwargs)
+
+    def _scp(self, src, dest):
+        cmd = ["scp", "-q", "-C"]
+
+        # Add custom master connection socket
+        if socket_base_path is not None:
+            cmd += self.remote_context.get_free_socket()
+        else:
+            cmd += ["-o", "ControlMaster=no"]
+
+        if self.remote_context.sshpass:
+            cmd = ["sshpass", "-e"] + cmd
+        else:
+            cmd.append("-B")
+        if self.remote_context.no_host_key_check:
+            cmd.extend(
+                ["-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no"]
+            )
+        if self.remote_context.key_file:
+            cmd.extend(["-i", self.remote_context.key_file])
+        if self.remote_context.port:
+            cmd.extend(["-P", self.remote_context.port])
+        if os.path.isdir(src):
+            cmd.extend(["-r"])
+        cmd.extend([src, dest])
+        p = subprocess.Popen(cmd)
+        output, _ = p.communicate()
+        if p.returncode != 0:
+            raise subprocess.CalledProcessError(p.returncode, cmd, output=output)
 
 
 class RemoteTarget(LuigiRemoteTarget):

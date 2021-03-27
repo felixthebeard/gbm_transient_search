@@ -192,16 +192,16 @@ class ChangeDetector(object):
                 )
 
                 sigs = []
-                counts = []
-                bkg_counts = []
-                bkg_errs = []
+                counts = np.empty(n_parts - 1)
+                bkg_counts = np.empty(n_parts - 1)
+                bkg_errs = np.empty(n_parts - 1)
 
-                for a, b in zip(part_idx[:-1], part_idx[1:]):
+                for i, (a, b) in enumerate(zip(part_idx[:-1], part_idx[1:])):
 
-                    counts.append(self._observed_counts[a:b, det_idx, e].sum())
-                    bkg_counts.append(self._bkg_counts[a:b, det_idx, e].sum())
-                    bkg_errs.append(
-                        np.sqrt(np.sum(self._bkg_stat_err[a:b, det_idx, e] ** 2))
+                    counts[i] = self._observed_counts[a:b, det_idx, e].sum()
+                    bkg_counts[i] = self._bkg_counts[a:b, det_idx, e].sum()
+                    bkg_errs[i] = np.sqrt(
+                        np.sum(self._bkg_stat_err[a:b, det_idx, e] ** 2)
                     )
 
                 sig = Significance(counts, bkg_counts)
@@ -342,18 +342,19 @@ class ChangeDetector(object):
 
             for cpts_segment in self._change_points_all:
 
-                counts = []
-                bkg_counts = []
-                bkg_errs = []
+                n = len(self._change_points_all) - 1
+                counts = np.empty(n)
+                bkg_counts = np.empty(n)
+                bkg_errs = np.empty(n)
 
                 intervals_segment = zip(cpts_segment[:-1], cpts_segment[1:])
 
-                for a, b in intervals_segment:
+                for i, (a, b) in enumerate(intervals_segment):
 
-                    counts.append(self._observed_counts_total[det][a:b].sum())
-                    bkg_counts.append(self._bkg_counts_total[det][a:b].sum())
-                    bkg_errs.append(
-                        np.sqrt(np.sum(self._bkg_stat_err_total[det][a:b] ** 2))
+                    counts[i] = self._observed_counts_total[det][a:b].sum()
+                    bkg_counts[i] = self._bkg_counts_total[det][a:b].sum()
+                    bkg_errs[i] = np.sqrt(
+                        np.sum(self._bkg_stat_err_total[det][a:b] ** 2)
                     )
 
                 sig = Significance(counts, bkg_counts)

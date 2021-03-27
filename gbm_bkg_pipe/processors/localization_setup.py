@@ -10,7 +10,7 @@ from gbmgeometry import GBMTime
 from gbmbkgpy.io.export import PHAWriter
 
 
-class LocalizationHandler(object):
+class LocalizationSetup(object):
     def __init__(self, trigger_search_result, bkg_fit_result):
 
         self._read_search_result(trigger_search_result)

@@ -17,7 +17,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as unit
 
 
-class ResultReader(object):
+class LocalizationResultReader(object):
     def __init__(
         self,
         trigger_name,

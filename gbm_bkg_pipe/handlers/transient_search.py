@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import luigi
 import numpy as np
 
-from gbm_bkg_pipe.bkg_fit_remote_handler import DownloadData, GBMBackgroundModelFit
+from gbm_bkg_pipe.handlers.background import GBMBackgroundModelFit
+from gbm_bkg_pipe.handlers.download import DownloadData
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.search import Search
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
@@ -16,7 +17,7 @@ base_dir = get_env_value("GBMDATA")
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
 
-class TriggerSearch(luigi.Task):
+class TransientSearch(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()

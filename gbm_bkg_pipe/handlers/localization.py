@@ -16,16 +16,18 @@ from gbm_bkg_pipe.utils.luigi_ssh import (
     RemoteContext,
     RemoteTarget,
 )
-from gbm_bkg_pipe.bkg_fit_remote_handler import (
-    DownloadData,
-    DownloadPoshistData,
+from gbm_bkg_pipe.handlers.background import (
     GBMBackgroundModelFit,
 )
+from gbm_bkg_pipe.handlers.download import (
+    DownloadData,
+    DownloadPoshistData,
+)
+from gbm_bkg_pipe.handlers.transient_search import TransientSearch
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.trigger_search import TriggerSearch
+from gbm_bkg_pipe.processors.localization_setup import LocalizationSetup
+from gbm_bkg_pipe.processors.localization_result_reader import LocalizationResultReader
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.localization_handler import LocalizationHandler
-from gbm_bkg_pipe.utils.result_reader import ResultReader
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
@@ -68,7 +70,7 @@ class LocalizeTriggers(luigi.Task):
                 remote_host=self.remote_host,
                 step=self.step,
             ),
-            "trigger_search": TriggerSearch(
+            "transient_search": TransientSearch(
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=self.remote_host,
@@ -128,7 +130,7 @@ class LocalizeTriggers(luigi.Task):
             )
         yield balrog_tasks
 
-        with self.input()["trigger_search"].open("r") as f:
+        with self.input()["transient_search"].open("r") as f:
 
             trigger_result = yaml.safe_load(f)
 
@@ -187,7 +189,7 @@ class SetupTriggerLocalization(luigi.Task):
                 remote_host=self.remote_host,
                 step=self.step,
             ),
-            "trigger_search": TriggerSearch(
+            "transient_search": TransientSearch(
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=self.remote_host,
@@ -227,8 +229,8 @@ class SetupTriggerLocalization(luigi.Task):
             base_dir, f"{self.date:%y%m%d}", self.data_type, self.step, "trigger"
         )
 
-        loc_handler = LocalizationHandler(
-            trigger_search_result=self.input()["trigger_search"].path,
+        loc_handler = LocalizationSetup(
+            transient_search_result=self.input()["transient_search"].path,
             bkg_fit_result=self.input()["bkg_fit"].path,
         )
 
@@ -324,7 +326,7 @@ class ProcessLocalizationResult(luigi.Task):
     def run(self):
         trigger_file = os.path.join(self.job_dir, "trigger_info.yml")
 
-        result_reader = ResultReader(
+        result_reader = LocalizationResultReader(
             trigger_name=self.trigger_name,
             data_type=self.data_type,
             trigger_file=trigger_file,
@@ -373,7 +375,7 @@ class RunBalrog(ExternalProgramTask):
                 remote_host=self.remote_host,
                 step=self.step,
             ),
-            "trigger_search": TriggerSearch(
+            "transient_search": TransientSearch(
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=self.remote_host,

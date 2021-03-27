@@ -16,15 +16,7 @@ from gbm_bkg_pipe.handlers.download import (
     UpdatePointsourceDB,
 )
 from gbm_bkg_pipe.processors.bkg_config_writer import BkgConfigWriter
-from gbm_bkg_pipe.utils.download_file import (
-    BackgroundDataDownload,
-    BackgroundLATDownload,
-)
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.file_utils import (
-    if_dir_containing_file_not_existing_then_make,
-    if_directory_not_existing_then_make,
-)
 from gbm_bkg_pipe.utils.luigi_ssh import (
     RemoteCalledProcessError,
     RemoteContext,

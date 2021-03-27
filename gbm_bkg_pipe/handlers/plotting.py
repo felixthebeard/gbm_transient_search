@@ -8,30 +8,16 @@ import numpy as np
 import yaml
 from chainconsumer import ChainConsumer
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.background import BkgModelPlots, BkgModelTask
+from gbm_bkg_pipe.handlers.background import BkgModelTask
 from gbm_bkg_pipe.handlers.download import (
-    DownloadData,
-    DownloadLATData,
     DownloadPoshistData,
-    UpdatePointsourceDB,
 )
 from gbm_bkg_pipe.handlers.localization import ProcessLocalizationResult
-from gbm_bkg_pipe.handlers.plotting import BkgModelPlots
 from gbm_bkg_pipe.handlers.transient_search import TransientSearch
 from gbm_bkg_pipe.processors.bkg_result_reader import BkgArvizReader
-from gbm_bkg_pipe.utils.download_file import (
-    BackgroundDataDownload,
-    BackgroundLATDownload,
-)
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 from gbm_bkg_pipe.utils.file_utils import (
-    if_dir_containing_file_not_existing_then_make,
     if_directory_not_existing_then_make,
-)
-from gbm_bkg_pipe.utils.luigi_ssh import (
-    RemoteCalledProcessError,
-    RemoteContext,
-    RemoteTarget,
 )
 from gbm_bkg_pipe.utils.plotting.arviz_plots import ArvizPlotter
 from gbm_bkg_pipe.utils.plotting.plot_utils import (

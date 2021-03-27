@@ -8,8 +8,8 @@ import ruptures as rpt
 import yaml
 from astropy.io import fits
 from astropy.stats import bayesian_blocks
-from gbm_bkg_pipe.utils.trigger_plot import TriggerPlot
-from gbm_bkg_pipe.utils.saa_calc import SaaCalc
+from gbm_bkg_pipe.utils.plotting.trigger_plot import TriggerPlot
+from gbm_bkg_pipe.processors.saa_calc import SaaCalc
 from gbmbkgpy.utils.binner import Rebinner
 from gbmgeometry import GBMTime
 from gbmgeometry.position_interpolator import slice_disjoint
@@ -150,6 +150,34 @@ class Search(object):
 
         self._transform_data(self._mad)
 
+    def _load_result_file(self, result_file):
+        """
+        Load result file from background fit
+        """
+        with h5py.File(result_file, "r") as f:
+
+            dates = f.attrs["dates"]
+            trigger = f.attrs["trigger"]
+            trigger_time = f.attrs["trigger_time"]
+            data_type = f.attrs["data_type"]
+            echans = f.attrs["echans"]
+            detectors = f.attrs["detectors"]
+            time_bins = f["time_bins"][()]
+            saa_mask = f["saa_mask"][()]
+            observed_counts = f["observed_counts"][()]
+            model_counts = f["model_counts"][()]
+            stat_err = f["stat_err"][()]
+
+        self._dates = dates
+        self._detectors = detectors
+        self._echans = np.array([int(echan) for echan in echans])
+        self._data_type = data_type
+        self._time_bins = time_bins
+        self._saa_mask = saa_mask
+        self._observed_counts = observed_counts
+        self._bkg_counts = model_counts
+        self._bkg_stat_err = stat_err
+
     def _rebinn_data(self, min_bin_width):
         """
         Rebinn the observed data and background
@@ -282,24 +310,12 @@ class Search(object):
         """
         Transform the data to and apply mapping
         """
-        # self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask].reshape(
-        #     (self._data_cleaned.shape[0], -1)
-        # )
-
         self._data_flattened = self._data_cleaned[:, self._good_bkg_fit_mask]
 
         if mad:
 
             med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=0)
             median = np.median(self._data_flattened, axis=0)
-
-            # med_abs_div = stats.median_abs_deviation(self._data_flattened, axis=1)
-            # median = np.median(self._data_cleaned[:, :, 0], axis=1)
-
-            # med_abs_div = med_abs_div.reshape(
-            #     (-1,) + (1,) * (self._data_flattened.ndim - 1)
-            # )
-            # median = median.reshape((-1,) + (1,) * (self._data_flattened.ndim - 1))
 
             self._data_trans = (self._data_flattened - median) / med_abs_div
 
@@ -312,44 +328,6 @@ class Search(object):
 
         self._distances = distance_mapping(self._data_trans)
         self._angles = angle_mapping(self._data_trans)
-
-    def _load_result_file(self, result_file):
-        """
-        Load result file from background fit
-        """
-        with h5py.File(result_file, "r") as f:
-
-            dates = f.attrs["dates"]
-
-            trigger = f.attrs["trigger"]
-
-            trigger_time = f.attrs["trigger_time"]
-
-            data_type = f.attrs["data_type"]
-
-            echans = f.attrs["echans"]
-
-            detectors = f.attrs["detectors"]
-
-            time_bins = f["time_bins"][()]
-
-            saa_mask = f["saa_mask"][()]
-
-            observed_counts = f["observed_counts"][()]
-
-            model_counts = f["model_counts"][()]
-
-            stat_err = f["stat_err"][()]
-
-        self._dates = dates
-        self._detectors = detectors
-        self._echans = np.array([int(echan) for echan in echans])
-        self._data_type = data_type
-        self._time_bins = time_bins
-        self._saa_mask = saa_mask
-        self._observed_counts = observed_counts
-        self._bkg_counts = model_counts
-        self._bkg_stat_err = stat_err
 
     def find_changepoints_angles(self, indiv_echans=True, **kwargs):
         """
@@ -695,7 +673,11 @@ class Search(object):
                 )
 
                 other_dets_significant = (
-                    len(np.where(np.array(list(sig.values())) > significance_threshold_others)[0])
+                    len(
+                        np.where(
+                            np.array(list(sig.values())) > significance_threshold_others
+                        )[0]
+                    )
                     > number_significant_dets
                 )
 

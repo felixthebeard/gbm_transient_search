@@ -78,6 +78,11 @@ class ChangeDetector(object):
             - self._rebinned_bkg_counts[self._rebinned_saa_mask]
         )
 
+        self._counts_cleaned_total = (
+            self._observed_counts_total[self._rebinned_saa_mask]
+            - self._bkg_counts_total[self._rebinned_saa_mask]
+        )
+
         self._rates_cleaned = (
             self._counts_cleaned.T
             / self._rebinned_time_bin_width[self._rebinned_saa_mask]
@@ -267,7 +272,7 @@ class ChangeDetector(object):
         self._bkg_counts_total = background
         self._bkg_stat_err_total = bkg_stat_err
 
-    def find_changepoints_angles_distances(self, min_separation=0, **kwargs):
+    def _find_changepoints_angles_distances(self, min_separation=0, **kwargs):
         """
         Find changepoints applying the ruptures PELT method
         in the angles time series
@@ -327,7 +332,7 @@ class ChangeDetector(object):
 
         self._change_points_all = change_points
 
-    def calc_significances(self):
+    def _calc_significances(self):
         """
         Combine two arbitrary changepoints to a source interval and calculate the significance.
         This is treating each section (between SAA passages) individually.
@@ -342,12 +347,13 @@ class ChangeDetector(object):
 
             for cpts_segment in self._change_points_all:
 
-                n = len(cpts_segment) - 1
+                n = cpts_segment.shape[0] - 1
+                print(n)
                 counts = np.empty(n)
                 bkg_counts = np.empty(n)
                 bkg_errs = np.empty(n)
 
-                intervals_segment = zip(cpts_segment[:-1], cpts_segment[1:])
+                intervals_segment = list(zip(cpts_segment[:-1], cpts_segment[1:]))
 
                 for i, (a, b) in enumerate(intervals_segment):
 
@@ -369,7 +375,7 @@ class ChangeDetector(object):
         self._intervals_all = intervals
         self._significances_all = significances
 
-    def threshold_significance(self, required_significance=5):
+    def _threshold_significance(self, required_significance=5):
         """
         Apply threshold to the significance of an interval.
         """
@@ -395,332 +401,85 @@ class ChangeDetector(object):
         self._intervals = intervals
         self._significances = significances
 
-    def build_trigger_information(self, active_time_significance=5):
-        """
-        Build the trigger information by filtering the found source intervals
-        for overlap and same trigger times.
-        At the end check if the selected active time is significant.
-        """
-
-        # Filter out overlapping intervals and select the one with highest significance
-        # This is done twice to get rid of some leftovers
-        intervals_selected, significances_selected = self._filter_overlap(
-            self._intervals_all, self._intervals_significance_all
-        )
-        intervals_selected, significances_selected = self._filter_overlap(
-            intervals_selected, significances_selected
-        )
-        # intervals_selected, significances_selected = (
-        #     self._intervals_all,
-        #     self._intervals_significance_all,
-        # )
-
-        # intervals_selected, significances_selected = self._filter_overlap_dets(
-        #     intervals_selected, significances_selected
-        # )
-
+    def _select_intervals(self):
         # Get all intervals that are significant in at least one detector
-        trigger_intervals = []
+        all_intervals = []
         for i, det in enumerate(self._detectors):
-            trigger_intervals.extend(intervals_selected[det])
+            all_intervals.extend(self._intervals[det])
 
-        trigger_intervals = np.unique(trigger_intervals, axis=0)
+        unique_intervals = np.unique(all_intervals, axis=0)
 
-        # we will now determine the most significant detector
-        # this is done by findind the peak in counts over background in each detector,
-        # and calculating the significance of the time interval of [t_peak-10s, t_peak+10s]
-        # that would later be used in balrog
-        # We dont use the entire interval as these could sometimes be long and weak deviations
-        # from the background that for long intervals can lead to relatively strong significance
-        # but without a "good" signal, to prevent false detections its more useful to take the
-        # time around the peak.
-        trigger_significance = []
-        for interval in trigger_intervals:
+        # Get non-overlapping segments
+        trigger_intervals = segment_disjoint(unique_intervals)
 
-            sig_dict = {}
+        # Fit the detector with the brightest (sub)-interval for each trigger_interval
+        max_dets = []
+        max_intervals = []
 
-            for i, det in enumerate(self._detectors):
+        for inter in trigger_intervals:
 
-                counts = (
-                    self._observed_counts_total[det][interval[0] : interval[1]]
-                    - self._bkg_counts_total[det][interval[0] : interval[1]]
-                )
+            max_det = None
+            max_inter = None
+            max_sig = 0
 
-                max_index = np.argmax(counts) + interval[0]
+            for det in self._detectors:
+                for i, (a, b) in enumerate(self._intervals[det]):
+                    if a >= inter[0] and b <= inter[1]:
+                        sig = self._significances[det][i]
+                        if sig > max_sig:
+                            max_sig = sig
+                            max_det = det
+                            max_inter = [a, b]
 
-                peak_time = self._rebinned_time_bins[self._rebinned_saa_mask][
-                    max_index, 0
-                ]
+            max_dets.append(max_det)
+            max_intervals.append(max_inter)
 
-                start_time = peak_time - 10
-                stop_time = peak_time + 10
+        self._trigger_intervals = trigger_intervals
+        self._max_dets = max_dets
+        self._max_intervals = max_intervals
 
-                idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
-                idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
+    def _find_peak_times(self):
 
-                sig_dict[det] = float(
-                    calc_significance(
-                        data=self._observed_counts_total[det][idx_low:idx_high],
-                        background=self._bkg_counts_total[det][idx_low:idx_high],
-                        bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
-                    )
-                )
+        # Get the peak time of the
+        trigger_peak_times = []
 
-            trigger_significance.append(sig_dict)
+        for i, (a, b) in enumerate(self._max_intervals):
 
-        if len(trigger_intervals) > 0:
-            trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-                trigger_intervals[:, 0], 0
-            ]
-
-            most_significant_detectors = []
-            for sig in trigger_significance:
-                most_significant_detectors.append(max(sig, key=sig.get))
-
-            trigger_peak_times = []
-
-            for i, inter in enumerate(trigger_intervals):
-                det = most_significant_detectors[i]
-                counts = (
-                    self._observed_counts_total[det][inter[0] : inter[1]]
-                    - self._bkg_counts_total[det][inter[0] : inter[1]]
-                )
-
-                max_index = np.argmax(counts) + inter[0]
-
-                trigger_peak_times.append(
-                    self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
-                )
-
-            # Calculate the significance of each detector for the active interval
-            # that was selected based on the most significant detector
-            trigger_significance = []
-            for i, interval in enumerate(trigger_intervals):
-
-                sig_dict = {}
-
-                for det in self._detectors:
-
-                    start_time = trigger_peak_times[i] - 10
-                    stop_time = trigger_peak_times[i] + 10
-
-                    idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][
-                        0
-                    ]
-                    idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][
-                        -1
-                    ]
-
-                    sig_dict[det] = float(
-                        calc_significance(
-                            data=self._observed_counts_total[det][idx_low:idx_high],
-                            background=self._bkg_counts_total[det][idx_low:idx_high],
-                            bkg_stat_err=self._bkg_stat_err_total[det][
-                                idx_low:idx_high
-                            ],
-                        )
-                    )
-
-                trigger_significance.append(sig_dict)
-
-            # Filter out duplicate peak times and keep the shorter intervals
-            unique_peak_ids = self._filter_duplicate_peaks(
-                trigger_peak_times, trigger_intervals
+            max_index = (
+                np.argmax(self._counts_cleaned_total[self._max_dets[i]][a:b]) + a
             )
 
-            trigger_significance = np.array(trigger_significance)[unique_peak_ids]
-            peak_times = np.array(trigger_peak_times)[unique_peak_ids]
-            most_significant_detectors = np.array(most_significant_detectors)[
-                unique_peak_ids
-            ]
+            trigger_peak_times.append(
+                self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
+            )
 
-            # In addition to the threshold on the brightest detector require at least one
-            # additional detector to be above 2 sigma
-            significance_threshold_others = 2
-            number_significant_dets = 2
-
-            significant_ids = []
-
-            for i, trigger_sig in enumerate(trigger_significance):
-
-                max_det_significant = (
-                    max(list(trigger_sig.values())) > active_time_significance
-                )
-
-                other_dets_significant = (
-                    len(
-                        np.where(
-                            np.array(list(sig.values())) > significance_threshold_others
-                        )[0]
-                    )
-                    > number_significant_dets
-                )
-
-                if max_det_significant and other_dets_significant:
-                    significant_ids.append(i)
-
-        else:
-            trigger_intervals = []
-            trigger_significance = []
-            most_significant_detectors = []
-            trigger_times = []
-            trigger_peak_times = []
-            significant_ids = []
-
-        self._trigger_intervals = np.array(trigger_intervals)[significant_ids]
-        self._trigger_significance = np.array(trigger_significance)[significant_ids]
-        self._trigger_most_significant_detector = np.array(most_significant_detectors)[
-            significant_ids
+        self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
+            self._trigger_intervals[:, 0], 0
         ]
-        self._trigger_times = trigger_times[significant_ids]
-        self._trigger_peak_times = np.array(trigger_peak_times)[significant_ids]
+        self._trigger_peak_times = trigger_peak_times
 
-        self._tr_p = trigger_peak_times
+    def _apply_multi_det_threshold(self, nr_dets=2, required_significance=2):
 
-        self._intervals = intervals_selected
-        self._intervals_significance = significances_selected
+        self._significant_in_multiple = []
 
-    def _filter_overlap(self, intervals, significances):
-        """
-        Filter overlapping source intervals and select the one with
-        the highest significance.
-        """
-        intervals_selected = {}
-        significances_selected = {}
+        for i, max_inter in enumerate(self._max_intervals):
 
-        for det in self._detectors:
-            max_ids = []
+            sig_dets = 0
 
-            intervals_selected[det] = []
-            significances_selected[det] = []
+            for det in self._detectors:
 
-            # Iterate over all intervals of this detector
-            for id1, interval1 in enumerate(intervals[det]):
+                idx = np.where(self._intervals_all == max_inter)[0]
 
-                overlapping_idx = np.where(
-                    np.logical_and(
-                        interval1[0] <= intervals[det][:, 1],
-                        intervals[det][:, 0] <= interval1[1],
-                    )
-                )[0]
+                assert idx[0] == idx[1]
 
-                max_id = significances[det][overlapping_idx].argmax()
+                if self._significances_all[det][idx] >= required_significance:
+                    sig_dets += 1
 
-                # Get max id in original array
-                max_id = max_id + overlapping_idx[max_id]
+            self._significant_in_multiple.append(sig_dets >= nr_dets)
 
-                max_ids.append(max_id)
-
-            if len(max_ids) > 0:
-
-                max_ids = np.unique(max_ids)
-
-                intervals_selected[det] = intervals[det][max_ids]
-                significances_selected[det] = significances[det][max_ids]
-
-            else:
-                intervals_selected[det] = []
-                significances_selected[det] = []
-
-        return intervals_selected, significances_selected
-
-    def _filter_overlap_dets(self, intervals, significances):
-        intervals_selected = {}
-        significances_selected = {}
-
-        # Filter out overlapping intervals and select the one with highest significance
-        for det in self._detectors:
-            max_ids = []
-
-            intervals_selected[det] = []
-            significances_selected[det] = []
-
-            # Iterate over all intervals of this detector
-            for id1, interval1 in enumerate(intervals[det]):
-
-                is_max = True
-
-                for det2 in self._detectors:
-
-                    # Iterate over all intervals of this detector
-                    for id2, interval2 in enumerate(intervals[det2]):
-
-                        if (
-                            interval1[0] <= interval2[1]
-                            and interval2[0] <= interval1[1]
-                        ):
-
-                            if significances[det2][id2] > significances[det][id1]:
-
-                                is_max = False
-                if is_max:
-                    max_ids.append(id1)
-
-            if len(max_ids) > 0:
-
-                max_ids = np.unique(max_ids)
-
-                intervals_selected[det] = intervals[det][max_ids]
-                significances_selected[det] = significances[det][max_ids]
-
-            else:
-                intervals_selected[det] = []
-                significances_selected[det] = []
-
-        return intervals_selected, significances_selected
-
-    def _filter_duplicate_peaks(self, peak_times, trigger_intervals):
-        """
-        Filter intervals that lead to the same peak times and keep the shorter one.
-        This gets rid of significant intervals that span very large times and not just the source.
-        """
-
-        interval_lengths = trigger_intervals[:, 1] - trigger_intervals[:, 0]
-
-        min_length_ids = []
-
-        for id1, peak_time in enumerate(peak_times):
-
-            same_peak_ids = np.where(peak_times == peak_time)[0]
-
-            min_length_id = interval_lengths[same_peak_ids].argmin()
-
-            min_length_ids.append(same_peak_ids[min_length_id])
-
-        min_length_ids = np.unique(min_length_ids)
-
-        return min_length_ids
-
-    def _filter_active_time_significance(
-        self, valid_ids, most_significant_detectors, peak_times, required_significance=5
-    ):
-        """
-        Filter the intervals by the significance of the active time
-        selected arround the trigger time.
-        """
-
-        significant_ids = []
-
-        for i, val_id in enumerate(valid_ids):
-
-            start_time = peak_times[i] - 10
-            stop_time = peak_times[i] + 10
-
-            idx_low = np.where(self._rebinned_time_bins[:, 0] >= start_time)[0][0]
-            idx_high = np.where(self._rebinned_time_bins[:, 0] <= stop_time)[0][-1]
-
-            det = most_significant_detectors[i]
-
-            significance = calc_significance(
-                data=self._observed_counts_total[det][idx_low:idx_high],
-                background=self._bkg_counts_total[det][idx_low:idx_high],
-                bkg_stat_err=self._bkg_stat_err_total[det][idx_low:idx_high],
-            )
-
-            if significance >= required_significance:
-                significant_ids.append(val_id)
-
-        return significant_ids
+    # TODO: Use mutiple det filter for result dict
+    # TODO: Calculate significances of entire interval
+    # TODO: Create one public method that runs the workflow
 
     def create_result_dict(self):
         """
@@ -1097,3 +856,47 @@ def angle_mapping(x, ref_vector=None):
     x_ang = np.apply_along_axis(angle, axis=1, arr=x, ref_vector=ref_vector)
 
     return (x_ang / np.pi) * 360
+
+
+def slice_disjoint(arr):
+    """
+    Returns an array of disjoint indices from a bool array
+    :param arr: and array of bools
+    """
+
+    slices = []
+    start_slice = arr[0]
+    counter = 0
+    for i in range(len(arr) - 1):
+        if arr[i + 1] > arr[i] + 1:
+            end_slice = arr[i]
+            slices.append([start_slice, end_slice])
+            start_slice = arr[i + 1]
+            counter += 1
+    if counter == 0:
+        return [[arr[0], arr[-1]]]
+    if end_slice != arr[-1]:
+        slices.append([start_slice, arr[-1]])
+    return slices
+
+
+def segment_disjoint(arr):
+    """
+    Returns an array of disjoint indices from a bool array
+    :param arr: and array of bools
+    """
+    arr = np.sort(arr)
+    slices = []
+    start_slice = arr[0][0]
+    counter = 0
+    for i in range(len(arr) - 1):
+        if arr[i + 1][0] > arr[i][1]:
+            end_slice = arr[i][1]
+            slices.append([start_slice, end_slice])
+            start_slice = arr[i + 1][0]
+            counter += 1
+    if counter == 0:
+        return arr
+    if end_slice != arr[-1][1]:
+        slices.append([start_slice, arr[-1][1]])
+    return slices

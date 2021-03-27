@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 import luigi
 from gbm_bkg_pipe.utils.luigi_ssh import RemoteContext
 
-from gbm_bkg_pipe.balrog_handler import LocalizeTriggers
-from gbm_bkg_pipe.bkg_fit_remote_handler import BkgModelPlots
+from gbm_bkg_pipe.handlers.localization import LocalizeTriggers
+from gbm_bkg_pipe.handlers.plotting import BkgModelPlots
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.plots import PlotTriggers
-from gbm_bkg_pipe.trigger_search import TriggerSearch
-from gbm_bkg_pipe.upload import (
+from gbm_bkg_pipe.handlers.plotting import PlotTriggers
+from gbm_bkg_pipe.handlers.transient_search import TransientSearch
+from gbm_bkg_pipe.handlers.upload import (
     UploadBkgResultPlots,
     UploadTriggers,
     UploadBkgPerformancePlots,
@@ -171,7 +171,7 @@ class CreateTriggerSearchReport(luigi.Task):
                     remote_host=self.remote_host,
                     step=self.step,
                 ),
-                "search_triggers": TriggerSearch(
+                "search_triggers": TransientSearch(
                     date=self.date,
                     data_type=self.data_type,
                     remote_host=self.remote_host,
@@ -199,13 +199,13 @@ class CreateTriggerSearchReport(luigi.Task):
                     remote_host=self.remote_host,
                     step="final",
                 ),
-                "search_triggers_base": TriggerSearch(
+                "search_triggers_base": TransientSearch(
                     date=self.date,
                     data_type=self.data_type,
                     remote_host=self.remote_host,
                     step="base",
                 ),
-                "search_triggers_final": TriggerSearch(
+                "search_triggers_final": TransientSearch(
                     date=self.date,
                     data_type=self.data_type,
                     remote_host=self.remote_host,

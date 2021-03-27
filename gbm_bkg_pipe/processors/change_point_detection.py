@@ -342,7 +342,7 @@ class ChangeDetector(object):
 
             for cpts_segment in self._change_points_all:
 
-                n = len(self._change_points_all) - 1
+                n = len(cpts_segment) - 1
                 counts = np.empty(n)
                 bkg_counts = np.empty(n)
                 bkg_errs = np.empty(n)

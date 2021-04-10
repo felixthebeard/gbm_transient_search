@@ -7,11 +7,12 @@ import numpy as np
 
 from gbm_bkg_pipe.handlers.background import GBMBackgroundModelFit
 from gbm_bkg_pipe.handlers.download import DownloadData
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.processors.transient_detector import TransientDetector
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
+td_conf = gbm_bkg_pipe_config["transient_detection"]
 base_dir = get_env_value("GBMDATA")
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
@@ -72,7 +73,13 @@ class TransientSearch(luigi.Task):
             bad_fit_threshold=100,
         )
 
-        transient_detector.run()
+        transient_detector.run(
+            min_separation=td_conf["min_separation"],
+            model=td_conf["model"],
+            min_significance=td_conf["min_significance"],
+            min_dets_significance=td_conf["min_dets_significance"],
+            nr_dets=td_conf["nr_dets"],
+        )
 
         transient_detector.plot_results(plot_dir)
 

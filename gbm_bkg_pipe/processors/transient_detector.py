@@ -59,13 +59,35 @@ class TransientDetector(object):
             self._load_result_file(result_file)
             self._setup()
 
-    def run(self):
-        self._detect_changepoints(min_separation=5, min_size=1, jump=1, model="l2")
+    def run(
+        self,
+        min_separation=5,
+        min_size=1,
+        jump=1,
+        model="l2",
+        min_significance=5,
+        min_dets_significance=5,
+        nr_dets=2,
+    ):
+        """
+        min_separation: Minimal separation (in bins) between the change points in angles and distnaces.
+        min_size: Minimal separation (in bins) between changepoints.
+        jump: Subsampling of time series.
+        model: Model for the cost function.
+        min_significance: Required significance for the brightest detector.
+        min_dets_significance: Required significance for other detectors,
+        nr_dets: Number of detectors required to be significant
+        """
+        self._detect_changepoints(
+            min_separation=min_separation, min_size=min_size, jump=jump, model=model
+        )
         self._calc_significances()
-        self._apply_threshold_significance(required_significance=5)
+        self._apply_threshold_significance(required_significance=min_significance)
         self._select_intervals()
         self._find_peak_times()
-        self._apply_multi_det_threshold(nr_dets=2, required_significance=3)
+        self._apply_multi_det_threshold(
+            nr_dets=nr_dets, required_significance=min_dets_significance
+        )
         self._create_result_dict()
 
     def _setup(self):

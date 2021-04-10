@@ -78,10 +78,13 @@ class ChangeDetector(object):
             - self._rebinned_bkg_counts[self._rebinned_saa_mask]
         )
 
-        self._counts_cleaned_total = (
-            self._observed_counts_total[self._rebinned_saa_mask]
-            - self._bkg_counts_total[self._rebinned_saa_mask]
-        )
+        self._counts_cleaned_total = {
+            det: (
+                self._observed_counts_total[det][self._rebinned_saa_mask]
+                - self._bkg_counts_total[det][self._rebinned_saa_mask]
+            )
+            for det in self._detectors
+        }
 
         self._rates_cleaned = (
             self._counts_cleaned.T

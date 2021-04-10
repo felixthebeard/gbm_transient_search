@@ -12,7 +12,7 @@ from gbm_bkg_pipe.processors.saa_calc import SaaCalc
 from gbm_bkg_pipe.utils.plotting.trigger_plot import TriggerPlot
 from gbmbkgpy.utils.binner import Rebinner
 from gbmgeometry import GBMTime
-from gbmgeometry.position_interpolator import slice_disjoint
+
 from scipy import stats
 from threeML.utils.statistics.stats_tools import Significance
 
@@ -866,6 +866,8 @@ def slice_disjoint(arr):
     Returns an array of disjoint indices from a bool array
     :param arr: and array of bools
     """
+
+    arr = (arr).nonzero()[0]
 
     slices = []
     start_slice = arr[0]

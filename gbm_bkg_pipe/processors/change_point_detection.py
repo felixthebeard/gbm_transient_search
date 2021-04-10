@@ -526,15 +526,20 @@ class ChangeDetector(object):
             "triggers": {},
         }
 
-        for i, t0 in enumerate(self._trigger_times):
-            t0 = self._trigger_peak_times[i]
+        for i, t0 in enumerate(self.trigger_times):
+            t0 = self.trigger_times[i]
 
             gbm_time = GBMTime.from_MET(t0)
             date_str = gbm_time.time.datetime.strftime("%y%m%d")
             day_fraction = f"{round(gbm_time.time.mjd % 1, 3):.3f}"[2:]
 
             trigger_name = f"TRG{date_str}{day_fraction}"
+            sig = self.trigger_significances.tolist()[i]
+            max_det = self.trigger_most_sig_det[i]
+
             peak_time = self._trigger_peak_times[i] - t0
+            tstart = self._rebinned_mean_time[self.trigger_intervals[i]][0].tolist()
+            tstop = self._rebinned_mean_time[self.trigger_intervals[i]][1].tolist()
 
             t_info = {
                 "date": date_str,
@@ -542,18 +547,12 @@ class ChangeDetector(object):
                 "trigger_time": t0.tolist(),
                 "trigger_time_utc": gbm_time.utc,
                 "peak_time": peak_time.tolist(),
-                "significances": self._trigger_significance[i],
+                "significances": sig,
                 "interval": {
-                    "start": self._rebinned_mean_time[self._trigger_intervals][i][
-                        0
-                    ].tolist(),
-                    "stop": self._rebinned_mean_time[self._trigger_intervals][i][
-                        1
-                    ].tolist(),
+                    "start": tstart,
+                    "stop": tstop,
                 },
-                "most_significant_detector": self._trigger_most_significant_detector.tolist()[
-                    i
-                ],
+                "most_significant_detector": max_det,
             }
 
             trigger_information["triggers"][trigger_name] = t_info

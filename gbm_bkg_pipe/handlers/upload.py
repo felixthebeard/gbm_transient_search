@@ -4,7 +4,7 @@ from datetime import datetime
 import luigi
 import numpy as np
 import yaml
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.handlers.localization import ProcessLocalizationResult
 from gbm_bkg_pipe.handlers.plotting import (
     BkgModelPlots,

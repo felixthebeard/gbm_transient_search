@@ -24,7 +24,7 @@ from gbm_bkg_pipe.handlers.download import (
     DownloadPoshistData,
 )
 from gbm_bkg_pipe.handlers.transient_search import TransientSearch
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.processors.localization_setup import LocalizationSetup
 from gbm_bkg_pipe.processors.localization_result_reader import LocalizationResultReader
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value

@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timedelta
 
 import luigi
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.download_file import (
     BackgroundDataDownload,
     BackgroundLATDownload,

@@ -8,7 +8,7 @@ from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
 from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 
 socket_base_path = gbm_bkg_pipe_config["ssh"].get("master_socket_base_path", None)
 nr_sockets = gbm_bkg_pipe_config["ssh"].get("nr_sockets", 1)

@@ -8,7 +8,7 @@ from gbm_bkg_pipe.utils.luigi_ssh import RemoteContext
 
 from gbm_bkg_pipe.handlers.localization import LocalizeTriggers
 from gbm_bkg_pipe.handlers.plotting import BkgModelPlots
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.handlers.plotting import PlotTriggers
 from gbm_bkg_pipe.handlers.transient_search import TransientSearch
 from gbm_bkg_pipe.handlers.upload import (

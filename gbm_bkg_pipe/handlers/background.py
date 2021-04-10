@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import h5py
 import luigi
 import yaml
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.handlers.download import (
     DownloadData,
     DownloadLATData,

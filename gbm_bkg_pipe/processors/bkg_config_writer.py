@@ -6,7 +6,7 @@ import numpy as np
 from datetime import timedelta
 
 from gbmbkgpy.utils.select_pointsources import SelectPointsources
-from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
+from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")

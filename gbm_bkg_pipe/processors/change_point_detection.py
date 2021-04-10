@@ -351,7 +351,6 @@ class ChangeDetector(object):
             for cpts_segment in self._change_points_all:
 
                 n = cpts_segment.shape[0] - 1
-                print(n)
                 counts = np.empty(n)
                 bkg_counts = np.empty(n)
                 bkg_errs = np.empty(n)
@@ -437,9 +436,9 @@ class ChangeDetector(object):
             max_dets.append(max_det)
             max_intervals.append(max_inter)
 
-        self._trigger_intervals = trigger_intervals
+        self._trigger_intervals = np.array(trigger_intervals)
         self._max_dets = max_dets
-        self._max_intervals = max_intervals
+        self._max_intervals = np.array(max_intervals)
 
     def _find_peak_times(self):
 

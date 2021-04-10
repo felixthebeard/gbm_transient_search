@@ -32,7 +32,7 @@ valid_det_names = [
 ]
 
 
-class ChangeDetector(object):
+class TransientDetector(object):
     """
     Transient search class.
     This finds change points in the time series,

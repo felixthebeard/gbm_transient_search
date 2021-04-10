@@ -34,18 +34,24 @@ def modify_index_html():
 
     # Modify Navbar Headline
     filedata = filedata.replace(
-        "Luigi Task Status", "<b>GBM Trigger Search</b> Pipeline"
+        "Luigi Task Status", "<b>GBM Transient Search</b> Pipeline"
     )
 
     filedata = filedata.replace(
         "<title>Luigi Task Visualiser</title>",
-        "<title>GBM Trigger Search Pipeline</title>",
+        "<title>GBM Trigger Transient Pipeline</title>",
     )
 
     # Modify theme
     filedata = filedata.replace(
         """<link href="lib/AdminLTE/css/skin-green-light.min.css" rel="stylesheet"/>""",
         """<link href="lib/AdminLTE/css/skin-mpe.min.css" rel="stylesheet"/>""",
+    )
+
+    filedata = filedata.replace(
+        """<li class=""><a class="js-nav-link" href="#tab=resource" data-tab="resourceList">Resources</a></li>""",
+        """<li class=""><a class="js-nav-link" href="#tab=resource" data-tab="resourceList">Resources</a></li>
+           <li class=""><a class="" href="https://grb.mpe.mpg.de">GRB Website</a></li>""",
     )
 
     with open(os.path.join(visualizer_dir, "index.html"), "w") as f:

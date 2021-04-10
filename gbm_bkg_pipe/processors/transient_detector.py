@@ -55,6 +55,15 @@ class TransientDetector(object):
             self._load_result_file(result_file)
             self._setup()
 
+    def run(self):
+        self._detect_changepoints(min_separation=5, min_size=1, jump=1, model="l2")
+        self._calc_significances()
+        self._apply_threshold_significance(required_significance=5)
+        self._select_intervals()
+        self._find_peak_times()
+        self._apply_multi_det_threshold(nr_dets=2, required_significance=3)
+        self._create_result_dict()
+
     def _setup(self):
         self._dets_idx = []
 
@@ -507,7 +516,7 @@ class TransientDetector(object):
     def trigger_most_sig_det(self):
         return self._max_dets[self._significant_in_multiple_idx]
 
-    def create_result_dict(self):
+    def _create_result_dict(self):
         """
         Create the trigger result dictionary.
         """

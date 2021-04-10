@@ -448,7 +448,7 @@ class TransientDetector(object):
             max_significances.append(max_sig)
 
         self._trigger_intervals = np.array(trigger_intervals)
-        self._max_dets = max_dets
+        self._max_dets = np.array(max_dets)
         self._max_intervals = np.array(max_intervals)
         self._max_significances = np.array(max_significances)
 
@@ -544,7 +544,7 @@ class TransientDetector(object):
 
             trigger_name = f"TRG{date_str}{day_fraction}"
             sig = self.trigger_significances.tolist()[i]
-            max_det = self.trigger_most_sig_det[i]
+            max_det = self.trigger_most_sig_det.tolist()[i]
 
             peak_time = self._trigger_peak_times[i] - t0
             tstart = self._rebinned_mean_time[self.trigger_intervals[i]][0].tolist()

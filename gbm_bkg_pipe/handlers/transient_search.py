@@ -8,7 +8,7 @@ import numpy as np
 from gbm_bkg_pipe.handlers.background import GBMBackgroundModelFit
 from gbm_bkg_pipe.handlers.download import DownloadData
 from gbm_bkg_pipe.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.search import Search
+from gbm_bkg_pipe.processors.transient_detector import TransientDetector
 from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
 
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
@@ -64,26 +64,20 @@ class TransientSearch(luigi.Task):
         )
 
     def run(self):
-        search = Search(
+        plot_dir = os.path.join(os.path.dirname(self.output().path))
+
+        transient_detector = TransientDetector(
             result_file=self.input()["bkg_fit"].path,
             min_bin_width=5,
             bad_fit_threshold=100,
         )
 
-        search.find_changepoints_angles_distances(
-            min_separation=5, min_size=1, jump=1, model="l1"
+        transient_detector.run()
+
+        transient_detector.plot_results(plot_dir)
+
+        transient_detector.set_data_timestamp(
+            self.input()["gbm_data_file"]["local_file"].path
         )
 
-        search.calc_significances(required_significance=5, max_interval_time=2000)
-
-        search.build_trigger_information()
-
-        search.create_result_dict()
-
-        plot_dir = os.path.join(os.path.dirname(self.output().path))
-
-        search.plot_results(plot_dir)
-
-        search.set_data_timestamp(self.input()["gbm_data_file"]["local_file"].path)
-
-        search.save_result(self.output().path)
+        transient_detector.save_result(self.output().path)

@@ -378,7 +378,7 @@ class ChangeDetector(object):
         self._intervals_all = intervals
         self._significances_all = significances
 
-    def _threshold_significance(self, required_significance=5):
+    def _apply_threshold_significance(self, required_significance=5):
         """
         Apply threshold to the significance of an interval.
         """

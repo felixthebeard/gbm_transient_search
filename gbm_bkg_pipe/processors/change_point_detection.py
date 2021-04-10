@@ -275,7 +275,7 @@ class ChangeDetector(object):
         self._bkg_counts_total = background
         self._bkg_stat_err_total = bkg_stat_err
 
-    def _find_changepoints_angles_distances(self, min_separation=0, **kwargs):
+    def _detect_changepoints(self, min_separation=0, **kwargs):
         """
         Find changepoints applying the ruptures PELT method
         in the angles time series

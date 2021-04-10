@@ -459,13 +459,17 @@ class ChangeDetector(object):
             )
 
         self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-            self._trigger_intervals[:, 0], 0
+            self._max_intervals[:, 0], 0
         ]
         self._trigger_peak_times = trigger_peak_times
 
+        self._significant_in_multiple_idx = np.ones(
+            len(self._max_intervals), dtype=bool
+        )
+
     def _apply_multi_det_threshold(self, nr_dets=2, required_significance=2):
 
-        self._significant_in_multiple = []
+        self._significant_in_multiple_idx = []
 
         for i, max_inter in enumerate(self._max_intervals):
 
@@ -473,18 +477,35 @@ class ChangeDetector(object):
 
             for det in self._detectors:
 
-                idx = np.where(self._intervals_all == max_inter)[0]
+                idx = np.where(self._intervals_all[det] == max_inter)[0]
 
                 assert idx[0] == idx[1]
+                idx = idx[0]
 
                 if self._significances_all[det][idx] >= required_significance:
                     sig_dets += 1
 
-            self._significant_in_multiple.append(sig_dets >= nr_dets)
+            self._significant_in_multiple_idx.append(sig_dets >= nr_dets)
 
-    # TODO: Use mutiple det filter for result dict
-    # TODO: Calculate significances of entire interval
-    # TODO: Create one public method that runs the workflow
+    @property
+    def trigger_peak_times(self):
+        return self._trigger_peak_times[self._significant_in_multiple_idx]
+
+    @property
+    def trigger_times(self):
+        return self._trigger_times[self._significant_in_multiple_idx]
+
+    @property
+    def trigger_significances(self):
+        return self._max_significances[self._significant_in_multiple_idx]
+
+    @property
+    def trigger_intervals(self):
+        return self._max_intervals[self._significant_in_multiple_idx]
+
+    @property
+    def trigger_most_sig_det(self):
+        return self._max_dets[self._significant_in_multiple_idx]
 
     def create_result_dict(self):
         """

@@ -417,6 +417,7 @@ class ChangeDetector(object):
         # Fit the detector with the brightest (sub)-interval for each trigger_interval
         max_dets = []
         max_intervals = []
+        max_significances = []
 
         for inter in trigger_intervals:
 
@@ -435,10 +436,12 @@ class ChangeDetector(object):
 
             max_dets.append(max_det)
             max_intervals.append(max_inter)
+            max_significances.append(max_sig)
 
         self._trigger_intervals = np.array(trigger_intervals)
         self._max_dets = max_dets
         self._max_intervals = np.array(max_intervals)
+        self._max_significances = np.array(max_significances)
 
     def _find_peak_times(self):
 

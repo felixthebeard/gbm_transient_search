@@ -13,6 +13,10 @@ from gbm_bkg_pipe.utils.plotting.trigger_plot import TriggerPlot
 from gbmbkgpy.utils.binner import Rebinner
 from gbmgeometry import GBMTime
 
+from copy import deepcopy
+
+from pathos.multiprocessing import cpu_count
+from pathos.pools import ProcessPool as Pool
 from scipy import stats
 from threeML.utils.statistics.stats_tools import Significance
 
@@ -289,10 +293,6 @@ class TransientDetector(object):
         Find changepoints applying the ruptures PELT method
         in the angles time series
         """
-        from copy import deepcopy
-
-        from pathos.multiprocessing import cpu_count
-        from pathos.pools import ProcessPool as Pool
 
         def detect_cpts(arg):
 
@@ -610,124 +610,6 @@ class TransientDetector(object):
         with open(output_path, "w") as f:
             yaml.dump(self._trigger_information, f, default_flow_style=False)
 
-    def run_bayesian_blocks(self, **kwargs):
-
-        echan_idx = 0
-
-        change_points = {}
-
-        self._block_edges = {}
-
-        for det in self._detectors:
-
-            det_idx = valid_det_names.index(det)
-
-            self._block_edges[det] = []
-
-            print(f"Calculate change points for {det}")
-
-            change_points[det] = []
-
-            for section, valid_slice in enumerate(self._valid_slices):
-
-                data_slice = self._data_cleaned[
-                    valid_slice[0] : valid_slice[1], det_idx, echan_idx
-                ]
-
-                error_slice = self._bkg_stat_err_rebinned[self._saa_mask][
-                    valid_slice[0] : valid_slice[1], det_idx, echan_idx
-                ]
-
-                time_slice = self._rebinned_mean_time[self._saa_mask][
-                    valid_slice[0] : valid_slice[1]
-                ]
-
-                block_edges = bayesian_blocks(
-                    t=time_slice,
-                    x=data_slice,
-                    sigma=error_slice,
-                    fitness="measures",
-                    **kwargs,
-                )
-
-                cpts_seg = []
-
-                for edge in block_edges:
-                    cpt = np.where(
-                        np.logical_and(
-                            self._data.time_bins[:, 0] < edge,
-                            self._data.time_bins[:, 1] > edge,
-                        )
-                    )
-
-                    cpts_seg.extend(cpt[0])
-
-                change_points[det].append(cpts_seg)
-
-                self._block_edges[det].extend(block_edges)
-
-            change_points[det] = np.array(change_points[det])
-
-        self._change_points = change_points
-
-    def find_change_points_raptures(
-        self, max_nr_cpts=5, method="binseg", model="l2", **kwargs
-    ):
-
-        change_points_sections = {}
-        change_points = {}
-
-        echan_idx = 0
-
-        for det in self._detectors:
-
-            det_idx = valid_det_names.index(det)
-
-            print(f"Calculate change points for {det}")
-
-            change_points_sections[det] = []
-            change_points[det] = []
-
-            for section, valid_slice in enumerate(self._valid_slices):
-
-                data_slice = self._data_cleaned[
-                    valid_slice[0] : valid_slice[1], det_idx, echan_idx
-                ]
-
-                penalty = 2 * np.log(len(data_slice))
-
-                if method == "binseg":
-                    algo = rpt.Binseg(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=penalty)
-
-                elif method == "pelt":
-                    algo = rpt.Pelt(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=penalty)
-
-                elif method == "dynp":
-                    algo = rpt.Dynp(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=penalty)
-
-                elif method == "bottomup":
-                    algo = rpt.BottomUp(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=penalty)
-
-                elif method == "window":
-                    algo = rpt.Window(model=model, **kwargs).fit(data_slice)
-                    cpts_seg = algo.predict(pen=penalty)
-
-                else:
-                    raise KeyError("Invalid method selected")
-
-                change_points_sections[det].append(cpts_seg)
-                change_points[det].append(cpts_seg + valid_slice[0])
-
-            change_points_sections[det] = np.array(change_points_sections[det])
-            change_points[det] = np.array(change_points[det])
-
-        self._cpts_sections = change_points_sections
-        self._change_points = change_points
-
     def load_simulation(self, simulation):
         """
         Load simulation
@@ -743,110 +625,6 @@ class TransientDetector(object):
         self._bkg_stat_err = simulation.bkg_stat_err
 
         self._setup()
-
-    def simulate_search(self):
-        """
-        Build the trigger information by filtering the found source intervals
-        for overlap and same trigger times.
-        At the end check if the selected active time is significant.
-        """
-
-        # Filter out overlapping intervals and select the one with highest significance
-        # This is done twice to get rid of some leftovers
-        intervals_selected, significances_selected = self._filter_overlap(
-            self._intervals_all, self._intervals_significance_all
-        )
-        intervals_selected, significances_selected = self._filter_overlap(
-            intervals_selected, significances_selected
-        )
-
-        intervals_selected, significances_selected = self._filter_overlap_dets(
-            intervals_selected, significances_selected
-        )
-
-        # Get all intervals that are significant in at least one detector
-        trigger_intervals = []
-        for i, det in enumerate(self._detectors):
-            trigger_intervals.extend(intervals_selected[det])
-
-        trigger_intervals = np.unique(trigger_intervals, axis=0)
-
-        if len(trigger_intervals) > 0:
-            # Calculate the significance of each detector for the active interval
-            # that was selected based on the most significant detector
-            trigger_significance = []
-            for i, interval in enumerate(trigger_intervals):
-                idx_low, idx_high = interval
-
-                sig_dict = {}
-
-                for det in self._detectors:
-                    sig_dict[det] = float(
-                        calc_significance(
-                            data=self._observed_counts_total[det][idx_low:idx_high],
-                            background=self._bkg_counts_total[det][idx_low:idx_high],
-                            bkg_stat_err=self._bkg_stat_err_total[det][
-                                idx_low:idx_high
-                            ],
-                        )
-                    )
-
-                trigger_significance.append(sig_dict)
-
-            trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
-                trigger_intervals[:, 0], 0
-            ]
-
-            most_significant_detectors = []
-            for sig in trigger_significance:
-                most_significant_detectors.append(max(sig, key=sig.get))
-
-            trigger_peak_times = []
-
-            for i, inter in enumerate(trigger_intervals):
-                det = most_significant_detectors[i]
-                counts = (
-                    self._observed_counts_total[det][inter[0] : inter[1]]
-                    - self._bkg_counts_total[det][inter[0] : inter[1]]
-                )
-
-                max_index = np.argmax(counts) + inter[0]
-
-                trigger_peak_times.append(
-                    self._rebinned_time_bins[self._rebinned_saa_mask][max_index, 0]
-                )
-
-        else:
-            trigger_intervals = []
-            trigger_significance = []
-            most_significant_detectors = []
-            trigger_times = []
-            trigger_peak_times = []
-
-        trigger_information = {}
-        trigger_information["triggers"] = []
-
-        for i, t0 in enumerate(trigger_times):
-            start = self._rebinned_mean_time[trigger_intervals][i][0].tolist()
-            stop = self._rebinned_mean_time[trigger_intervals][i][1].tolist()
-
-            t_info = {
-                "trigger_time": t0.tolist(),
-                "trigger_time_corr": t0.tolist() - self._time_bins[0, 0].tolist(),
-                "peak_time": trigger_peak_times[i].tolist(),
-                "significances": trigger_significance[i],
-                "interval": {
-                    "start": start,
-                    "stop": stop,
-                },
-                "most_significant_detector": most_significant_detectors[i],
-                "duration": stop - start,
-                "max_sig": trigger_significance[i][most_significant_detectors[i]],
-            }
-
-            trigger_information["triggers"].append(t_info)
-
-        return trigger_information
 
 
 def distance_mapping(x, ref_vector=None):

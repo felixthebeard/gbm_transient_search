@@ -77,7 +77,9 @@ class CreateReportDate(luigi.Task):
 
                 except Exception as e:
 
-                    logging.exception(f"Check remote capacity resulted in: {e}")
+                    logging.exception(
+                        f"Check remote capacity for {remote_config} resulted in: {e}"
+                    )
 
             if len(available_hosts) == 0:
                 raise Exception("No remote host available to run the heavy tasks")

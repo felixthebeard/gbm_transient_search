@@ -31,6 +31,11 @@ class RemoteContext(LuigiRemoteContext):
                     f"The master socket path is not existing at {socket_path}."
                     f"It has the be created manually."
                 )
+        if len(sockets) <= 1:
+            raise Exception(
+                f"The {self._host_ref()} has no open socket! You have to create them manually."
+            )
+
         return sockets
 
     def check_nr_of_channels(self, master_socket):

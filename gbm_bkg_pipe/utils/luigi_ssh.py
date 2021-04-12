@@ -1,7 +1,8 @@
 import subprocess
 import os
 import logging
-
+import time
+import random
 import luigi.format
 from luigi.contrib.ssh import RemoteCalledProcessError
 from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
@@ -58,6 +59,9 @@ class RemoteContext(LuigiRemoteContext):
         return most_free_socket[0]
 
     def _prepare_cmd(self, cmd):
+        # Sleep for a random time to avoid overloading the master sockets
+        time.sleep(random.randint(1, 60))
+
         connection_cmd = ["ssh", self._host_ref()]
 
         # Add custom master connection socket

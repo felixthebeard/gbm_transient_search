@@ -35,6 +35,8 @@ simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 _valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
 _valid_echans = np.array(gbm_bkg_pipe_config["data"]["echans"]).flatten()
+run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
+run_echans = gbm_bkg_pipe_config["data"]["echans"]
 
 
 class PlotTriggers(luigi.Task):

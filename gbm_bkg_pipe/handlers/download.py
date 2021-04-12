@@ -76,7 +76,7 @@ class DownloadData(luigi.Task):
                     base_dir,
                     f"{self.date:%y%m%d}",
                     "data_remote",
-                    f"copied_{self.data_type}_{self.detector}_{self.date:%y%m%d}",
+                    f"copied_{self.data_type}_{self.detector}_{self.date:%y%m%d}_to_{self.remote_host}",
                 )
             ),
         )
@@ -100,38 +100,40 @@ class DownloadData(luigi.Task):
         )
 
     def run(self):
+        if not self.output()["remote_success"].exists():
+            if not self.output()["local_file"].exists():
 
-        if not self.output()["local_file"].exists():
+                if simulate:
+                    raise Exception(
+                        "Running in simulation mode, but simulation data file not existing"
+                    )
 
-            if simulate:
-                raise Exception(
-                    "Running in simulation mode, but simulation data file not existing"
+                dl = BackgroundDataDownload(
+                    f"{self.date:%y%m%d}",
+                    self.data_type,
+                    self.detector,
+                    wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
+                    max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+                )
+                file_readable = dl.run()
+
+            else:
+                file_readable = True
+
+            if file_readable:
+
+                self.remote_output()["remote_file"].put(
+                    self.output()["local_file"].path
                 )
 
-            dl = BackgroundDataDownload(
-                f"{self.date:%y%m%d}",
-                self.data_type,
-                self.detector,
-                wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
-                max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
-            )
-            file_readable = dl.run()
+                self.output()["remote_success"].makedirs()
+                os.system(f"touch {self.output()['remote_success'].path}")
 
-        else:
-            file_readable = True
+            else:
 
-        if file_readable:
-
-            self.remote_output()["remote_file"].put(self.output()["local_file"].path)
-
-            self.output()["remote_success"].makedirs()
-            os.system(f"touch {self.output()['remote_success'].path}")
-
-        else:
-
-            raise Exception(
-                f"Download of data for {self.detector} on {self.date:%y%m%d} failed"
-            )
+                raise Exception(
+                    f"Download of data for {self.detector} on {self.date:%y%m%d} failed"
+                )
 
 
 class DownloadPoshistData(luigi.Task):
@@ -164,7 +166,7 @@ class DownloadPoshistData(luigi.Task):
                     base_dir,
                     f"{self.date:%y%m%d}",
                     "data_remote",
-                    f"copied_poshist_{self.date:%y%m%d}",
+                    f"copied_poshist_{self.date:%y%m%d}_to_{self.remote_host}",
                 )
             ),
         )
@@ -186,30 +188,35 @@ class DownloadPoshistData(luigi.Task):
         )
 
     def run(self):
-        if not self.output()["local_file"].exists():
+        if not self.output()["remote_success"].exists():
+            if not self.output()["local_file"].exists():
 
-            dl = BackgroundDataDownload(
-                f"{self.date:%y%m%d}",
-                "poshist",
-                "all",
-                wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
-                max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
-            )
-            file_readable = dl.run()
+                dl = BackgroundDataDownload(
+                    f"{self.date:%y%m%d}",
+                    "poshist",
+                    "all",
+                    wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
+                    max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+                )
+                file_readable = dl.run()
 
-        else:
-            file_readable = True
+            else:
+                file_readable = True
 
-        if file_readable:
+            if file_readable:
 
-            self.remote_output()["remote_file"].put(self.output()["local_file"].path)
+                self.remote_output()["remote_file"].put(
+                    self.output()["local_file"].path
+                )
 
-            self.output()["remote_success"].makedirs()
-            os.system(f"touch {self.output()['remote_success'].path}")
+                self.output()["remote_success"].makedirs()
+                os.system(f"touch {self.output()['remote_success'].path}")
 
-        else:
+            else:
 
-            raise Exception(f"Download of poshist data for {self.date:%y%m%d} failed")
+                raise Exception(
+                    f"Download of poshist data for {self.date:%y%m%d} failed"
+                )
 
 
 class DownloadLATData(luigi.Task):

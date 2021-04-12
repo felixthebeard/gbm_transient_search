@@ -6,6 +6,7 @@ import numpy as np
 import yaml
 from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.handlers.localization import ProcessLocalizationResult
+from gbm_bkg_pipe.handlers.transient_search import TransientSearch
 from gbm_bkg_pipe.handlers.plotting import (
     BkgModelPlots,
     Create3DLocationPlot,
@@ -41,7 +42,7 @@ class UploadTriggers(luigi.Task):
     resources = {"cpu": 1}
 
     def requires(self):
-        return TriggerSearch(
+        return TransientSearch(
             date=self.date,
             data_type=self.data_type,
             remote_host=self.remote_host,

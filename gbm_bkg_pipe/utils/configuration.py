@@ -36,7 +36,10 @@ structure["remote_hosts_config"] = dict(
 )
 
 structure["ssh"] = dict(
-    master_socket_base_path="/home/fkunzwei/.ssh/master-socket/", nr_sockets=3
+    master_socket_base_path="/home/fkunzwei/.ssh/master-socket/",
+    nr_sockets=3,
+    sleep_min=1,
+    sleep_max=30,
 )
 
 structure["download"] = dict(

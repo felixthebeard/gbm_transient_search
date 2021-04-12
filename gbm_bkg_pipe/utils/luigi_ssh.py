@@ -14,6 +14,9 @@ from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 socket_base_path = gbm_bkg_pipe_config["ssh"].get("master_socket_base_path", None)
 nr_sockets = gbm_bkg_pipe_config["ssh"].get("nr_sockets", 1)
 
+sleep_min = gbm_bkg_pipe_config["ssh"].get("sleep_min", 0)
+sleep_max = gbm_bkg_pipe_config["ssh"].get("sleep_max", 0)
+
 
 class RemoteContext(LuigiRemoteContext):
     @property
@@ -64,10 +67,10 @@ class RemoteContext(LuigiRemoteContext):
         return most_free_socket[0]
 
     def _prepare_cmd(self, cmd):
-        # Sleep for a random time to avoid overloading the master sockets
-        time.sleep(random.randint(1, 60))
-
         connection_cmd = ["ssh", self._host_ref()]
+
+        # Sleep for a random time to avoid overloading the master sockets
+        time.sleep(random.randint(sleep_min, sleep_max))
 
         # Add custom master connection socket
         if socket_base_path is not None:

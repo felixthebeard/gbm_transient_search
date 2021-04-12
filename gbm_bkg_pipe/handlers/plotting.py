@@ -8,7 +8,7 @@ import numpy as np
 import yaml
 from chainconsumer import ChainConsumer
 from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.background import BkgModelTask
+from gbm_bkg_pipe.handlers.background import BkgModelTask, CopyResults
 from gbm_bkg_pipe.handlers.download import (
     DownloadPoshistData,
 )

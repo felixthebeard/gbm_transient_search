@@ -11,9 +11,9 @@ from gbmbkgpy.io.export import PHAWriter
 
 
 class LocalizationSetup(object):
-    def __init__(self, trigger_search_result, bkg_fit_result):
+    def __init__(self, transient_search_result, bkg_fit_result):
 
-        self._read_search_result(trigger_search_result)
+        self._read_search_result(transient_search_result)
 
         self._read_bkg_result(bkg_fit_result)
 

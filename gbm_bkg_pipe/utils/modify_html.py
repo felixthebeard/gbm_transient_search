@@ -33,13 +33,11 @@ def modify_index_html():
         filedata = f.read()
 
     # Modify Navbar Headline
-    filedata = filedata.replace(
-        "Luigi Task Status", "<b>GBM Transient Search</b> Pipeline"
-    )
+    filedata = filedata.replace("Luigi Task Status", "<b>Transient Search</b> Pipeline")
 
     filedata = filedata.replace(
         "<title>Luigi Task Visualiser</title>",
-        "<title>GBM Trigger Transient Pipeline</title>",
+        "<title>GBM Transient Search Pipeline</title>",
     )
 
     # Modify theme

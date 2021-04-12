@@ -7,6 +7,7 @@ import luigi
 import numpy as np
 import yaml
 from chainconsumer import ChainConsumer
+import gbm_bkg_pipe
 from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
 from gbm_bkg_pipe.handlers.background import BkgModelTask, CopyResults
 from gbm_bkg_pipe.handlers.download import (
@@ -695,7 +696,10 @@ class BkgModelResultPlot(BkgModelTask):
     def run(self):
         self.output()[f"{self.detectors[0]}_{self.echans[0]}"].makedirs()
 
-        config_plot_path = f"{os.path.dirname(os.path.abspath(__file__))}/data/bkg_model/config_result_plot.yml"
+        gbm_bkg_pipe_package_dir = os.path.dirname(gbm_bkg_pipe.__file__)
+        config_plot_path = (
+            f"{gbm_bkg_pipe_package_dir}/data/bkg_model/config_result_plot.yml"
+        )
 
         arviz_reader = BkgArvizReader(self.input()["arviz_file"].path)
 

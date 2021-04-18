@@ -5,7 +5,9 @@ import numpy as np
 import h5py
 import yaml
 
-from gbm_transient_search.utils.file_utils import if_dir_containing_file_not_existing_then_make
+from gbm_transient_search.utils.file_utils import (
+    if_dir_containing_file_not_existing_then_make,
+)
 from gbmgeometry import GBMTime
 from gbmbkgpy.io.export import PHAWriter
 

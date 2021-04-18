@@ -2,10 +2,9 @@
 ################ Config file for all the input parameters ##########################################
 ####################################################################################################
 
-
 ################## General Input [Days, Detector, Data Type, Energy Channels] #######################
 general:
-  data_type:  'ctime'
+  data_type: "ctime"
   min_bin_width: 40
 
 ################# Input for response precalculation [how many grid poits?] ##########################
@@ -28,12 +27,13 @@ geometry:
 
 ##### Input for source Setup [use CR, use Earth, use CGB, point source list, fix earth, fix cgb #####
 setup:
-  use_saa:      false
+  use_saa: false
   use_constant: true
-  use_cr:       true
-  use_earth:    true
-  use_cgb:      true
-  ps_list: []
+  use_cr: true
+  use_earth: true
+  use_cgb: true
+  ps_list:
+    []
     # auto_swift:
     #   update_catalog: false
     #   flux_limit: 0.1
@@ -46,9 +46,9 @@ setup:
     #       spectrum_type: pl
     #       powerlaw_index: 2
 
-  fix_earth:    true
-  fix_cgb:      true
-  use_sun:      false
+  fix_earth: true
+  fix_cgb: true
+  use_sun: false
   cr_approximation: "BGO"
   use_eff_area_correction: false
 
@@ -142,7 +142,7 @@ priors:
           gaussian: [null, null]
         index:
           prior: truncated_gaussian
-          bounds: [0,4]
+          bounds: [0, 4]
           gaussian: [2, 1]
       bb:
         norm:
@@ -151,21 +151,21 @@ priors:
           gaussian: [null, null]
         temp:
           prior: truncated_gaussian
-          bounds: [0,50]
+          bounds: [0, 50]
           gaussian: [10, 5]
   sun:
     norm:
-        prior: log_uniform
-        bounds: [1.0e-2, 1.0e+2]
-        gaussian: [null, null]
+      prior: log_uniform
+      bounds: [1.0e-2, 1.0e+2]
+      gaussian: [null, null]
     index:
-        prior: truncated_gaussian
-        bounds: [0.5,4]
-        gaussian: [2, 1]
-  eff_area_correction:
       prior: truncated_gaussian
-      bounds: [0.8,1.2]
-      gaussian: [1, 0.1]
+      bounds: [0.5, 4]
+      gaussian: [2, 1]
+  eff_area_correction:
+    prior: truncated_gaussian
+    bounds: [0.8, 1.2]
+    gaussian: [1, 0.1]
 
 ##################### Input for fit method ##########################################################
 fit:
@@ -188,5 +188,5 @@ export:
 ### show data?, show grb trigger times? if yes at which time ('20:57:03.000' format) and what name? #
 ### show ppc?, xlim and ylim (as list e.g. [0,100]), legend outside of the plot? ####################
 plot:
-  corner_plot:    true
-  result_plot:    true
+  corner_plot: true
+  result_plot: true

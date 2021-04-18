@@ -11,7 +11,9 @@ from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
 from gbm_transient_search.utils.configuration import gbm_transient_search_config
 
-socket_base_path = gbm_transient_search_config["ssh"].get("master_socket_base_path", None)
+socket_base_path = gbm_transient_search_config["ssh"].get(
+    "master_socket_base_path", None
+)
 nr_sockets = gbm_transient_search_config["ssh"].get("nr_sockets", 1)
 
 sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)

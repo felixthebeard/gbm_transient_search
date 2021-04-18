@@ -862,7 +862,7 @@ class TriggerPlot(object):
                     s=3,
                     facecolors="none",
                     edgecolors=data_color,
-                    rasterized=True
+                    rasterized=True,
                 )
 
                 ax[i].plot(
@@ -898,7 +898,9 @@ class TriggerPlot(object):
                     clip_on=False,
                     label="T0",
                 )
-                ax[i].set_ylabel(f"Count rate \n{echan_dict[str(e)]}", fontsize=fontsize)
+                ax[i].set_ylabel(
+                    f"Count rate \n{echan_dict[str(e)]}", fontsize=fontsize
+                )
                 ax[i].tick_params(axis="both", which="major", labelsize=fontsize)
                 ax[i].tick_params(axis="both", which="minor", labelsize=fontsize)
 

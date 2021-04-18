@@ -19,7 +19,9 @@ from gbm_transient_search.handlers.plotting import (
     CreateSpectrumPlot,
 )
 from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
-from gbm_transient_search.utils.file_utils import if_dir_containing_file_not_existing_then_make
+from gbm_transient_search.utils.file_utils import (
+    if_dir_containing_file_not_existing_then_make,
+)
 from gbm_transient_search.utils.upload_utils import (
     upload_date_plot,
     upload_plot,
@@ -29,7 +31,9 @@ from gbm_transient_search.utils.upload_utils import (
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
-_valid_gbm_detectors = np.array(gbm_transient_search_config["data"]["detectors"]).flatten()
+_valid_gbm_detectors = np.array(
+    gbm_transient_search_config["data"]["detectors"]
+).flatten()
 _valid_echans = np.array(gbm_transient_search_config["data"]["echans"]).flatten()
 
 
@@ -125,7 +129,9 @@ class UploadReport(luigi.Task):
         report = upload_transient_report(
             trigger_name=self.trigger_name,
             result=result,
-            wait_time=float(gbm_transient_search_config["upload"]["report"]["interval"]),
+            wait_time=float(
+                gbm_transient_search_config["upload"]["report"]["interval"]
+            ),
             max_time=float(gbm_transient_search_config["upload"]["report"]["max_time"]),
         )
 
@@ -804,10 +810,14 @@ class UploadBkgPerformancePlots(luigi.Task):
                             plot_file=plot_file.path,
                             plot_type=f"{plot_type.split('_')[0]}",
                             wait_time=float(
-                                gbm_transient_search_config["upload"]["plot"]["interval"]
+                                gbm_transient_search_config["upload"]["plot"][
+                                    "interval"
+                                ]
                             ),
                             max_time=float(
-                                gbm_transient_search_config["upload"]["plot"]["max_time"]
+                                gbm_transient_search_config["upload"]["plot"][
+                                    "max_time"
+                                ]
                             ),
                             det_name=f"{', '.join(task.detectors)}",
                             echan=f"{', '.join(task.echans)}",

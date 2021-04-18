@@ -34,7 +34,9 @@ from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
-_valid_gbm_detectors = np.array(gbm_transient_search_config["data"]["detectors"]).flatten()
+_valid_gbm_detectors = np.array(
+    gbm_transient_search_config["data"]["detectors"]
+).flatten()
 _valid_echans = np.array(gbm_transient_search_config["data"]["echans"]).flatten()
 run_detectors = gbm_transient_search_config["data"]["detectors"]
 run_echans = gbm_transient_search_config["data"]["echans"]
@@ -696,7 +698,9 @@ class BkgModelResultPlot(BkgModelTask):
     def run(self):
         self.output()[f"{self.detectors[0]}_{self.echans[0]}"].makedirs()
 
-        gbm_transient_search_package_dir = os.path.dirname(gbm_transient_search.__file__)
+        gbm_transient_search_package_dir = os.path.dirname(
+            gbm_transient_search.__file__
+        )
         config_plot_path = (
             f"{gbm_transient_search_package_dir}/data/bkg_model/config_result_plot.yml"
         )

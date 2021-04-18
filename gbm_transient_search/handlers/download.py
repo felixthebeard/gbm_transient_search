@@ -112,7 +112,9 @@ class DownloadData(luigi.Task):
                     f"{self.date:%y%m%d}",
                     self.data_type,
                     self.detector,
-                    wait_time=float(gbm_transient_search_config["download"]["interval"]),
+                    wait_time=float(
+                        gbm_transient_search_config["download"]["interval"]
+                    ),
                     max_time=float(gbm_transient_search_config["download"]["max_time"]),
                 )
                 file_readable = dl.run()
@@ -195,7 +197,9 @@ class DownloadPoshistData(luigi.Task):
                     f"{self.date:%y%m%d}",
                     "poshist",
                     "all",
-                    wait_time=float(gbm_transient_search_config["download"]["interval"]),
+                    wait_time=float(
+                        gbm_transient_search_config["download"]["interval"]
+                    ),
                     max_time=float(gbm_transient_search_config["download"]["max_time"]),
                 )
                 file_readable = dl.run()

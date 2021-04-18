@@ -25,8 +25,9 @@ class RemoteContext(LuigiRemoteContext):
     def master_socket_paths(self):
         sockets = []
 
+        host_name = self._host_ref()
         for i in range(nr_sockets):
-            socket_path = os.path.join(socket_base_path, f"{self._host_ref()}_{i+1}:22")
+            socket_path = os.path.join(socket_base_path, f"{host_name}_{i+1}:22")
 
             if os.path.exists(socket_path):
                 sockets.append(socket_path)
@@ -38,14 +39,14 @@ class RemoteContext(LuigiRemoteContext):
                 )
         if len(sockets) <= 1:
             raise Exception(
-                f"The {self._host_ref()} has no open socket! You have to create them manually."
+                f"The {host_name} has no open socket! You have to create them manually."
             )
 
         return sockets
 
     def check_nr_of_channels(self, master_socket):
         output = subprocess.check_output(
-            f"lsof -U | grep {master_socket} | wc -l", shell=True
+            f"lsof -U | grep {master_socket.replace(':22', '')} | wc -l", shell=True
         ).decode()
         nr_channels = int(output.strip(" \n"))
         return nr_channels

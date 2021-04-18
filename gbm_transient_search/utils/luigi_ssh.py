@@ -37,8 +37,8 @@ class RemoteContext(LuigiRemoteContext):
                     f"The master socket path is not existing at {socket_path}."
                     f"It has the be created manually."
                 )
-        if len(sockets) <= 1:
-            raise Exception(
+        if len(sockets) < 1:
+            raise RuntimeError(
                 f"The {host_name} has no open socket! You have to create them manually."
             )
 
@@ -60,10 +60,10 @@ class RemoteContext(LuigiRemoteContext):
         sockets.sort(key=lambda tup: tup[1])
         most_free_socket = sockets[0]
 
-        print(f"SSH sockets: {sockets}")
+        logging.debug(f"SSH sockets: {sockets}")
 
         if most_free_socket[1] > 8:
-            raise Exception(
+            raise RuntimeError(
                 "The master socket with the least number of connections has more than 8!"
             )
 

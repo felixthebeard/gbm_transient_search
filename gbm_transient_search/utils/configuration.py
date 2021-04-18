@@ -68,6 +68,8 @@ structure["balrog"] = dict(
     multinest=dict(n_cores=8, path_to_python="python"),
     timeout=2 * 60 * 60,  # 2 hour
     run_destination="remote",
+    remote_wait_time=20 * 60,
+    remote_max_time=2 * 60 * 60,
 )
 
 structure["upload"] = dict(

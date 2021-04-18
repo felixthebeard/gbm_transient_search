@@ -24,7 +24,7 @@ from gbm_transient_search.handlers.download import (
     DownloadPoshistData,
 )
 from gbm_transient_search.handlers.transient_search import TransientSearch
-from gbm_transient_search.utils.configuration import gbm_bkg_pipe_config
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
 from gbm_transient_search.processors.localization_setup import LocalizationSetup
 from gbm_transient_search.processors.localization_result_reader import (
     LocalizationResultReader,
@@ -35,16 +35,20 @@ base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
-balrog_run_destination = gbm_bkg_pipe_config["balrog"]["run_destination"]
-balrog_n_cores_multinest = gbm_bkg_pipe_config["balrog"]["multinest"]["n_cores"]
-balrog_path_to_python = gbm_bkg_pipe_config["balrog"]["multinest"]["path_to_python"]
-balrog_timeout = gbm_bkg_pipe_config["balrog"]["timeout"]
+balrog_run_destination = gbm_transient_search_config["balrog"]["run_destination"]
+balrog_n_cores_multinest = gbm_transient_search_config["balrog"]["multinest"]["n_cores"]
+balrog_path_to_python = gbm_transient_search_config["balrog"]["multinest"][
+    "path_to_python"
+]
+balrog_timeout = gbm_transient_search_config["balrog"]["timeout"]
 
-_valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
-run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
-run_echans = gbm_bkg_pipe_config["data"]["echans"]
+_valid_gbm_detectors = np.array(
+    gbm_transient_search_config["data"]["detectors"]
+).flatten()
+run_detectors = gbm_transient_search_config["data"]["detectors"]
+run_echans = gbm_transient_search_config["data"]["echans"]
 
-remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
+remote_hosts_config = gbm_transient_search_config["remote_hosts_config"]
 
 
 class LocalizeTriggers(luigi.Task):
@@ -749,8 +753,8 @@ class RunBalrogRemote(luigi.Task):
 
         # the time spent waiting so far
         time_spent = 0  # seconds
-        wait_time = 5 * 60
-        max_time = 2 * 60 * 60
+        wait_time = gbm_transient_search_config["balrog"]["remote_wait_time"]
+        max_time = gbm_transient_search_config["balrog"]["remote_max_time"]
 
         # Sleep for 5m initially and add reandom sleep to avoid querying at the same time
         time.sleep(5 * 60 + random.randint(30, 100))
@@ -799,8 +803,6 @@ class RunBalrogTasksRemote(luigi.Task):
     data_type = luigi.Parameter(default="ctime")
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
-
-    result_timeout = 2 * 60 * 60
 
     resources = {"ssh_connections": 1}
 

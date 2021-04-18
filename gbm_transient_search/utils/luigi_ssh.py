@@ -60,7 +60,7 @@ class RemoteContext(LuigiRemoteContext):
         sockets.sort(key=lambda tup: tup[1])
         most_free_socket = sockets[0]
 
-        logging.info(f"SSH sockets: {sockets}")
+        print(f"SSH sockets: {sockets}")
 
         if most_free_socket[1] > 8:
             raise Exception(

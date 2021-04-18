@@ -6,12 +6,12 @@ import numpy as np
 from datetime import timedelta
 
 from gbmbkgpy.utils.select_pointsources import SelectPointsources
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
-# bkg_source_setup = gbm_bkg_pipe_config["phys_bkg"]["bkg_source_setup"]
+# bkg_source_setup = gbm_transient_search_config["phys_bkg"]["bkg_source_setup"]
 
 
 class BkgConfigWriter(object):

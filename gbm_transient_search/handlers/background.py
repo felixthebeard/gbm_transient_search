@@ -8,16 +8,16 @@ from datetime import datetime, timedelta
 import h5py
 import luigi
 import yaml
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.download import (
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.handlers.download import (
     DownloadData,
     DownloadLATData,
     DownloadPoshistData,
     UpdatePointsourceDB,
 )
-from gbm_bkg_pipe.processors.bkg_config_writer import BkgConfigWriter
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.luigi_ssh import (
+from gbm_transient_search.processors.bkg_config_writer import BkgConfigWriter
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.luigi_ssh import (
     RemoteCalledProcessError,
     RemoteContext,
     RemoteTarget,
@@ -29,10 +29,10 @@ base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 data_dir = os.environ.get("GBMDATA")
 
-run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
-run_echans = gbm_bkg_pipe_config["data"]["echans"]
+run_detectors = gbm_transient_search_config["data"]["detectors"]
+run_echans = gbm_transient_search_config["data"]["echans"]
 
-remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
+remote_hosts_config = gbm_transient_search_config["remote_hosts_config"]
 
 
 class GBMBackgroundModelFit(luigi.Task):
@@ -154,7 +154,7 @@ class CreateBkgConfig(BkgModelTask):
             )
         }
         if self.step == "final":
-            from gbm_bkg_pipe.handlers.transient_search import TransientSearch
+            from gbm_transient_search.handlers.transient_search import TransientSearch
 
             requires["transient_search"] = TransientSearch(
                 date=self.date,
@@ -374,7 +374,7 @@ class RunPhysBkgModel(BkgModelTask):
             "stan_fit_pipe.job",
         )
 
-        if gbm_bkg_pipe_config["balrog"]["run_destination"] == "local":
+        if gbm_transient_search_config["balrog"]["run_destination"] == "local":
             balrog_offset = 0
         else:
             balrog_offset = 1

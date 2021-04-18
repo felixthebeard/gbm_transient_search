@@ -5,17 +5,17 @@ import time
 from datetime import datetime, timedelta
 
 import luigi
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.utils.download_file import (
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.utils.download_file import (
     BackgroundDataDownload,
     BackgroundLATDownload,
 )
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.file_utils import (
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.file_utils import (
     if_dir_containing_file_not_existing_then_make,
     if_directory_not_existing_then_make,
 )
-from gbm_bkg_pipe.utils.luigi_ssh import (
+from gbm_transient_search.utils.luigi_ssh import (
     RemoteCalledProcessError,
     RemoteContext,
     RemoteTarget,
@@ -27,10 +27,10 @@ base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 data_dir = os.environ.get("GBMDATA")
 
-run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
-run_echans = gbm_bkg_pipe_config["data"]["echans"]
+run_detectors = gbm_transient_search_config["data"]["detectors"]
+run_echans = gbm_transient_search_config["data"]["echans"]
 
-remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
+remote_hosts_config = gbm_transient_search_config["remote_hosts_config"]
 
 
 class DownloadData(luigi.Task):
@@ -112,8 +112,8 @@ class DownloadData(luigi.Task):
                     f"{self.date:%y%m%d}",
                     self.data_type,
                     self.detector,
-                    wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
-                    max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+                    wait_time=float(gbm_transient_search_config["download"]["interval"]),
+                    max_time=float(gbm_transient_search_config["download"]["max_time"]),
                 )
                 file_readable = dl.run()
 
@@ -195,8 +195,8 @@ class DownloadPoshistData(luigi.Task):
                     f"{self.date:%y%m%d}",
                     "poshist",
                     "all",
-                    wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
-                    max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+                    wait_time=float(gbm_transient_search_config["download"]["interval"]),
+                    max_time=float(gbm_transient_search_config["download"]["max_time"]),
                 )
                 file_readable = dl.run()
 
@@ -245,8 +245,8 @@ class DownloadLATData(luigi.Task):
     def run(self):
         dl = BackgroundLATDownload(
             f"{self.date:%y%m%d}",
-            wait_time=float(gbm_bkg_pipe_config["download"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["download"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["download"]["interval"]),
+            max_time=float(gbm_transient_search_config["download"]["max_time"]),
         )
 
         files_readable, file_names = dl.run()

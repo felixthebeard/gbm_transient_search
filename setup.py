@@ -17,13 +17,12 @@ def find_data_files(directory):
     return paths
 
 
-extra_files = find_data_files("gbm_bkg_pipe/data")
+extra_files = find_data_files("gbm_transient_search/data")
 
 
 setup(
     version=versioneer.get_version(),
     include_package_data=True,
-    scripts=["bin/bkg_pipe"],
     package_data={"": extra_files},
     license="GPL3",
     cmdclass=versioneer.get_cmdclass(),

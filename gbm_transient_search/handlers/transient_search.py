@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 import luigi
 import numpy as np
 
-from gbm_bkg_pipe.handlers.background import GBMBackgroundModelFit
-from gbm_bkg_pipe.handlers.download import DownloadData
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.processors.transient_detector import TransientDetector
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.handlers.background import GBMBackgroundModelFit
+from gbm_transient_search.handlers.download import DownloadData
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.processors.transient_detector import TransientDetector
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
-_valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
-td_conf = gbm_bkg_pipe_config["transient_detection"]
+_valid_gbm_detectors = np.array(gbm_transient_search_config["data"]["detectors"]).flatten()
+td_conf = gbm_transient_search_config["transient_detection"]
 base_dir = get_env_value("GBMDATA")
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")

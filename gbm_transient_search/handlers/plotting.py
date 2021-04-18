@@ -7,21 +7,21 @@ import luigi
 import numpy as np
 import yaml
 from chainconsumer import ChainConsumer
-import gbm_bkg_pipe
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.background import BkgModelTask, CopyResults
-from gbm_bkg_pipe.handlers.download import (
+import gbm_transient_search
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.handlers.background import BkgModelTask, CopyResults
+from gbm_transient_search.handlers.download import (
     DownloadPoshistData,
 )
-from gbm_bkg_pipe.handlers.localization import ProcessLocalizationResult
-from gbm_bkg_pipe.handlers.transient_search import TransientSearch
-from gbm_bkg_pipe.processors.bkg_result_reader import BkgArvizReader
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.file_utils import (
+from gbm_transient_search.handlers.localization import ProcessLocalizationResult
+from gbm_transient_search.handlers.transient_search import TransientSearch
+from gbm_transient_search.processors.bkg_result_reader import BkgArvizReader
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.file_utils import (
     if_directory_not_existing_then_make,
 )
-from gbm_bkg_pipe.utils.plotting.arviz_plots import ArvizPlotter
-from gbm_bkg_pipe.utils.plotting.plot_utils import (
+from gbm_transient_search.utils.plotting.arviz_plots import ArvizPlotter
+from gbm_transient_search.utils.plotting.plot_utils import (
     azimuthal_plot_sat_frame,
     create_corner_all_plot,
     create_corner_loc_plot,
@@ -29,15 +29,15 @@ from gbm_bkg_pipe.utils.plotting.plot_utils import (
     mollweide_plot,
     swift_gbm_plot,
 )
-from gbm_bkg_pipe.utils.plotting.trigger_plot import TriggerPlot
+from gbm_transient_search.utils.plotting.trigger_plot import TriggerPlot
 from gbmbkgpy.io.plotting.plot_result import ResultPlotGenerator
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
-_valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
-_valid_echans = np.array(gbm_bkg_pipe_config["data"]["echans"]).flatten()
-run_detectors = gbm_bkg_pipe_config["data"]["detectors"]
-run_echans = gbm_bkg_pipe_config["data"]["echans"]
+_valid_gbm_detectors = np.array(gbm_transient_search_config["data"]["detectors"]).flatten()
+_valid_echans = np.array(gbm_transient_search_config["data"]["echans"]).flatten()
+run_detectors = gbm_transient_search_config["data"]["detectors"]
+run_echans = gbm_transient_search_config["data"]["echans"]
 
 
 class PlotTriggers(luigi.Task):
@@ -696,9 +696,9 @@ class BkgModelResultPlot(BkgModelTask):
     def run(self):
         self.output()[f"{self.detectors[0]}_{self.echans[0]}"].makedirs()
 
-        gbm_bkg_pipe_package_dir = os.path.dirname(gbm_bkg_pipe.__file__)
+        gbm_transient_search_package_dir = os.path.dirname(gbm_transient_search.__file__)
         config_plot_path = (
-            f"{gbm_bkg_pipe_package_dir}/data/bkg_model/config_result_plot.yml"
+            f"{gbm_transient_search_package_dir}/data/bkg_model/config_result_plot.yml"
         )
 
         arviz_reader = BkgArvizReader(self.input()["arviz_file"].path)

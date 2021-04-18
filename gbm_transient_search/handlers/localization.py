@@ -11,23 +11,25 @@ import numpy as np
 import yaml
 from luigi.contrib.external_program import ExternalProgramTask
 
-from gbm_bkg_pipe.utils.luigi_ssh import (
+from gbm_transient_search.utils.luigi_ssh import (
     RemoteCalledProcessError,
     RemoteContext,
     RemoteTarget,
 )
-from gbm_bkg_pipe.handlers.background import (
+from gbm_transient_search.handlers.background import (
     GBMBackgroundModelFit,
 )
-from gbm_bkg_pipe.handlers.download import (
+from gbm_transient_search.handlers.download import (
     DownloadData,
     DownloadPoshistData,
 )
-from gbm_bkg_pipe.handlers.transient_search import TransientSearch
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.processors.localization_setup import LocalizationSetup
-from gbm_bkg_pipe.processors.localization_result_reader import LocalizationResultReader
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.handlers.transient_search import TransientSearch
+from gbm_transient_search.utils.configuration import gbm_bkg_pipe_config
+from gbm_transient_search.processors.localization_setup import LocalizationSetup
+from gbm_transient_search.processors.localization_result_reader import (
+    LocalizationResultReader,
+)
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 

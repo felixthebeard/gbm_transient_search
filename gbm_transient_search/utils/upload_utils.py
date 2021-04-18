@@ -4,19 +4,19 @@ import time
 import requests
 from datetime import datetime
 
-from gbm_bkg_pipe.exceptions.custom_exceptions import (
+from gbm_transient_search.exceptions.custom_exceptions import (
     EmptyFileError,
     TransientNotFound,
     UnauthorizedRequest,
     UnexpectedStatusCode,
     UploadFailed,
 )
-from gbm_bkg_pipe.utils.env import get_env_value
-from gbm_bkg_pipe.utils.env import get_bool_env_value
+from gbm_transient_search.utils.env import get_env_value
+from gbm_transient_search.utils.env import get_bool_env_value
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
-base_url = get_env_value("GBM_BKG_PIPE_BASE_URL")
-auth_token = get_env_value("GBM_BKG_PIPE_AUTH_TOKEN")
+base_url = get_env_value("GBM_TRANSIENT_SEARCH_BASE_URL")
+auth_token = get_env_value("GBM_TRANSIENT_SEARCH_AUTH_TOKEN")
 
 model_lookup = {
     "pl": "powerlaw",

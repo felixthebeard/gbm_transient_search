@@ -81,9 +81,9 @@ class GBMBkgPipeConfig(YAMLConfig):
 
         super(GBMBkgPipeConfig, self).__init__(
             structure=structure,
-            config_path="~/.gbm_bkg_pipe",
-            config_name="gbm_bkg_pipe_config.yml",
+            config_path="~/.gbm_transient_search",
+            config_name="gbm_transient_search_config.yml",
         )
 
 
-gbm_bkg_pipe_config = GBMBkgPipeConfig()
+gbm_transient_search_config = GBMBkgPipeConfig()

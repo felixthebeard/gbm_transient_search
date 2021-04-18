@@ -9,8 +9,8 @@ from chainconsumer import ChainConsumer
 from astropy.coordinates import Angle
 from astropy.coordinates import SkyCoord
 
-from gbm_bkg_pipe.exceptions.custom_exceptions import *
-from gbm_bkg_pipe.utils.env import get_env_value
+from gbm_transient_search.exceptions.custom_exceptions import *
+from gbm_transient_search.utils.env import get_env_value
 
 from gbmgeometry.gbm_frame import GBMFrame
 from astropy.coordinates import SkyCoord

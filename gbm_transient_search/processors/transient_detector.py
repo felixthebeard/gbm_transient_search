@@ -8,8 +8,8 @@ import ruptures as rpt
 import yaml
 from astropy.io import fits
 from astropy.stats import bayesian_blocks
-from gbm_bkg_pipe.processors.saa_calc import SaaCalc
-from gbm_bkg_pipe.utils.plotting.trigger_plot import TriggerPlot
+from gbm_transient_search.processors.saa_calc import SaaCalc
+from gbm_transient_search.utils.plotting.trigger_plot import TriggerPlot
 from gbmbkgpy.utils.binner import Rebinner
 from gbmgeometry import GBMTime
 

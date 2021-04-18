@@ -4,25 +4,25 @@ import os
 from datetime import datetime, timedelta
 
 import luigi
-from gbm_bkg_pipe.utils.luigi_ssh import RemoteContext
+from gbm_transient_search.utils.luigi_ssh import RemoteContext
 
-from gbm_bkg_pipe.handlers.localization import LocalizeTriggers
-from gbm_bkg_pipe.handlers.plotting import BkgModelPlots
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.plotting import PlotTriggers
-from gbm_bkg_pipe.handlers.transient_search import TransientSearch
-from gbm_bkg_pipe.handlers.upload import (
+from gbm_transient_search.handlers.localization import LocalizeTriggers
+from gbm_transient_search.handlers.plotting import BkgModelPlots
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.handlers.plotting import PlotTriggers
+from gbm_transient_search.handlers.transient_search import TransientSearch
+from gbm_transient_search.handlers.upload import (
     UploadBkgResultPlots,
     UploadTriggers,
     UploadBkgPerformancePlots,
 )
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 
-remote_hosts_config = gbm_bkg_pipe_config["remote_hosts_config"]
+remote_hosts_config = gbm_transient_search_config["remote_hosts_config"]
 
 
 class CreateReportDate(luigi.Task):

@@ -4,10 +4,10 @@ from datetime import datetime
 import luigi
 import numpy as np
 import yaml
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
-from gbm_bkg_pipe.handlers.localization import ProcessLocalizationResult
-from gbm_bkg_pipe.handlers.transient_search import TransientSearch
-from gbm_bkg_pipe.handlers.plotting import (
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from gbm_transient_search.handlers.localization import ProcessLocalizationResult
+from gbm_transient_search.handlers.transient_search import TransientSearch
+from gbm_transient_search.handlers.plotting import (
     BkgModelPlots,
     Create3DLocationPlot,
     CreateAllLightcurves,
@@ -18,9 +18,9 @@ from gbm_bkg_pipe.handlers.plotting import (
     CreateSatellitePlot,
     CreateSpectrumPlot,
 )
-from gbm_bkg_pipe.utils.env import get_bool_env_value, get_env_value
-from gbm_bkg_pipe.utils.file_utils import if_dir_containing_file_not_existing_then_make
-from gbm_bkg_pipe.utils.upload_utils import (
+from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
+from gbm_transient_search.utils.file_utils import if_dir_containing_file_not_existing_then_make
+from gbm_transient_search.utils.upload_utils import (
     upload_date_plot,
     upload_plot,
     upload_transient_report,
@@ -29,8 +29,8 @@ from gbm_bkg_pipe.utils.upload_utils import (
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
 
-_valid_gbm_detectors = np.array(gbm_bkg_pipe_config["data"]["detectors"]).flatten()
-_valid_echans = np.array(gbm_bkg_pipe_config["data"]["echans"]).flatten()
+_valid_gbm_detectors = np.array(gbm_transient_search_config["data"]["detectors"]).flatten()
+_valid_echans = np.array(gbm_transient_search_config["data"]["echans"]).flatten()
 
 
 class UploadTriggers(luigi.Task):
@@ -125,8 +125,8 @@ class UploadReport(luigi.Task):
         report = upload_transient_report(
             trigger_name=self.trigger_name,
             result=result,
-            wait_time=float(gbm_bkg_pipe_config["upload"]["report"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["report"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["report"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["report"]["max_time"]),
         )
 
         with open(self.output().path, "w") as f:
@@ -309,8 +309,8 @@ class UploadLightcurve(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"][self.detector].path,
             plot_type="lightcurve",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
             det_name=self.detector,
         )
 
@@ -365,8 +365,8 @@ class UploadLocationPlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="location",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -420,8 +420,8 @@ class UploadCornerPlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="allcorner",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -474,8 +474,8 @@ class UploadMollLocationPlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="molllocation",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -529,8 +529,8 @@ class UploadSatellitePlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="satellite",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -584,8 +584,8 @@ class UploadSpectrumPlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="spectrum",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -639,8 +639,8 @@ class Upload3DLocationPlot(luigi.Task):
             data_type=self.data_type,
             plot_file=self.input()["plot_file"].path,
             plot_type="3dlocation",
-            wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-            max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+            wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+            max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -692,8 +692,8 @@ class Upload3DLocationPlot(luigi.Task):
 #             data_type=self.data_type,
 #             plot_file=self.input()["plot_file"].path,
 #             plot_type="balrogswift",
-#             wait_time=float(gbm_bkg_pipe_config["upload"]["plot"]["interval"]),
-#             max_time=float(gbm_bkg_pipe_config["upload"]["plot"]["max_time"]),
+#             wait_time=float(gbm_transient_search_config["upload"]["plot"]["interval"]),
+#             max_time=float(gbm_transient_search_config["upload"]["plot"]["max_time"]),
 #         )
 
 #         if_dir_containing_file_not_existing_then_make(self.output().path)
@@ -746,10 +746,10 @@ class UploadBkgResultPlots(luigi.Task):
                         plot_file=plot_file.path,
                         plot_type="bkg_result",
                         wait_time=float(
-                            gbm_bkg_pipe_config["upload"]["plot"]["interval"]
+                            gbm_transient_search_config["upload"]["plot"]["interval"]
                         ),
                         max_time=float(
-                            gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
+                            gbm_transient_search_config["upload"]["plot"]["max_time"]
                         ),
                         det_name=det,
                         echan=echan,
@@ -804,10 +804,10 @@ class UploadBkgPerformancePlots(luigi.Task):
                             plot_file=plot_file.path,
                             plot_type=f"{plot_type.split('_')[0]}",
                             wait_time=float(
-                                gbm_bkg_pipe_config["upload"]["plot"]["interval"]
+                                gbm_transient_search_config["upload"]["plot"]["interval"]
                             ),
                             max_time=float(
-                                gbm_bkg_pipe_config["upload"]["plot"]["max_time"]
+                                gbm_transient_search_config["upload"]["plot"]["max_time"]
                             ),
                             det_name=f"{', '.join(task.detectors)}",
                             echan=f"{', '.join(task.echans)}",

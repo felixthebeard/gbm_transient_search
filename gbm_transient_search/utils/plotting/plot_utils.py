@@ -16,8 +16,8 @@ from gbmgeometry.gbm_frame import GBMFrame
 from gbmgeometry.utils.gbm_time import GBMTime
 from gbmgeometry import PositionInterpolator
 
-import gbm_bkg_pipe.utils.file_utils as file_utils
-from gbm_bkg_pipe.utils.env import get_env_value
+import gbm_transient_search.utils.file_utils as file_utils
+from gbm_transient_search.utils.env import get_env_value
 
 
 _gbm_detectors = [

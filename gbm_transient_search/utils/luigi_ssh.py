@@ -9,13 +9,13 @@ from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
 from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
-from gbm_bkg_pipe.utils.configuration import gbm_bkg_pipe_config
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
 
-socket_base_path = gbm_bkg_pipe_config["ssh"].get("master_socket_base_path", None)
-nr_sockets = gbm_bkg_pipe_config["ssh"].get("nr_sockets", 1)
+socket_base_path = gbm_transient_search_config["ssh"].get("master_socket_base_path", None)
+nr_sockets = gbm_transient_search_config["ssh"].get("nr_sockets", 1)
 
-sleep_min = gbm_bkg_pipe_config["ssh"].get("sleep_min", 0)
-sleep_max = gbm_bkg_pipe_config["ssh"].get("sleep_max", 0)
+sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)
+sleep_max = gbm_transient_search_config["ssh"].get("sleep_max", 0)
 
 
 class RemoteContext(LuigiRemoteContext):

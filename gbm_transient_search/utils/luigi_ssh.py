@@ -69,10 +69,10 @@ class RemoteContext(LuigiRemoteContext):
 
         # Assign each socket a probability proportional to its free connections
         lh = free_connections / max_connections
-        probs = lh / sum(lh)
+        prob = lh / sum(lh)
 
         # Sample from list of master sockets
-        socket = np.random.choice(self.master_socket_paths, p=probs)
+        socket = np.random.choice(self.master_socket_paths, p=prob)
 
         return socket
 

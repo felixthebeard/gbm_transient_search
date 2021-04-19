@@ -554,7 +554,7 @@ if __name__ == "__main__":
 
             trigger_information = yaml.safe_load(f)
 
-        trigger_names = trigger_information.keys()
+        trigger_names = list(trigger_information.keys())
 
         if args.subtasks is not None:
             assert args.index is not None

@@ -9,7 +9,7 @@ size = comm.Get_size()
 import os
 import sys
 import warnings
-
+import numpy as np
 import matplotlib.pyplot as plt
 import yaml
 from gbm_drm_gen import BALROG_DRM, BALROGLike, DRMGenCTIME
@@ -507,6 +507,21 @@ if __name__ == "__main__":
         required=False,
     )
 
+    parser.add_argument(
+        "-subtasks",
+        "--subtasks",
+        type=int,
+        help="Number of subtasks",
+        required=False,
+    )
+    parser.add_argument(
+        "-i",
+        "--index",
+        type=int,
+        help="Index of the slurm task to split the workload.",
+        required=False,
+    )
+
     args = parser.parse_args()
 
     # Run balrog for a single trigger
@@ -539,8 +554,18 @@ if __name__ == "__main__":
 
             trigger_information = yaml.safe_load(f)
 
+        trigger_names = list(trigger_information.keys())
+
+        if args.subtasks is not None:
+            assert args.index is not None
+
+            # Split the list of trigger_names in subtasks and run the subset.
+            trigger_names = np.array_split(trigger_names, args.subtasks)[
+                args.index
+            ].tolist()
+
         # Now run balrog for each trigger
-        for trigger_name in trigger_information.keys():
+        for trigger_name in trigger_names:
 
             t_info_file = os.path.join(
                 os.path.dirname(args.multi_trigger_info),

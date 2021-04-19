@@ -60,7 +60,9 @@ class RemoteContext(LuigiRemoteContext):
 
         free_connections = max_connections - open_connections
 
-        logging.debug(f"SSH sockets: {zip(self.master_socket_paths, open_connections)}")
+        logging.debug(
+            f"SSH sockets: {list(zip(self.master_socket_paths, open_connections))}"
+        )
 
         if len(np.where(free_connections > 0)[0]) < 1:
             raise RuntimeError("No master socket available with free connections.")

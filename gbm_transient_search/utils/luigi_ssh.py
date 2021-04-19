@@ -3,6 +3,7 @@ import os
 import logging
 import time
 import random
+import numpy as np
 import luigi.format
 from luigi.contrib.ssh import RemoteCalledProcessError
 from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
@@ -15,6 +16,7 @@ socket_base_path = gbm_transient_search_config["ssh"].get(
     "master_socket_base_path", None
 )
 nr_sockets = gbm_transient_search_config["ssh"].get("nr_sockets", 1)
+max_connections = gbm_transient_search_config["ssh"]["connection_limit_per_socket"]
 
 sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)
 sleep_max = gbm_transient_search_config["ssh"].get("sleep_max", 0)
@@ -52,22 +54,25 @@ class RemoteContext(LuigiRemoteContext):
         return nr_channels
 
     def get_free_socket(self):
-        sockets = []
+        open_connections = np.array(
+            [self.check_nr_of_channels(socket) for socket in self.master_socket_paths]
+        )
 
-        for socket in self.master_socket_paths:
-            sockets.append((socket, self.check_nr_of_channels(socket)))
+        free_connections = max_connections - open_connections
 
-        sockets.sort(key=lambda tup: tup[1])
-        most_free_socket = sockets[0]
+        logging.debug(f"SSH sockets: {zip(self.master_socket_paths, open_connections)}")
 
-        logging.debug(f"SSH sockets: {sockets}")
+        if len(np.where(free_connections > 0)[0]) < 1:
+            raise RuntimeError("No master socket available with free connections.")
 
-        if most_free_socket[1] > 8:
-            raise RuntimeError(
-                "The master socket with the least number of connections has more than 8!"
-            )
+        # Assign each socket a probability proportional to its free connections
+        lh = free_connections / max_connections
+        probs = lh / sum(lh)
 
-        return most_free_socket[0]
+        # Sample from list of master sockets
+        socket = np.random.choice(self.master_socket_paths, p=probs)
+
+        return socket
 
     def _prepare_cmd(self, cmd):
         connection_cmd = ["ssh", self._host_ref()]

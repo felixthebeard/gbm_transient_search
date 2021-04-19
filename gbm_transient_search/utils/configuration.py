@@ -38,6 +38,7 @@ structure["remote_hosts_config"] = dict(
 structure["ssh"] = dict(
     master_socket_base_path="/home/fkunzwei/.ssh/master-socket/",
     nr_sockets=3,
+    connection_limit_per_socket=8,
     sleep_min=1,
     sleep_max=30,
 )

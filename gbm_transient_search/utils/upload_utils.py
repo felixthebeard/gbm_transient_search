@@ -605,3 +605,82 @@ def upload_date_plot(
             else:
 
                 print(f"Response {response.status_code} at {url}: {response.text}")
+
+
+def upload_bkg_fit_report(
+    date,
+    det_name,
+    echan,
+    model_parameters,
+    wait_time,
+    max_time,
+):
+    headers = {
+        "Authorization": "Token {}".format(auth_token),
+    }
+
+    payload = {
+        "det_name": det_name,
+        "echan": echan,
+        "model_parameters": model_parameters,
+    }
+
+    url = f"{base_url}/api/transients/date/{date:%y%m%d}/bkg_fit/"
+
+    # set a flag to kill the job
+    flag = True
+
+    # the time spent waiting so far
+    time_spent = 0  # seconds
+
+    while flag:
+
+        # try to download the file
+        try:
+
+            response = requests.post(
+                url=url, data=json.dumps(payload), headers=headers, verify=True
+            )
+            if response.status_code == 201:
+                print("Uploaded new bkg fit result")
+                # kill the loop
+                flag = False
+
+            elif response.status_code == 401:
+                raise UnauthorizedRequest("The authentication token is not valid")
+
+            else:
+                raise UnexpectedStatusCode(
+                    f"Request returned unexpected status {response.status_code} with message {response.text}"
+                )
+
+        except UnauthorizedRequest as e:
+            raise e
+
+        except Exception as e:
+
+            print(e)
+
+            # ok, we have not uploaded the transient yet
+
+            # see if we should still wait for the upload
+
+            if time_spent >= max_time:
+
+                # we are out of time so give up
+
+                raise UploadFailed("The max time has been exceeded!")
+
+            else:
+
+                # ok, let's sleep for a bit and then check again
+
+                time.sleep(wait_time)
+
+                # up date the time we have left
+
+                time_spent += wait_time
+        else:
+
+            print(f"Response {response.status_code} at {url}: {response.text}")
+    return report

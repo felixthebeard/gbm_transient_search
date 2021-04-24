@@ -763,7 +763,7 @@ class RunBalrogRemote(luigi.Task):
 
             if self.remote_output()["success"].exists():
 
-                os.system("touch {self.output()['success'].path}")
+                os.system(f"touch {self.output()['success'].path}")
 
                 return True
 

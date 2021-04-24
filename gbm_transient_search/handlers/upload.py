@@ -26,7 +26,9 @@ from gbm_transient_search.utils.upload_utils import (
     upload_date_plot,
     upload_plot,
     upload_transient_report,
+    upload_bkg_fit_report,
 )
+from gbm_transient_search.utils.parse_fit_params import parse_bkg_fit_params
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
 base_dir = os.path.join(get_env_value("GBMDATA"), "bkg_pipe")
@@ -821,6 +823,68 @@ class UploadBkgPerformancePlots(luigi.Task):
                             ),
                             det_name=f"{', '.join(task.detectors)}",
                             echan=f"{', '.join(task.echans)}",
+                        )
+
+        if_dir_containing_file_not_existing_then_make(self.output().path)
+
+        os.system(f"touch {self.output().path}")
+
+
+class UploadBkgFitResult(luigi.Task):
+    date = luigi.DateParameter()
+    data_type = luigi.Parameter()
+    remote_host = luigi.Parameter()
+    step = luigi.Parameter()
+
+    def requires(self):
+        return BkgModelPlots(
+            date=self.date,
+            data_type=self.data_type,
+            remote_host=self.remote_host,
+            step=self.step,
+        )
+
+    def output(self):
+        return luigi.LocalTarget(
+            os.path.join(
+                base_dir,
+                f"{self.date:%y%m%d}",
+                self.data_type,
+                self.step,
+                "upload",
+                "upload_bkg_fit_results.done",
+            )
+        )
+
+    def run(self):
+        for task_name, task in self.requires().requires().items():
+
+            if "result_plot" in task_name:
+
+                with task.output()["summary"].open("r") as f:
+                    bkg_fit_params = yaml.safe_load(f)
+
+                model_parameters = parse_bkg_fit_params(
+                    bkg_fit_params, dets=task.detectors, echans=task.echans
+                )
+
+                for det in task.detectors:
+                    for e in task.echans:
+                        upload_bkg_fit_report(
+                            date=self.date,
+                            det_name=det,
+                            echan=e,
+                            model_parameters=model_parameters[det][e],
+                            wait_time=float(
+                                gbm_transient_search_config["upload"]["report"][
+                                    "interval"
+                                ]
+                            ),
+                            max_time=float(
+                                gbm_transient_search_config["upload"]["report"][
+                                    "max_time"
+                                ]
+                            ),
                         )
 
         if_dir_containing_file_not_existing_then_make(self.output().path)

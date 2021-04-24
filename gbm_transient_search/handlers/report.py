@@ -15,6 +15,7 @@ from gbm_transient_search.handlers.upload import (
     UploadBkgResultPlots,
     UploadTriggers,
     UploadBkgPerformancePlots,
+    UploadBkgFitResult,
 )
 from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
@@ -130,6 +131,12 @@ class CreateReportDate(luigi.Task):
                 step="base",
             ),
             "bkg_model_plots_base": BkgModelPlots(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=run_host,
+                step="base",
+            ),
+            "upload_bkg_fit_result": UploadBkgFitResult(
                 date=self.date,
                 data_type=self.data_type,
                 remote_host=run_host,

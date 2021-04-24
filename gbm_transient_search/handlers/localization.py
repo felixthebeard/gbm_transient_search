@@ -763,7 +763,8 @@ class RunBalrogRemote(luigi.Task):
 
             if self.remote_output()["success"].exists():
 
-                os.system(f"touch {self.output()['success'].path}")
+                with self.output()["success"].open("w") as outfile:
+                    outfile.write("success")
 
                 return True
 

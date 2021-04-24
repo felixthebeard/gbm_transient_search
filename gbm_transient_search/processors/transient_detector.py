@@ -564,7 +564,7 @@ class TransientDetector(object):
             date_str = gbm_time.time.datetime.strftime("%y%m%d")
             day_fraction = f"{round(gbm_time.time.mjd % 1, 3):.3f}"[2:]
 
-            trigger_name = f"TRG{date_str}{day_fraction}"
+            trigger_name = f"GRT{date_str}{day_fraction}"
             sig = self.trigger_significances.tolist()[i]
             max_det = self.trigger_most_sig_det.tolist()[i]
 

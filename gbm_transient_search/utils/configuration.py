@@ -54,7 +54,7 @@ structure["phys_bkg"] = dict(
     multinest=dict(
         n_cores=4, path_to_python="/home/fkunzwei/data1/envs/bkg_pipe/bin/python"
     ),
-    timeout=2 * 60 * 60,  # 1 hour
+    timeout=4 * 60 * 60,  # 1 hour
 )
 
 structure["transient_detection"] = dict(

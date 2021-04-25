@@ -263,7 +263,7 @@ class CopyResults(BkgModelTask):
 
 
 class RunPhysBkgModel(BkgModelTask):
-    result_timeout = 2 * 60 * 60
+    result_timeout = gbm_transient_search_config["phys_bkg"]["timeout"]
 
     resources = {"ssh_connections": 1}
 
@@ -442,7 +442,7 @@ class RunPhysBkgModel(BkgModelTask):
         # the time spent waiting so far
         time_spent = 0  # seconds
         wait_time = 5 * 60
-        max_time = 2 * 60 * 60
+        max_time = gbm_transient_search_config["phys_bkg"]["timeout"]
 
         # Sleep for 20 mins initially and add random sleep to avoid multiple bkg fits
         # querying at the same time

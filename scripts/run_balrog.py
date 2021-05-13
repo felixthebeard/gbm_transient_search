@@ -301,8 +301,13 @@ class BalrogFit(object):
         """
         print(self._model.parameters)
         print(self._model.free_parameters)
+
         # define bayes object with model and data_list
         self._bayes = BayesianAnalysis(self._model, self._data_list)
+
+        # wrap for ra angle
+        wrap = [0] * len(self._model.free_parameters)
+        wrap[0] = 1
 
         # Create the chains directory
         chains_dir, self._temp_chains_dir = self._create_chains_dir()
@@ -311,7 +316,12 @@ class BalrogFit(object):
 
         self._bayes.set_sampler("multinest", share_spectrum=True)
 
-        self._bayes.sampler.setup(n_live_points=800, chain_name=chains_path)
+        self._bayes.sampler.setup(
+            n_live_points=800,
+            chain_name=chains_path,
+            wrapped_params=wrap,
+            verbose=True,
+        )
 
         _ = self._bayes.sample()
 

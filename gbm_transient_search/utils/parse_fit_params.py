@@ -9,7 +9,7 @@ def parse_bkg_fit_params(bkg_fit_params, dets, echans):
         for e in echans:
             params[d][e] = []
 
-    for (param_name, param) in param_info.items():
+    for (param_name, param) in bkg_fit_params.items():
 
         normalization = re.search("^norm", param_name) is not None
 

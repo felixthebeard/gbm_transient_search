@@ -114,10 +114,7 @@ class TransientDetector(object):
         )
 
         self._counts_cleaned_total = {
-            det: (
-                self._observed_counts_total[det][self._rebinned_saa_mask]
-                - self._bkg_counts_total[det][self._rebinned_saa_mask]
-            )
+            det: (self._observed_counts_total[det] - self._bkg_counts_total[det])
             for det in self._detectors
         }
 

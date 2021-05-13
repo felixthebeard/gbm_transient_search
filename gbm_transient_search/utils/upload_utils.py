@@ -617,6 +617,7 @@ def upload_bkg_fit_report(
 ):
     headers = {
         "Authorization": "Token {}".format(auth_token),
+        "Content-Type": "application/json",
     }
 
     payload = {
@@ -683,4 +684,3 @@ def upload_bkg_fit_report(
         else:
 
             print(f"Response {response.status_code} at {url}: {response.text}")
-    return report

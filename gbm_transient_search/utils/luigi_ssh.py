@@ -1,16 +1,19 @@
-import subprocess
-import os
 import logging
-import time
+import os
 import random
-import numpy as np
+import subprocess
+import time
+
 import luigi.format
+import numpy as np
+import slack
+from gbm_transient_search.utils.configuration import gbm_transient_search_config
+from loguru import logger
 from luigi.contrib.ssh import RemoteCalledProcessError
 from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
 from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
-from gbm_transient_search.utils.configuration import gbm_transient_search_config
 
 socket_base_path = gbm_transient_search_config["ssh"].get(
     "master_socket_base_path", None
@@ -20,6 +23,16 @@ max_connections = gbm_transient_search_config["ssh"]["connection_limit_per_socke
 
 sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)
 sleep_max = gbm_transient_search_config["ssh"].get("sleep_max", 0)
+
+
+slack_client = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
+
+
+def send_slack_message(msg):
+    try:
+        slack_client.chat_postMessage(channel="transient_detections", text=msg)
+    except Exception as e:
+        logger.exception(e)
 
 
 class RemoteContext(LuigiRemoteContext):
@@ -40,8 +53,15 @@ class RemoteContext(LuigiRemoteContext):
                     f"It has the be created manually."
                 )
         if len(sockets) < 1:
+            send_slack_message(
+                f"No open connection to {host_name} available, the pipeline on hold...",
+            )
             raise RuntimeError(
                 f"The {host_name} has no open socket! You have to create them manually."
+            )
+        elif len(sockets) < 2:
+            send_slack_message(
+                f"Only {len(sockets)} open connection to {host_name} available!",
             )
 
         return sockets
@@ -59,10 +79,6 @@ class RemoteContext(LuigiRemoteContext):
         )
 
         free_connections = max_connections - open_connections
-
-        logging.debug(
-            f"SSH sockets: {list(zip(self.master_socket_paths, open_connections))}"
-        )
 
         if len(np.where(free_connections > 0)[0]) < 1:
             raise RuntimeError("No master socket available with free connections.")

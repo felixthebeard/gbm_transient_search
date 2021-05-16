@@ -563,7 +563,7 @@ class TransientDetector(object):
             sig = self.trigger_significances.tolist()[i]
             max_det = self.trigger_most_sig_det.tolist()[i]
 
-            peak_time = self._trigger_peak_times[i] - t0
+            peak_time = self.trigger_peak_times[i] - t0
             tstart = self._rebinned_mean_time[self.trigger_intervals[i]][0].tolist()
             tstop = self._rebinned_mean_time[self.trigger_intervals[i]][1].tolist()
 

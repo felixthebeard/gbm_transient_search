@@ -515,7 +515,7 @@ class CopyRemoteBalrogResult(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1, "ssh_connections": 1}
+    resources = {"ssh_connections": 1}
 
     @property
     def priority(self):
@@ -601,7 +601,7 @@ class RunBalrogRemote(luigi.Task):
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
-    resources = {"cpu": 1, "ssh_connections": 1}
+    resources = {"ssh_connections": 1}
 
     @property
     def priority(self):

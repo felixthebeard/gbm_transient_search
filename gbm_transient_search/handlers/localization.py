@@ -446,7 +446,6 @@ class RunBalrog(ExternalProgramTask):
 class CopyTriggerFilesToRemote(luigi.Task):
     date = luigi.DateParameter()
     data_type = luigi.Parameter(default="ctime")
-    trigger_name = luigi.Parameter()
     remote_host = luigi.Parameter()
     step = luigi.Parameter()
 
@@ -468,7 +467,6 @@ class CopyTriggerFilesToRemote(luigi.Task):
             self.data_type,
             self.step,
             "trigger",
-            self.trigger_name,
         )
 
     @property
@@ -479,7 +477,6 @@ class CopyTriggerFilesToRemote(luigi.Task):
             self.data_type,
             self.step,
             "trigger",
-            self.trigger_name,
         )
 
     def requires(self):
@@ -499,41 +496,21 @@ class CopyTriggerFilesToRemote(luigi.Task):
 
     def remote_output(self):
         return dict(
-            pha_dir=RemoteTarget(
+            trigger_dir=RemoteTarget(
                 os.path.join(
                     self.remote_job_dir,
-                    "pha",
                 ),
                 host=self.remote_host,
                 username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                # sshpass=True,
-            ),
-            trigger_info=RemoteTarget(
-                os.path.join(
-                    self.remote_job_dir,
-                    f"trigger_info.yml",
-                ),
-                host=self.remote_host,
-                username=remote_hosts_config["hosts"][self.remote_host]["username"],
-                # sshpass=True,
             ),
         )
 
     def run(self):
-        local_pha_dir = luigi.LocalTarget(os.path.join(self.job_dir, "pha"))
-        if local_pha_dir.exists():
-            self.remote_output()["pha_dir"].put(local_pha_dir.path)
+        local_trigger_dir = luigi.LocalTarget(self.job_dir)
+        if local_trigger_dir.exists():
+            self.remote_output()["trigger_dir"].put(local_trigger_dir.path)
         else:
-            raise Exception(f"Local pha dir {local_pha_dir.path} is missing.")
-
-        local_trigger_info = luigi.LocalTarget(
-            os.path.join(self.job_dir, "trigger_info.yml")
-        )
-
-        if local_trigger_info.exists():
-            self.remote_output()["trigger_info"].put(local_trigger_info.path)
-        else:
-            raise Exception(f"Local pha dir {local_trigger_info.path} is missing.")
+            raise Exception(f"Local trigger dir {local_trigger_dir.path} is missing.")
 
         os.system(f"touch {self.output()['success'].path}")
 
@@ -850,6 +827,12 @@ class RunBalrogTasksRemote(luigi.Task):
                 remote_host=self.remote_host,
                 step=self.step,
             ),
+            trigger_dir=CopyTriggerFilesToRemote(
+                date=self.date,
+                data_type=self.data_type,
+                remote_host=self.remote_host,
+                step=self.step,
+            ),
         )
         for det in _valid_gbm_detectors:
             requires[f"data_{det}"] = DownloadData(
@@ -893,23 +876,6 @@ class RunBalrogTasksRemote(luigi.Task):
         return output
 
     def run(self):
-
-        with self.input()["setup_loc"]["trigger_information"].open("r") as f:
-
-            trigger_information = yaml.safe_load(f)
-
-        trigger_files = {}
-
-        for t_info in trigger_information.values():
-            trigger_files[t_info["trigger_name"]] = CopyTriggerFilesToRemote(
-                date=self.date,
-                data_type=self.data_type,
-                trigger_name=t_info["trigger_name"],
-                remote_host=self.remote_host,
-                step=self.step,
-            )
-
-        yield trigger_files
 
         remote_trigger_information = RemoteTarget(
             os.path.join(

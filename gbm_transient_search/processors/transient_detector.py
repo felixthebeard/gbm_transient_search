@@ -711,12 +711,12 @@ def segment_disjoint_idx(arr):
     counter = 0
     for i in range(len(arr) - 1):
         if arr[i + 1][0] > arr[i][1]:
-            end_idx = i
+            end_idx = i + 1
             slices.append([start_idx, end_idx])
-            start_idx = i
+            start_idx = i + 1
             counter += 1
     if counter == 0:
         return [[0, len(arr) - 1]]
-    if end_idx != len(arr) - 1:
-        slices.append([start_idx, len(arr) - 1])
+    if end_idx != len(arr):
+        slices.append([start_idx, len(arr)])
     return slices

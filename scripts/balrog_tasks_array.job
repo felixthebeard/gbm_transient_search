@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH -J balrog_loc
-#SBATCH --array=1-8
+#SBATCH --array=0-8
 #
 # Number of nodes and MPI tasks per node
 #SBATCH --nodes=1

@@ -787,7 +787,7 @@ class RunBalrogTasksRemote(luigi.Task):
         if self.date >= yesterday:
             return 10
         else:
-            return 1
+            return 2
 
     @property
     def job_dir(self):

@@ -271,6 +271,14 @@ class RunPhysBkgModel(BkgModelTask):
     def retry_count(self):
         return 4
 
+    @property
+    def priority(self):
+        yesterday = dt.date.today() - timedelta(days=1)
+        if self.date >= yesterday:
+            return 10
+        else:
+            return 2
+
     def requires(self):
         requires = {
             "config": CreateBkgConfig(

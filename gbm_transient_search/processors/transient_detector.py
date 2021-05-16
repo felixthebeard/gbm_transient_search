@@ -1,4 +1,5 @@
 import copy
+from copy import deepcopy
 from datetime import datetime
 
 import h5py
@@ -7,14 +8,11 @@ import pytz
 import ruptures as rpt
 import yaml
 from astropy.io import fits
-from astropy.stats import bayesian_blocks
 from gbm_transient_search.processors.saa_calc import SaaCalc
 from gbm_transient_search.utils.plotting.trigger_plot import TriggerPlot
 from gbmbkgpy.utils.binner import Rebinner
 from gbmgeometry import GBMTime
-
-from copy import deepcopy
-
+from loguru import logger
 from pathos.multiprocessing import cpu_count
 from pathos.pools import ProcessPool as Pool
 from scipy import stats
@@ -65,29 +63,33 @@ class TransientDetector(object):
         min_size=1,
         jump=1,
         model="l2",
-        min_significance=5,
-        min_dets_significance=5,
-        nr_dets=2,
+        min_significance_brightest=5,
+        min_significance_others=5,
+        min_significant_dets=2,
+        max_significant_dets=2,
     ):
         """
         min_separation: Minimal separation (in bins) between the change points in angles and distnaces.
         min_size: Minimal separation (in bins) between changepoints.
         jump: Subsampling of time series.
         model: Model for the cost function.
-        min_significance: Required significance for the brightest detector.
-        min_dets_significance: Required significance for other detectors,
-        nr_dets: Number of detectors required to be significant
+        min_significance_brightest: Required significance for the brightest detector.
+        min_significance_others: Required significance for other detectors,
+        min_significant_dets: Min number of detectors required to be significant
+        max_significant_dets: Max number of detectors allowed to be significant
         """
         self._detect_changepoints(
             min_separation=min_separation, min_size=min_size, jump=jump, model=model
         )
         self._calc_significances()
-        self._apply_threshold_significance(required_significance=min_significance)
+        self._apply_threshold_significance(
+            significance_brightest=min_significance_brightest,
+            significance_others=min_significance_others,
+            min_dets=min_significant_dets,
+            max_dets=max_significant_dets,
+        )
         self._select_intervals()
         self._find_peak_times()
-        self._apply_multi_det_threshold(
-            nr_dets=nr_dets, required_significance=min_dets_significance
-        )
         self._create_result_dict()
 
     def _setup(self):
@@ -365,106 +367,91 @@ class TransientDetector(object):
 
     def _calc_significances(self):
         """
-        Combine two arbitrary changepoints to a source interval and calculate the significance.
-        This is treating each section (between SAA passages) individually.
+        Calculate the significance of the interval between two subsequent change points.
+        Treat the sections between SAA passages individually to not have intervals spanning
+        over long dead times.
         """
 
-        intervals = {}
-        significances = {}
+        intervals = []
 
-        for det in self._detectors:
-            intervals[det] = []
-            significances[det] = []
+        for cpts_segment in self._change_points_all:
+            intervals_segment = list(zip(cpts_segment[:-1], cpts_segment[1:]))
+            intervals.extend(intervals_segment)
 
-            for cpts_segment in self._change_points_all:
+        n = len(intervals)
+        counts = np.empty(n)
+        bkg_counts = np.empty(n)
+        bkg_errs = np.empty(n)
 
-                n = cpts_segment.shape[0] - 1
-                counts = np.empty(n)
-                bkg_counts = np.empty(n)
-                bkg_errs = np.empty(n)
+        significances = np.zeros((len(intervals), len(self._detectors)))
 
-                intervals_segment = list(zip(cpts_segment[:-1], cpts_segment[1:]))
+        for det_idx, det in enumerate(self._detectors):
 
-                for i, (a, b) in enumerate(intervals_segment):
+            for i, (a, b) in enumerate(intervals):
 
-                    counts[i] = self._observed_counts_total[det][a:b].sum()
-                    bkg_counts[i] = self._bkg_counts_total[det][a:b].sum()
-                    bkg_errs[i] = np.sqrt(
-                        np.sum(self._bkg_stat_err_total[det][a:b] ** 2)
-                    )
+                counts[i] = self._observed_counts_total[det][a:b].sum()
+                bkg_counts[i] = self._bkg_counts_total[det][a:b].sum()
+                bkg_errs[i] = np.sqrt(np.sum(self._bkg_stat_err_total[det][a:b] ** 2))
 
-                sig = Significance(counts, bkg_counts)
-                significances[det].extend(
-                    sig.li_and_ma_equivalent_for_gaussian_background(bkg_errs)
-                )
-                intervals[det].extend(intervals_segment)
+            sig = Significance(counts, bkg_counts)
+            significances[
+                :, det_idx
+            ] = sig.li_and_ma_equivalent_for_gaussian_background(bkg_errs)
 
-            intervals[det] = np.array(intervals[det])
-            significances[det] = np.array(significances[det])
-
-        self._intervals_all = intervals
+        self._intervals_all = np.array(intervals)
         self._significances_all = significances
 
-    def _apply_threshold_significance(self, required_significance=5):
+    def _apply_threshold_significance(
+        self, significance_brightest=5, significance_others=2, min_dets=2, max_dets=10
+    ):
         """
         Apply threshold to the significance of an interval.
         """
-        intervals = {}
-        significances = {}
+        nr_dets_brightest = np.sum(
+            self._significances_all > significance_brightest, axis=1
+        )
+        nr_dets_others = np.sum(self._significances_all > significance_others, axis=1)
 
-        for det in self._detectors:
+        valid_brightest = nr_dets_brightest >= 1
 
-            sig_interval_idx = np.where(
-                np.logical_and(
-                    ~np.isnan(self._significances_all[det]),
-                    self._significances_all[det] > required_significance,
-                )
-            )
+        valid_others = np.logical_and(
+            nr_dets_others >= min_dets, nr_dets_others <= max_dets
+        )
 
-            sort_idx = self._significances_all[det][sig_interval_idx].argsort()[::-1]
+        valid_idx = np.logical_and(valid_brightest, valid_others)
 
-            intervals[det] = self._intervals_all[det][sig_interval_idx][sort_idx]
-            significances[det] = self._significances_all[det][sig_interval_idx][
-                sort_idx
-            ]
-
-        self._intervals = intervals
-        self._significances = significances
+        self._intervals = self._intervals_all[valid_idx]
+        self._significances = self._significances_all[valid_idx]
 
     def _select_intervals(self):
-        # Get all intervals that are significant in at least one detector
-        all_intervals = []
-        for i, det in enumerate(self._detectors):
-            all_intervals.extend(self._intervals[det])
-
-        unique_intervals = np.unique(all_intervals, axis=0)
-
         # Get non-overlapping segments
-        trigger_intervals = segment_disjoint(unique_intervals)
+        trigger_intervals = segment_disjoint(self._intervals)
+        disjoint_segments_idx = segment_disjoint_idx(self._intervals)
 
-        # Fit the detector with the brightest (sub)-interval for each trigger_interval
         max_dets = []
         max_intervals = []
         max_significances = []
 
-        for inter in trigger_intervals:
+        # For each trigger interval find the detector with the brightest (sub)-interval
+        for seg_idx in disjoint_segments_idx:
+            sigs = self._significances[seg_idx[0] : seg_idx[1]]
+            max_sig = np.max(sigs)
+            int_idx, det_idx = np.where(sigs == max_sig)
 
-            max_det = None
-            max_inter = None
-            max_sig = 0
+            if int_idx.shape[0] != 1:
+                logger.error(
+                    "Found multiple intervals with the exact same significance"
+                )
+                int_idx = int_idx[0]
+            if det_idx.shape[0] != 1:
+                logger.error(
+                    "Found multiple detectors with the exact same significance"
+                )
+                det_idx = det_idx[0]
 
-            for det in self._detectors:
-                for i, (a, b) in enumerate(self._intervals[det]):
-                    if a >= inter[0] and b <= inter[1]:
-                        sig = self._significances[det][i]
-                        if sig > max_sig:
-                            max_sig = sig
-                            max_det = det
-                            max_inter = [a, b]
-
-            max_dets.append(max_det)
-            max_intervals.append(max_inter)
-            max_significances.append(max_sig)
+            max_dets.append(self._detectors[det_idx[0]])
+            max_intervals.append(self._intervals[int_idx[0]])
+            max_significances.append(self._significances[int_idx[0], det_idx[0]])
 
         self._trigger_intervals = np.array(trigger_intervals)
         self._max_dets = np.array(max_dets)
@@ -491,47 +478,25 @@ class TransientDetector(object):
         ]
         self._trigger_peak_times = np.array(trigger_peak_times)
 
-        self._significant_in_multiple_idx = np.ones(
-            len(self._max_intervals), dtype=bool
-        )
-
-    def _apply_multi_det_threshold(self, nr_dets=2, required_significance=2):
-
-        for i, max_inter in enumerate(self._max_intervals):
-
-            sig_dets = 0
-
-            for det in self._detectors:
-
-                idx = np.where(self._intervals_all[det] == max_inter)[0]
-
-                assert idx[0] == idx[1]
-                idx = idx[0]
-
-                if self._significances_all[det][idx] >= required_significance:
-                    sig_dets += 1
-
-            self._significant_in_multiple_idx[i] = sig_dets >= nr_dets
-
     @property
     def trigger_peak_times(self):
-        return self._trigger_peak_times[self._significant_in_multiple_idx]
+        return self._trigger_peak_times
 
     @property
     def trigger_times(self):
-        return self._trigger_times[self._significant_in_multiple_idx]
+        return self._trigger_times
 
     @property
     def trigger_significances(self):
-        return self._max_significances[self._significant_in_multiple_idx]
+        return self._max_significances
 
     @property
     def trigger_intervals(self):
-        return self._max_intervals[self._significant_in_multiple_idx]
+        return self._max_intervals
 
     @property
     def trigger_most_sig_det(self):
-        return self._max_dets[self._significant_in_multiple_idx]
+        return self._max_dets
 
     def _create_result_dict(self):
         """
@@ -713,8 +678,8 @@ def slice_disjoint(arr):
 
 def segment_disjoint(arr):
     """
-    Returns an array of disjoint indices from a bool array
-    :param arr: and array of bools
+    Returns an array of disjoint segments from an array of (overlapping) segments
+    :param arr: and array of segments
     """
     arr = np.sort(arr)
     slices = []
@@ -730,4 +695,26 @@ def segment_disjoint(arr):
         return arr
     if end_slice != arr[-1][1]:
         slices.append([start_slice, arr[-1][1]])
+    return slices
+
+
+def segment_disjoint_idx(arr):
+    """
+    Returns an array of start and end indexes from an array of (overlapping) segments
+    :param arr: and array of segments
+    """
+    arr = np.sort(arr)
+    slices = []
+    start_idx = 0
+    counter = 0
+    for i in range(len(arr) - 1):
+        if arr[i + 1][0] > arr[i][1]:
+            end_idx = i
+            slices.append([start_idx, end_idx])
+            start_idx = i
+            counter += 1
+    if counter == 0:
+        return [[0, len(arr) - 1]]
+    if end_idx != len(arr) - 1:
+        slices.append([start_idx, len(arr) - 1])
     return slices

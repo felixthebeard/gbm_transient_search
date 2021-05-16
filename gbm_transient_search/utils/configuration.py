@@ -60,9 +60,10 @@ structure["phys_bkg"] = dict(
 structure["transient_detection"] = dict(
     min_separation=5,
     model="l2",
-    min_significance=5,
-    min_dets_significance=5,
-    nr_dets=2,
+    min_significance_brightes=5,
+    min_dets_significance_others=5,
+    min_sgnificant_dets=2,
+    max_sgnificant_dets=8,
 )
 
 structure["balrog"] = dict(

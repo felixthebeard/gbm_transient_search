@@ -78,9 +78,10 @@ class TransientSearch(luigi.Task):
         transient_detector.run(
             min_separation=td_conf["min_separation"],
             model=td_conf["model"],
-            min_significance=td_conf["min_significance"],
-            min_dets_significance=td_conf["min_dets_significance"],
-            nr_dets=td_conf["nr_dets"],
+            min_significance_brightest=td_conf["min_significance_brightest"],
+            min_significance_others=td_conf["min_significance_others"],
+            min_significant_dets=td_conf["min_significant_dets"],
+            max_significant_dets=td_conf["max_significant_dets"],
         )
 
         transient_detector.plot_results(plot_dir)

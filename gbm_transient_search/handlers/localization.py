@@ -751,11 +751,13 @@ class RunBalrogRemote(luigi.Task):
                     status = status.decode()
 
                     if not str(job_id) in status:
+
                         # Remove the job_id file to allow for rerun.
-                        if os.path.exists(
-                            self.input()["balrog_remote_tasks"]["job_id"].path
-                        ):
-                            self.input()["balrog_remote_tasks"]["job_id"].remove()
+                        # if os.path.exists(
+                        #     self.input()["balrog_remote_tasks"]["job_id"].path
+                        # ):
+                        #     self.input()["balrog_remote_tasks"]["job_id"].remove()
+
                         raise Exception(f"The job {job_id} did fail, kill task.")
 
                     for line in status.split("\n"):

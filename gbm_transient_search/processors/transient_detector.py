@@ -435,6 +435,8 @@ class TransientDetector(object):
         # For each trigger interval find the detector with the brightest (sub)-interval
         for seg_idx in disjoint_segments_idx:
             sigs = self._significances[seg_idx[0] : seg_idx[1]]
+            ints = self._intervals[seg_idx[0] : seg_idx[1]]
+
             max_sig = np.max(sigs)
             int_idx, det_idx = np.where(sigs == max_sig)
 
@@ -450,8 +452,8 @@ class TransientDetector(object):
                 det_idx = det_idx[0]
 
             max_dets.append(self._detectors[det_idx[0]])
-            max_intervals.append(self._intervals[int_idx[0]])
-            max_significances.append(self._significances[int_idx[0], det_idx[0]])
+            max_intervals.append(ints[int_idx[0]])
+            max_significances.append(max_sig)
 
         self._trigger_intervals = np.array(trigger_intervals)
         self._max_dets = np.array(max_dets)

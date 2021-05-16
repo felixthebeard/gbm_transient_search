@@ -489,15 +489,13 @@ class TransientDetector(object):
         self._trigger_times = self._rebinned_time_bins[self._rebinned_saa_mask][
             self._max_intervals[:, 0], 0
         ]
-        self._trigger_peak_times = trigger_peak_times
+        self._trigger_peak_times = np.array(trigger_peak_times)
 
         self._significant_in_multiple_idx = np.ones(
             len(self._max_intervals), dtype=bool
         )
 
     def _apply_multi_det_threshold(self, nr_dets=2, required_significance=2):
-
-        self._significant_in_multiple_idx = []
 
         for i, max_inter in enumerate(self._max_intervals):
 
@@ -513,7 +511,7 @@ class TransientDetector(object):
                 if self._significances_all[det][idx] >= required_significance:
                     sig_dets += 1
 
-            self._significant_in_multiple_idx.append(sig_dets >= nr_dets)
+            self._significant_in_multiple_idx[i] = sig_dets >= nr_dets
 
     @property
     def trigger_peak_times(self):

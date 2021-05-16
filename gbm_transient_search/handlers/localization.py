@@ -310,13 +310,6 @@ class ProcessLocalizationResult(luigi.Task):
                     remote_host=self.remote_host,
                     step=self.step,
                 ),
-                copy_trigger_files=CopyTriggerFilesToRemote(
-                    date=self.date,
-                    data_type=self.data_type,
-                    trigger_name=self.trigger_name,
-                    remote_host=self.remote_host,
-                    step=self.step,
-                ),
             )
         else:
             raise Exception("Unkown balrog run destination")

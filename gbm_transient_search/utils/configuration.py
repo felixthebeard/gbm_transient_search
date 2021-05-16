@@ -40,7 +40,7 @@ structure["ssh"] = dict(
     nr_sockets=3,
     connection_limit_per_socket=8,
     sleep_min=1,
-    sleep_max=30,
+    sleep_max=100,
 )
 
 structure["download"] = dict(
@@ -62,7 +62,7 @@ structure["transient_detection"] = dict(
     model="l2",
     min_significance_brightest=5,
     min_significance_others=5,
-    min_significant_dets=2,
+    min_significant_dets=3,
     max_significant_dets=8,
 )
 

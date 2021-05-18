@@ -168,8 +168,6 @@ class RemoteContext(LuigiRemoteContext):
         except Exception as e:
             print(e)
 
-        _ = super().check_output(["exit"])
-
         # Decrease the number of connections by 1
         self.cache.decr(self._connections_socket, default=1)
         logger.debug(

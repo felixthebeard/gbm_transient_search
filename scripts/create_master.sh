@@ -12,6 +12,8 @@ fi
 host=$1
 nr_hosts=$2
 
+rm -rf ~/.ssh/master-socket/connection_cache/*
+
 for i in $(seq 1 $(($nr_hosts)) ) ; do
     ssh -MNnv -S "~/.ssh/master-socket/$(whoami)@${host}_${i}:22" $host
 done

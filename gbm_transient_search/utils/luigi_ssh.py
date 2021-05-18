@@ -107,6 +107,8 @@ class RemoteContext(LuigiRemoteContext):
             ]
         )
 
+        logger.debug(f"Total open connections: {open_connections.sum()}")
+
         free_connections = max_connections - open_connections
 
         if len(np.where(free_connections > 0)[0]) < 1:
@@ -121,7 +123,6 @@ class RemoteContext(LuigiRemoteContext):
 
         # Store the cache name as attribute
         self.socket_connections_key = f"connections_{socket}"
-        self.incr_connections()
 
         return socket
 
@@ -163,6 +164,8 @@ class RemoteContext(LuigiRemoteContext):
         return connection_cmd + cmd
 
     def check_output(self, cmd):
+        self.incr_connections()
+
         p = self.Popen(cmd, stdout=subprocess.PIPE)
 
         output, _ = p.communicate()
@@ -209,9 +212,12 @@ class RemoteFileSystem(LuigiRemoteFileSystem):
             cmd.extend(["-r"])
         cmd.extend([src, dest])
 
+        self.remote_context.incr_connections()
+
         p = subprocess.Popen(cmd)
         output, _ = p.communicate()
         if p.returncode != 0:
+            self.remote_context.decr_connections()
             raise subprocess.CalledProcessError(p.returncode, cmd, output=output)
 
         self.remote_context.decr_connections()

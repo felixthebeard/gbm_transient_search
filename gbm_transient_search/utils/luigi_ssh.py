@@ -7,6 +7,7 @@ import time
 import luigi.format
 import numpy as np
 import slack
+from diskcache import Cache
 from gbm_transient_search.utils.configuration import gbm_transient_search_config
 from loguru import logger
 from luigi.contrib.ssh import RemoteCalledProcessError
@@ -14,7 +15,6 @@ from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
 from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
-from diskcache import Cache
 
 socket_base_path = gbm_transient_search_config["ssh"].get(
     "master_socket_base_path", None
@@ -87,6 +87,18 @@ class RemoteContext(LuigiRemoteContext):
     def check_nr_of_channels_cache(self, master_socket):
         return self.cache.get(f"connections_{master_socket}")
 
+    def incr_connections(self):
+        # Store the cache name as attribute and increase the number of connections by 1
+        con_key = self.socket_connections_key
+        nr_cons = self.cache.incr(con_key, default=0)
+        logger.debug(f"{con_key} has: {nr_cons} (start)")
+
+    def decr_connections(self):
+        # Decrease the number of connections by 1
+        con_key = self.socket_connections_key
+        nr_cons = self.cache.decr(con_key)
+        logger.debug(f"{con_key} has: {nr_cons} (stop)")
+
     def get_free_socket(self):
         open_connections = np.array(
             [
@@ -107,12 +119,9 @@ class RemoteContext(LuigiRemoteContext):
         # Sample from list of master sockets
         socket = np.random.choice(self.master_socket_paths, p=prob)
 
-        # Store the cache name as attribute and increase the number of connections by 1
-        self._connections_socket = f"connections_{socket}"
-        self.cache.incr(self._connections_socket, default=0)
-        logger.debug(
-            f"{self._connections_socket} has: {self.cache.get(self._connections_socket)} (start)"
-        )
+        # Store the cache name as attribute
+        self.socket_connections_key = f"connections_{socket}"
+        self.incr_connections()
 
         return socket
 
@@ -159,8 +168,7 @@ class RemoteContext(LuigiRemoteContext):
         output, _ = p.communicate()
 
         if p.returncode != 0:
-            # Decrease the number of connections by 1
-            self.cache.decr(self._connections_socket, default=1)
+            self.decr_connections()
             raise RemoteCalledProcessError(p.returncode, cmd, self.host, output=output)
 
         try:
@@ -168,11 +176,7 @@ class RemoteContext(LuigiRemoteContext):
         except Exception as e:
             print(e)
 
-        # Decrease the number of connections by 1
-        self.cache.decr(self._connections_socket, default=1)
-        logger.debug(
-            f"{self._connections_socket} has: {self.cache.get(self._connections_socket)} (stop)"
-        )
+        self.decr_connections()
         return output
 
 
@@ -205,7 +209,12 @@ class RemoteFileSystem(LuigiRemoteFileSystem):
             cmd.extend(["-r"])
         cmd.extend([src, dest])
 
-        self.remote_context.check_output(cmd)
+        p = subprocess.Popen(cmd)
+        output, _ = p.communicate()
+        if p.returncode != 0:
+            raise subprocess.CalledProcessError(p.returncode, cmd, output=output)
+
+        self.remote_context.decr_connections()
 
 
 class RemoteTarget(LuigiRemoteTarget):

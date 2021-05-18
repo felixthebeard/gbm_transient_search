@@ -110,6 +110,9 @@ class RemoteContext(LuigiRemoteContext):
         # Store the cache name as attribute and increase the number of connections by 1
         self._connections_socket = f"connections_{socket}"
         self.cache.incr(self._connections_socket, default=0)
+        logger.debug(
+            f"{self._connections_socket} has: {self.cache.get(self._connections_socket)} (start)"
+        )
 
         return socket
 
@@ -169,6 +172,9 @@ class RemoteContext(LuigiRemoteContext):
 
         # Decrease the number of connections by 1
         self.cache.decr(self._connections_socket, default=1)
+        logger.debug(
+            f"{self._connections_socket} has: {self.cache.get(self._connections_socket)} (stop)"
+        )
         return output
 
 

@@ -14,6 +14,7 @@ from luigi.contrib.ssh import RemoteContext as LuigiRemoteContext
 from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
+from diskcache import Cache
 
 socket_base_path = gbm_transient_search_config["ssh"].get(
     "master_socket_base_path", None
@@ -23,6 +24,7 @@ max_connections = gbm_transient_search_config["ssh"]["connection_limit_per_socke
 
 sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)
 sleep_max = gbm_transient_search_config["ssh"].get("sleep_max", 0)
+connection_cache_dir = gbm_transient_search_config["ssh"]["connection_cache_dir"]
 
 
 slack_client = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
@@ -30,12 +32,15 @@ slack_client = slack.WebClient(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 def send_slack_message(msg):
     try:
-        slack_client.chat_postMessage(channel="transient_detections", text=msg)
+        logger.critical(msg)
+        # slack_client.chat_postMessage(channel="transient_detections", text=msg)
     except Exception as e:
         logger.exception(e)
 
 
 class RemoteContext(LuigiRemoteContext):
+    cache = Cache(connection_cache_dir)
+
     @property
     def master_socket_paths(self):
         sockets = []
@@ -47,7 +52,13 @@ class RemoteContext(LuigiRemoteContext):
             if os.path.exists(socket_path):
                 sockets.append(socket_path)
 
+                if self.cache.get(f"connections_{socket_path}") is None:
+                    self.cache.set(f"connections_{socket_path}", 0)
+
             else:
+
+                self.cache.pop(f"connections_{socket_path}")
+
                 logging.error(
                     f"The master socket path is not existing at {socket_path}."
                     f"It has the be created manually."
@@ -73,9 +84,15 @@ class RemoteContext(LuigiRemoteContext):
         nr_channels = int(output.strip(" \n"))
         return nr_channels
 
+    def check_nr_of_channels_cache(self, master_socket):
+        return self.cache.get(f"connections_{master_socket}")
+
     def get_free_socket(self):
         open_connections = np.array(
-            [self.check_nr_of_channels(socket) for socket in self.master_socket_paths]
+            [
+                self.check_nr_of_channels_cache(socket)
+                for socket in self.master_socket_paths
+            ]
         )
 
         free_connections = max_connections - open_connections
@@ -89,6 +106,10 @@ class RemoteContext(LuigiRemoteContext):
 
         # Sample from list of master sockets
         socket = np.random.choice(self.master_socket_paths, p=prob)
+
+        # Store the cache name as attribute and increase the number of connections by 1
+        self._connections_socket = f"connections_{socket}"
+        self.cache.incr(self._connections_socket, default=0)
 
         return socket
 
@@ -135,6 +156,8 @@ class RemoteContext(LuigiRemoteContext):
         output, _ = p.communicate()
 
         if p.returncode != 0:
+            # Decrease the number of connections by 1
+            self.cache.decr(self._connections_socket, default=1)
             raise RemoteCalledProcessError(p.returncode, cmd, self.host, output=output)
 
         try:
@@ -144,6 +167,8 @@ class RemoteContext(LuigiRemoteContext):
 
         _ = super().check_output(["exit"])
 
+        # Decrease the number of connections by 1
+        self.cache.decr(self._connections_socket, default=1)
         return output
 
 
@@ -175,10 +200,8 @@ class RemoteFileSystem(LuigiRemoteFileSystem):
         if os.path.isdir(src):
             cmd.extend(["-r"])
         cmd.extend([src, dest])
-        p = subprocess.Popen(cmd)
-        output, _ = p.communicate()
-        if p.returncode != 0:
-            raise subprocess.CalledProcessError(p.returncode, cmd, output=output)
+
+        self.remote_context.check_output(cmd)
 
 
 class RemoteTarget(LuigiRemoteTarget):

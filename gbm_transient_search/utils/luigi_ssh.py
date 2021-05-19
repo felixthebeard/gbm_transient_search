@@ -123,6 +123,7 @@ class RemoteContext(LuigiRemoteContext):
 
         # Store the cache name as attribute
         self.socket_connections_key = f"connections_{socket}"
+        self.incr_connections()
 
         return socket
 
@@ -164,7 +165,6 @@ class RemoteContext(LuigiRemoteContext):
         return connection_cmd + cmd
 
     def check_output(self, cmd):
-        self.incr_connections()
 
         p = self.Popen(cmd, stdout=subprocess.PIPE)
 
@@ -211,8 +211,6 @@ class RemoteFileSystem(LuigiRemoteFileSystem):
         if os.path.isdir(src):
             cmd.extend(["-r"])
         cmd.extend([src, dest])
-
-        self.remote_context.incr_connections()
 
         p = subprocess.Popen(cmd)
         output, _ = p.communicate()

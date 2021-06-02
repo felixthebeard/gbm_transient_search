@@ -3,7 +3,7 @@
 #SBATCH --partition=express
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=40
+#SBATCH --cpus-per-task=72
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=fkunzwei@mpe.mpg.de
 #SBATCH --time=04:00:00   # run time in h:m:s, up to 24h possible
@@ -23,3 +23,37 @@ CONFIG=$2
 echo "srun python ${HOME}/scripts/bkg_pipe/fit_background.py -c ${CONFIG} -dates ${DATE}"
 
 srun python ${HOME}/scripts/bkg_pipe/fit_background.py -c ${CONFIG} -dates ${DATE}
+
+
+#!/bin/bash -l
+#SBATCH -J gbm_bkg
+#SBATCH --partition=express
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=72
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=fkunzwei@mpe.mpg.de
+#SBATCH --time=4:00:00   # run time in h:m:s, up to 24h possible
+
+module purge
+export GBMDATA=/ptmp/fkunzwei/gbm_data
+
+# Settings for cobra
+# cpus-per-task = 40
+#module load gcc/9 impi mkl anaconda/3 mpi4py
+
+# Settings for raven
+# cpus-per-task = 71
+module load intel/19.1.3 impi/2019.9 anaconda/3/2020.02 mpi4py/3.0.3
+
+# avoid overbooking of the cores which might occur via NumPy/MKL threading
+export OMP_NUM_THREADS=1
+
+# date is passed as argument
+DATE=$1
+CONFIG=$2
+OUTDIR=$3
+
+echo "srun python ${HOME}/scripts/bkg_pipe/fit_background.py -c ${CONFIG} -dates ${DATE} -outdir ${OUTDIR}"
+
+srun python ${HOME}/scripts/bkg_pipe/fit_background.py -c ${CONFIG} -dates ${DATE} -outdir ${OUTDIR}

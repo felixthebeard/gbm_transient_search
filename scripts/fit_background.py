@@ -98,7 +98,9 @@ if not os.path.exists(stan_model_file):
 # Create Stan Model
 model = CmdStanModel(stan_file=stan_model_file, cpp_options={"STAN_THREADS": "TRUE"})
 
-n_cores_stan = 10
+# Cobra 10
+# raven 18
+n_cores_stan = 18
 
 # StanDataConstructor
 stan_data = StanDataConstructor(
@@ -117,8 +119,8 @@ stan_fit = model.sample(
     seed=int(np.random.rand() * 10000),
     parallel_chains=4,
     threads_per_chain=n_cores_stan,
-    iter_warmup=1200,
-    iter_sampling=300,
+    iter_warmup=5000,
+    iter_sampling=800,
     show_progress=True,
 )
 

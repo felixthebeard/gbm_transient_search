@@ -602,3 +602,5 @@ if __name__ == "__main__":
             )
             if rank == 0:
                 os.system(f"touch {success_file}")
+
+            del multinest_fit

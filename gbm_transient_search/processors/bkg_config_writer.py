@@ -6,13 +6,13 @@ import numpy as np
 from datetime import timedelta
 
 from gbmbkgpy.utils.select_pointsources import SelectPointsources
-from gbmbkgpy.io.package_data import get_path_of_data_file
 
 from gbm_transient_search.utils.configuration import gbm_transient_search_config
 from gbm_transient_search.utils.env import get_bool_env_value, get_env_value
 
 simulate = get_bool_env_value("BKG_PIPE_SIMULATE")
-base_dir = os.path.join(os.environ.get("GBMDATA"), "bkg_pipe")
+data_dir = os.environ.get("GBMDATA")
+base_dir = os.path.join(data_dir, "bkg_pipe")
 # bkg_source_setup = gbm_transient_search_config["phys_bkg"]["bkg_source_setup"]
 
 
@@ -134,11 +134,13 @@ class BkgConfigWriter(object):
                 update=False,
                 min_separation_angle=2.0,
             )
-            # write the new ps file in the package data folder
-            file_path = get_path_of_data_file(
-                "background_point_sources/", "point_sources_swift.dat"
+            # write the new ps file in the data folder
+            filepath_all = os.path.join(
+                data_dir,
+                "point_sources",
+                "ps_all_swift.dat"
             )
-            ps_select.write_psfile(file_path)
+            ps_select.write_all_psfile(filepath_all)
 
             ps_setup = {}
 

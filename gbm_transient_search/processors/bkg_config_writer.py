@@ -58,7 +58,7 @@ class BkgConfigWriter(object):
 
         # Load the default config file
         with open(config_path) as f:
-            self._config = yaml.load(f)
+            self._config = yaml.safe_load(f)
 
     def _update_general(self):
 

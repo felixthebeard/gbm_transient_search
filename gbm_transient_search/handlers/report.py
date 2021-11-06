@@ -49,7 +49,8 @@ class CreateReportDate(luigi.Task):
 
     def run(self):
         if self.remote_host == "default":
-            remote_hosts = list(remote_hosts_config["hosts"].values())
+            remote_host_names = remote_hosts_config["hosts"].get_child_names()
+            remote_hosts = [remote_hosts_config["hosts"][rh_name] for rh_name in remote_host_names]
 
             available_host_names = []
             available_hosts = []

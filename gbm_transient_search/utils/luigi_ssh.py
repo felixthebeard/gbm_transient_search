@@ -16,9 +16,7 @@ from luigi.contrib.ssh import RemoteFileSystem as LuigiRemoteFileSystem
 from luigi.contrib.ssh import RemoteTarget as LuigiRemoteTarget
 from luigi.target import FileSystemTarget
 
-socket_base_path = gbm_transient_search_config["ssh"].get(
-    "master_socket_base_path", None
-)
+socket_base_path = gbm_transient_search_config["ssh"]["master_socket_base_path"]
 nr_sockets = gbm_transient_search_config["ssh"]["nr_sockets"]
 max_connections = gbm_transient_search_config["ssh"]["connection_limit_per_socket"]
 

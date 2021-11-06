@@ -19,11 +19,11 @@ from luigi.target import FileSystemTarget
 socket_base_path = gbm_transient_search_config["ssh"].get(
     "master_socket_base_path", None
 )
-nr_sockets = gbm_transient_search_config["ssh"].get("nr_sockets", 1)
+nr_sockets = gbm_transient_search_config["ssh"]["nr_sockets"]
 max_connections = gbm_transient_search_config["ssh"]["connection_limit_per_socket"]
 
-sleep_min = gbm_transient_search_config["ssh"].get("sleep_min", 0)
-sleep_max = gbm_transient_search_config["ssh"].get("sleep_max", 0)
+sleep_min = gbm_transient_search_config["ssh"]["sleep_min"]
+sleep_max = gbm_transient_search_config["ssh"]["sleep_max"]
 connection_cache_dir = gbm_transient_search_config["ssh"]["connection_cache_dir"]
 
 

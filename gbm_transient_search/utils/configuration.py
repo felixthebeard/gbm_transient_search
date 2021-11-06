@@ -18,11 +18,14 @@ structure["remote_hosts_config"] = dict(
     hosts=dict(
         raven=dict(
             hostname="raven",
-            username="fkunzwei",
-            script_dir="/u/fkunzwei/scripts/bkg_pipe/",
-            base_dir="/ptmp/fkunzwei/gbm_data/bkg_pipe/",
-            data_dir="/ptmp/fkunzwei/gbm_data/",
+            username="gbmtrans",
+            script_dir="/u/gbmtrans/scripts/bkg_pipe/",
+            base_dir="/ptmp/gbmtrans/gbm_data/bkg_pipe/",
+            data_dir="/ptmp/gbmtrans/gbm_data/",
             job_limit=8,
+            free_capacity=8,
+            nr_queued_jobs=0
+            
         ),
         # cobra=dict(
         #     hostname="cobra",
@@ -36,8 +39,8 @@ structure["remote_hosts_config"] = dict(
 )
 
 structure["ssh"] = dict(
-    connection_cache_dir="/home/fkunzwei/.ssh/master-socket/connection_cache",
-    master_socket_base_path="/home/fkunzwei/.ssh/master-socket/",
+    connection_cache_dir="/home/balrog/.ssh/master-socket/connection_cache",
+    master_socket_base_path="/home/balrog/.ssh/master-socket/",
     nr_sockets=3,
     connection_limit_per_socket=8,
     sleep_min=1,
@@ -53,7 +56,7 @@ structure["data"] = dict(data_type="ctime", detectors=run_detectors, echans=run_
 structure["phys_bkg"] = dict(
     stan=dict(n_cores=16),
     multinest=dict(
-        n_cores=4, path_to_python="/home/fkunzwei/data1/envs/bkg_pipe/bin/python"
+        n_cores=4, path_to_python="/home/balrog/.venv/transient_search/bin/python"
     ),
     timeout=4 * 60 * 60,  # 1 hour
 )

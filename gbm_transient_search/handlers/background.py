@@ -165,14 +165,36 @@ class CreateBkgConfig(BkgModelTask):
         return requires
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(self.job_dir, "config_fit.yml"))
+        return dict(
+            config=luigi.LocalTarget(
+                os.path.join(self.job_dir, "config_fit.yml")
+            ),
+            ps_file=luigi.LocalTarget(
+                os.path.join(
+                    data_dir,
+                    "point_sources",
+                    "ps_all_swift.dat"
+                )
+            )
+        )
 
     def remote_output(self):
-        return RemoteTarget(
-            os.path.join(self.job_dir_remote, "config_fit.yml"),
-            host=self.remote_host,
-            username=remote_hosts_config["hosts"][self.remote_host]["username"],
-            # sshpass=True,
+        return dict(
+            config=RemoteTarget(
+                os.path.join(self.job_dir_remote, "config_fit.yml"),
+                host=self.remote_host,
+                username=remote_hosts_config["hosts"][self.remote_host]["username"],
+                # sshpass=True,
+            ),
+            ps_file=RemoteTarget(
+                os.path.join(
+                    remote_hosts_config["hosts"][self.remote_host]["data_dir"],
+                    "point_sources",
+                    "ps_all_swift.dat"
+                ),
+                host=self.remote_host,
+                username=remote_hosts_config["hosts"][self.remote_host]["username"],
+            )
         )
 
     def run(self):
@@ -186,12 +208,15 @@ class CreateBkgConfig(BkgModelTask):
         if self.step == "final":
             config_writer.mask_triggers(self.input()["transient_search"].path)
 
-        with self.remote_output().open("w") as outfile:
+        with self.remote_output()["config"].open("w") as outfile:
 
             yaml.dump(config_writer._config, outfile, default_flow_style=False)
 
         # Copy config file to local folder
-        self.remote_output().get(self.output().path)
+        self.remote_output()["config"].get(self.output()["config"].path)
+
+        # Copy ps file
+        self.remote_output()["ps_file"].put(self.output()["ps_file"].path)
 
 
 class CopyResults(BkgModelTask):

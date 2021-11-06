@@ -425,7 +425,7 @@ class RunPhysBkgModel(BkgModelTask):
             f"{self.job_dir_remote}",
             f"{script_path}",
             f"{self.date:%y%m%d}",
-            f"{self.requires()['config'].remote_output().path}",
+            f"{self.requires()['config'].remote_output()['config'].path}",
             f"{self.job_dir_remote}",
         ]
 
